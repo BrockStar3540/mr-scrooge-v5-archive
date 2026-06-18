@@ -5,7 +5,7 @@ Routes:
   GET /api/state   → live engine state JSON  (positions, tickets, events, account)
   GET /api/sysinfo → system metrics JSON     (CPU, RAM, services, logs)
 
-Start via start_dashboard(engine, port=8095) from main.py — runs in daemon thread.
+Start via start_dashboard(engine, port=8084) from main.py — runs in daemon thread.
 """
 from __future__ import annotations
 import http.server
@@ -209,16 +209,16 @@ def _sysinfo() -> dict:
     }
 
 
-def start_dashboard(engine: "Engine", port: int = 8095) -> None:
+def start_dashboard(engine: "Engine", port: int = 8084) -> None:
     """Start the dashboard HTTP server in a background daemon thread."""
 
     def handler_factory(*args, **kwargs):
         return _Handler(engine, *args, **kwargs)
 
-    srv = http.server.HTTPServer(("0.0.0.0", port), handler_factory)
+    srv = http.server.HTTPServer(("127.0.0.1", port), handler_factory)
     t = threading.Thread(target=srv.serve_forever, daemon=True, name="v5-dashboard")
     t.start()
-    log.info("Dashboard started on port %d — http://[REDACTED-IP]:%d/", port, port)
+    log.info("Dashboard started on port %d — https://[REDACTED-HOST]:%d/", port, port)
 
 
 class _Handler(http.server.BaseHTTPRequestHandler):
