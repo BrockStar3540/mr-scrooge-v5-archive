@@ -181,14 +181,17 @@ class OandaBroker:
                 "price": trade.get("price", ""),
                 "raw": result}
 
-    def close_position(self, trade_id: str) -> dict:
-        """Close a specific trade by OANDA trade ID (full close)."""
+    def close_position(self, trade_id: str, units = "ALL") -> dict:
+        """Close a trade by OANDA trade ID. units="ALL" = full close;
+        positive int = partial close that many units (OANDA strips them from the
+        position; remaining units stay open at the same entry, same SL)."""
+        body_units = "ALL" if (units == "ALL" or units is None) else str(int(units))
         result = self._req(
             "PUT",
             f"/v3/accounts/{self._acct}/trades/{trade_id}/close",
-            {"units": "ALL"},
+            {"units": body_units},
         )
-        log.info("CLOSED trade %s", trade_id)
+        log.info("CLOSED trade %s (units=%s)", trade_id, body_units)
         return result
 
     def move_stop(self, trade_id: str, new_sl_price: float, pair: str) -> dict:

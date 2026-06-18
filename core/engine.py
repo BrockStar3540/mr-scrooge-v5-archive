@@ -104,6 +104,9 @@ class Engine:
                 position=pos,
                 broker=self.broker,
                 dry_run=self.dry_run,
+                initial_units=abs(int(float(t.get("initialUnits", t.get("currentUnits", 0))))),
+                tp1_done=(abs(float(t.get("currentUnits", 0))) < abs(float(t.get("initialUnits", t.get("currentUnits", 0))))),
+                tp2_done=False,
             )
             elapsed_min = (now - entry_time).total_seconds() / 60
             log.info("RECOVERED %s %s | entry=%.5f | trade_id=%s | elapsed=%.1fm",
@@ -246,6 +249,7 @@ class Engine:
             position=pos,
             broker=self.broker,
             dry_run=self.dry_run,
+            initial_units=units,
         )
         log.info("ENTERED %s %s @ %.5f | %d units | SL -%.1fp | trade_id=%s",
                  ticket.pair, ticket.direction, entry_price, units,

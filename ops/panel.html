@@ -212,7 +212,35 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
     <div style="padding:10px;display:flex;gap:10px;align-items:center">
       <button id="tune-save"  onclick="saveTune()"  style="padding:8px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Save all changes</button>
       <button id="tune-reset" onclick="loadTune()" style="padding:8px 16px;background:var(--bg2);color:var(--fg);border:1px solid var(--border);border-radius:6px;cursor:pointer">Discard edits</button>
-      <span class="muted" style="font-size:11px">Per-pair: blank = inherit default. Cross-rule: <code>Trail &lt; TP1 trigger</code>.</span>
+      <span class="muted" style="font-size:11px">Per-pair: blank = inherit default. Rules: <code>trail &lt; trigger</code>, <code>tp2_at &gt; tp1_at</code>, <code>tp1% + tp2% &lt; 1</code>.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">TP ladder (partial close) — ported from V4 harvest_ladder
+      <span class="muted" style="font-weight:normal;font-size:11px">(defaults OFF — toggle on per scope to use)</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table id="tune-tp-tbl" style="font-size:12px">
+      <thead>
+        <tr>
+          <th style="text-align:left">Scope</th>
+          <th title="Enable the TP1 partial close on peak crossing tp1_at_pips">TP1 on</th>
+          <th title="Peak MFE that triggers TP1 partial close (pips from entry)">TP1 at (pips)</th>
+          <th title="Fraction of INITIAL position to close at TP1 (e.g. 0.5 = 50%)">TP1 close %</th>
+          <th title="Bump SL to this many pips above entry when TP1 fires (0 = no bump)">TP1 SL lock (pips)</th>
+          <th title="Enable TP2 (requires TP1 enabled — TP2 only fires after TP1)">TP2 on</th>
+          <th title="Peak MFE that triggers TP2 partial close (must be > TP1 at)">TP2 at (pips)</th>
+          <th title="Fraction of INITIAL position to close at TP2">TP2 close %</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tune-tp-body"></tbody>
+    </table>
+    </div>
+    <div class="muted" style="padding:6px 10px;font-size:11px">
+      Closes a fraction of the INITIAL position (not the post-TP1 remainder). Runner stays under the ratchet.
+      A blank cell in a pair row inherits the default for that field. Toggle a "clear" to drop all overrides for that pair.
     </div>
   </div>
 </div>
@@ -266,11 +294,11 @@ function renderTune() {
   let html = _row('__defaults', defaults, defaults, true);
   for (const p of pairs) {
     const ov = per[p] || {};
-    // effective = defaults merged with override (only for display of "current effective")
     const eff = Object.assign({}, defaults, ov);
     html += _row(p, eff, ov, false);
   }
   tbody.innerHTML = html;
+  renderTuneTP(defaults, per, pairs);
 }
 function clearPairOverride(pair) {
   const row = document.querySelector(`tr[data-scope="${pair}"]`);
@@ -288,6 +316,82 @@ function _collectRow(row) {
   });
   return out;
 }
+
+function _chk(checked) {
+  return `<input type="checkbox" ${checked ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue)">`;
+}
+function _tpRow(scope, eff, override, isDefault) {
+  const o = (k) => isDefault ? eff[k] : (override[k] === undefined ? null : override[k]);
+  // For per-pair rows, show inherited values as placeholder; explicit override = checked/value
+  const t1on = isDefault ? !!eff.tp1_enabled : (override.tp1_enabled !== undefined ? !!override.tp1_enabled : null);
+  const t2on = isDefault ? !!eff.tp2_enabled : (override.tp2_enabled !== undefined ? !!override.tp2_enabled : null);
+  // For pair rows, render a tri-state via a hidden input value 'inherit'|'on'|'off' attached to a label.
+  const t1box = isDefault ? _chk(t1on) : `<select data-bool="tp1_enabled" style="background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:3px;font-size:11.5px">
+    <option value=""    ${t1on===null ? 'selected':''}>inherit</option>
+    <option value="on"  ${t1on===true ? 'selected':''}>on</option>
+    <option value="off" ${t1on===false? 'selected':''}>off</option></select>`;
+  const t2box = isDefault ? _chk(t2on) : `<select data-bool="tp2_enabled" style="background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:3px;font-size:11.5px">
+    <option value=""    ${t2on===null ? 'selected':''}>inherit</option>
+    <option value="on"  ${t2on===true ? 'selected':''}>on</option>
+    <option value="off" ${t2on===false? 'selected':''}>off</option></select>`;
+  const label = isDefault
+    ? `<b>Default (all pairs)</b>`
+    : `<b>${scope.replace('_','/')}</b>`;
+  return `<tr data-scope="${scope}">
+    <td>${label}</td>
+    <td>${t1box}</td>
+    <td>${_inp(o('tp1_at_pips'),   eff.tp1_at_pips)}</td>
+    <td>${_inp(o('tp1_close_pct'), eff.tp1_close_pct)}</td>
+    <td>${_inp(o('tp1_lock_pips'), eff.tp1_lock_pips)}</td>
+    <td>${t2box}</td>
+    <td>${_inp(o('tp2_at_pips'),   eff.tp2_at_pips)}</td>
+    <td>${_inp(o('tp2_close_pct'), eff.tp2_close_pct)}</td>
+    <td>${isDefault ? '' : `<button onclick="clearPairOverrideTP('${scope}')" style="padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:4px;cursor:pointer;font-size:11px">clear</button>`}</td>
+  </tr>`;
+}
+function renderTuneTP(defaults, per, pairs) {
+  const tbody = document.getElementById('tune-tp-body');
+  let html = _tpRow('__defaults', defaults, defaults, true);
+  for (const p of pairs) {
+    const ov = per[p] || {};
+    const eff = Object.assign({}, defaults, ov);
+    html += _tpRow(p, eff, ov, false);
+  }
+  tbody.innerHTML = html;
+}
+function clearPairOverrideTP(pair) {
+  const row = document.querySelector(`#tune-tp-body tr[data-scope="${pair}"]`);
+  if (!row) return;
+  row.querySelectorAll('input').forEach(i => i.value = '');
+  row.querySelectorAll('select').forEach(s => s.value = '');
+  document.getElementById('tune-msg').innerHTML = `<span class="muted">Cleared ${pair.replace('_','/')} TP overrides (unsaved)</span>`;
+}
+function _collectTPRow(row, isDefault) {
+  // 8 cells: scope label, TP1 on, tp1_at, tp1_pct, tp1_lock, TP2 on, tp2_at, tp2_pct
+  const out = {};
+  if (isDefault) {
+    const boxes = row.querySelectorAll('input[type="checkbox"]');
+    out.tp1_enabled = boxes[0]?.checked || false;
+    out.tp2_enabled = boxes[1]?.checked || false;
+  } else {
+    const sels = row.querySelectorAll('select');
+    sels.forEach(sel => {
+      const k = sel.getAttribute('data-bool');
+      const v = sel.value;
+      if (v === 'on')  out[k] = true;
+      if (v === 'off') out[k] = false;
+      // 'inherit' (empty) → omit
+    });
+  }
+  const inputs = row.querySelectorAll('input[type="number"]');
+  const fields = ['tp1_at_pips','tp1_close_pct','tp1_lock_pips','tp2_at_pips','tp2_close_pct'];
+  fields.forEach((f, i) => {
+    const v = inputs[i]?.value.trim();
+    if (v !== undefined && v !== '') out[f] = parseFloat(v);
+  });
+  return out;
+}
+
 async function saveTune() {
   const rows = document.querySelectorAll('#tune-body tr');
   const payload = {defaults: {}, per_pair: {}};
@@ -300,8 +404,21 @@ async function saveTune() {
       payload.per_pair[scope] = vals;
     }
   });
+  // Merge TP1/TP2 fields from the second table
+  const tpRows = document.querySelectorAll('#tune-tp-body tr');
+  tpRows.forEach(row => {
+    const scope = row.getAttribute('data-scope');
+    const isDef = scope === '__defaults';
+    const vals = _collectTPRow(row, isDef);
+    if (isDef) {
+      Object.assign(payload.defaults, vals);
+    } else if (Object.keys(vals).length) {
+      payload.per_pair[scope] = Object.assign(payload.per_pair[scope] || {}, vals);
+    }
+  });
   // sanity: defaults must have all 6 fields
-  const need = ['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min'];
+  const need = ['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min',
+                'tp1_enabled','tp1_at_pips','tp1_close_pct','tp1_lock_pips','tp2_enabled','tp2_at_pips','tp2_close_pct'];
   for (const k of need) {
     if (payload.defaults[k] === undefined) {
       document.getElementById('tune-msg').innerHTML = `<span style="color:var(--red)">Default row missing ${k} — every default field is required.</span>`;
