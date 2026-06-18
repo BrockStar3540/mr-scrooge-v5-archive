@@ -30,7 +30,7 @@ def main():
     from ops.server import start_dashboard
     start_dashboard(engine, port=8084)
 
-    engine.run_forever(interval_seconds=300)   # one cycle per M5 bar
+    engine.run_forever(scan_interval_seconds=300, manage_interval_seconds=30)  # scan per M5 bar; trail stops every 30s
 
 
 if __name__ == "__main__":

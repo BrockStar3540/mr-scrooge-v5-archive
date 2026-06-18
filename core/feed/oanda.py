@@ -332,6 +332,11 @@ class OandaFeed:
         self._client = _Client()
         self._errors: list[str] = []
 
+    def pricing(self, pair: str) -> tuple[float, float]:
+        """Cheap (bid, ask) poll for one instrument -- no candle fetch. Used by the
+        engine fast management loop to trail stops between 5-min scan cycles."""
+        return self._client.pricing(pair)
+
     def get_views(self, pairs: list[str]) -> list[MarketView]:
         """Fetch candles + pricing for each pair; return completed MarketViews.
 

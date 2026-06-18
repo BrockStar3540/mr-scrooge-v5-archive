@@ -1,8 +1,8 @@
 {
   "step_engage_min": 0.0,
-  "step_cadence_min": 5.0,
+  "step_cadence_min": 0.5,
   "step_size_pips": 5.0,
   "step_trigger_pips": 7.0,
   "step_trail_pips": 3.0,
-  "_note": "6p->tightened step trail. SL=-15p (code), no engage delay, re-lock every 5min cycle. First lock at +7p peak (SL->+4p), then +5p steps, SL parks 3p below level. Live-editable \u2014 next cycle reads new values, no restart. Phase1 tune 2026-06-18."
+  "_note": "Step trail. SL=-12p (code, 8yr-validated), no engage delay. Mgmt poll 30s + cadence 0.5min => trail re-locks ~every 30s. First lock at +7p peak (SL->+4p), +5p steps, SL parks 3p below level. Live-editable. Phase1+2 2026-06-18."
 }

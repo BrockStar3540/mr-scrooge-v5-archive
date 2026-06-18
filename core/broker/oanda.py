@@ -20,7 +20,7 @@ log = logging.getLogger("v5.broker")
 
 # Hard initial stop on OANDA server — ratchet engages at 60min but we still
 # need a backstop for the first 60 minutes before the ratchet floor is set.
-DEFAULT_INITIAL_SL_PIPS = 15
+DEFAULT_INITIAL_SL_PIPS = 12  # 8yr sweep-validated risk-adjusted optimum (V3/V4 history)
 RISK_PCT = 0.005   # 0.5% of NAV per trade
 
 

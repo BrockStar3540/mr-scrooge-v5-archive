@@ -112,32 +112,44 @@ class Engine:
                 f"{datetime.now(timezone.utc).strftime('%H:%M:%S')} RECOVERED {pair} {direction} @ {entry_price:.5f}"
             )
 
-    def run_forever(self, interval_seconds: int = 300):
-        log.info("V5 engine starting (dry_run=%s, interval=%ds)", self.dry_run, interval_seconds)
+    def run_forever(self, scan_interval_seconds: int = 300, manage_interval_seconds: int = 30):
+        log.info("V5 engine starting (dry_run=%s, scan=%ds, manage=%ds)",
+                 self.dry_run, scan_interval_seconds, manage_interval_seconds)
+        ticks_per_scan = max(1, round(scan_interval_seconds / manage_interval_seconds))
+        i = 0
         while True:
             try:
-                self._cycle()
+                if i % ticks_per_scan == 0:
+                    self._cycle()                              # full: manage + scan + enter
+                else:
+                    self._manage(datetime.now(timezone.utc))   # fast: exit-detect + ratchet only
             except Exception as exc:
-                log.exception("cycle error: %s", exc)
-            time.sleep(interval_seconds)
+                log.exception("loop error: %s", exc)
+            time.sleep(manage_interval_seconds)
+            i += 1
 
-    def _cycle(self):
-        now   = datetime.now(timezone.utc)
-        views = self.feed.get_views(PAIRS)
+    def _manage(self, now: datetime) -> None:
+        """Fast path -- runs every manage_interval. Detect server-side stop hits and
+        tick the ratchet for each open position using a cheap pricing() poll (no
+        candle fetch). The ratchet re-locks at step_cadence_min granularity, so this
+        is what lets the trailing stop follow the peak between 5-min scan cycles."""
+        if self.dry_run or not self.managers:
+            return
 
-        # ── Step 1: poll OANDA to detect server-side stop hits ───────────────
-        oanda_open: set | None = None
-        if not self.dry_run and self.managers:
-            try:
-                oanda_open = {t["id"] for t in self.broker.open_positions()}
-            except Exception as exc:
-                log.warning("open_positions failed: %s — skip exit detection", exc)
+        try:
+            oanda_open = {t["id"] for t in self.broker.open_positions()}
+        except Exception as exc:
+            log.warning("open_positions failed: %s -- skip exit detection", exc)
+            oanda_open = None
 
-        # ── Step 2: tick ratchet for each open position ───────────────────────
         for pair in list(self.managers.keys()):
-            mgr  = self.managers[pair]
-            view = next((v for v in views if v.pair == pair), None)
-            mid  = (view.bid + view.ask) / 2.0 if view else mgr.position.entry_price
+            mgr = self.managers[pair]
+            try:
+                bid, ask = self.feed.pricing(pair)
+                mid = (bid + ask) / 2.0
+            except Exception as exc:
+                log.warning("pricing %s failed: %s -- using entry price", pair, exc)
+                mid = mgr.position.entry_price
 
             # Server-side stop already hit on OANDA
             if oanda_open is not None and mgr.position.oanda_trade_id not in oanda_open:
@@ -149,7 +161,7 @@ class Engine:
                 del self.managers[pair]
                 continue
 
-            # Tick ratchet — may call broker.move_stop() if floor tightens
+            # Tick ratchet -- may call broker.move_stop() if the floor tightens
             signal = mgr.update(mid, now)
             if signal:
                 log.info("EXIT (local detect) %s | %s | net=%.2fp",
@@ -164,7 +176,15 @@ class Engine:
                         log.warning("close_position %s: %s (OANDA may have beaten us)", pair, exc)
                 del self.managers[pair]
 
-        # ── Step 3: stamp signals ─────────────────────────────────────────────
+    def _cycle(self):
+        now = datetime.now(timezone.utc)
+
+        # Steps 1+2: manage open positions (exit detection + ratchet)
+        self._manage(now)
+
+        # Step 3: full candles for signal stamping
+        views = self.feed.get_views(PAIRS)
+
         tickets = []
         for view in views:
             try:
