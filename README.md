@@ -18,7 +18,7 @@ Full analysis in [docs/EDGE_REPORT.md](docs/EDGE_REPORT.md).
 | Estimated trade win rate | 65-70% |
 | E[pip/trade] gross of spread | +3.3-4.9p |
 | E[pip/trade] net of spread | +2.5-4.0p |
-| Initial stop-loss | **−12p** from entry (live-editable; 8yr sweep-validated) |
+| Initial stop-loss | **−20p** from entry (live-editable in TUNE tab; was 12p) |
 | Edge classification | **HIGH** |
 | Research basis | 8-year OOS walk-forward, all 8 pairs |
 | Live confirmation | In progress — V5 launched 2026-06-18 |
@@ -225,7 +225,7 @@ Live-editable via the **TUNE** tab on the dashboard. Schema is `{defaults, per_p
 
 | Key | Default | Meaning |
 |---|---|---|
-| `initial_sl_pips` | 12.0 | Server-side SL placed at fill (was code const; 8yr-validated) |
+| `initial_sl_pips` | 20.0 | Server-side SL placed at fill (live-editable in TUNE tab; widened from 12 → 20 to give trades more room) |
 | `step_engage_min` | 0.0 | Minutes before first ratchet check (0 = immediate) |
 | `step_cadence_min` | 0.5 | Minutes between SL evaluation cycles (re-locks ~each 30s poll) |
 | `step_trigger_pips` | 4.5 | Peak MFE required before first SL movement |

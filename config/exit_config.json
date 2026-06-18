@@ -1,7 +1,7 @@
 {
   "schema": "v2",
   "defaults": {
-    "initial_sl_pips": 12.0,
+    "initial_sl_pips": 20.0,
     "step_engage_min": 0.0,
     "step_cadence_min": 0.5,
     "step_trigger_pips": 4.5,
