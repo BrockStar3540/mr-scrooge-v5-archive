@@ -1,18 +1,34 @@
 #!/usr/bin/env python3
-"""mr-scrooge-v5 -- entry point."""
-import logging, os, sys
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s %(levelname)s %(name)s  %(message)s")
+"""mr-scrooge-v5 — entry point.
+
+Usage:
+    python main.py           # dry run (signal only, no orders)
+    python main.py --live    # live trading
+"""
+import logging, sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s  %(message)s",
+)
+log = logging.getLogger("v5.main")
+
 
 def main():
     dry_run = "--live" not in sys.argv
     if dry_run:
-        logging.info("DRY RUN mode (pass --live to enable order execution)")
+        log.info("DRY RUN mode — pass --live to enable order execution")
 
-    # TODO: wire real feed + broker
+    from core.feed.oanda import OandaFeed
+    from core.broker.oanda import OandaBroker
     from core.engine import Engine
-    engine = Engine(feed=None, broker=None, dry_run=dry_run)
-    engine.run_forever()
+
+    feed   = OandaFeed()
+    broker = OandaBroker()
+    engine = Engine(feed=feed, broker=broker, dry_run=dry_run)
+
+    engine.run_forever(interval_seconds=300)   # one cycle per M5 bar
+
 
 if __name__ == "__main__":
     main()
