@@ -1,35 +1,86 @@
+"""modules/signals/direction.py — Per-pair direction scoring from raw dm_04 factor sweep.
+
+Weights are proportional to dm_04 raw net_60m decile spans (median across 24 pair×session
+buckets): h1_ret_1bar +17.6p, rsi_slope +10.4p, zscore_1h +8.7p → weights 0.48/0.28/0.24.
+
+Normalization anchors are D1.hi_val (D1/D2 boundary) and D10.lo_val (D9/D10 boundary)
+from the dm_04 factor_sweep.json curves. This maps "entered D1" to -1.0 and "entered D10"
+to +1.0 using each pair/session's own historical distribution — no outlier contamination
+from the D1 lower tail or D10 upper tail.
+
+No exit-management assumptions — this module describes raw market direction only.
+"""
 from __future__ import annotations
+import json
+from pathlib import Path
 import numpy as np
 from .base import MarketView, DirectionOutput
 
-# Per-pair/session zero-crossing thresholds for h1_ret_1bar (pips).
-# Source: dm_09 ratchet sweep decile boundaries.
-# Placeholder -- will be populated from dm_09 data.
-DIRECTION_BLOCK_THRESHOLD: dict[tuple[str,str], float] = {}
+_CAL_PATH = Path(__file__).parent / "factor_sweep.json"
+_CAL: dict = {}
+
+_WEIGHTS = {
+    "h1_ret_1bar": 0.48,
+    "rsi_slope":   0.28,
+    "zscore_1h":   0.24,
+}
+
+# Conservative defaults used when calibration for a bucket is missing
+_FALLBACK_RANGES = {
+    "h1_ret_1bar": (-12.0, 12.0),
+    "rsi_slope":   (-9.0,  9.0),
+    "zscore_1h":   (-2.0,  2.0),
+}
+
+
+def _cal() -> dict:
+    global _CAL
+    if not _CAL and _CAL_PATH.exists():
+        _CAL = json.loads(_CAL_PATH.read_text())
+    return _CAL
+
+
+def _norm_range(pair: str, session: str, feat: str) -> tuple[float, float]:
+    """D1/D2 boundary and D9/D10 boundary for feature in this pair/session bucket.
+
+    D1.hi_val is the upper edge of the lowest decile; D10.lo_val is the lower edge
+    of the highest decile. A feature value below lo is fully short (-1), above hi
+    is fully long (+1), with linear interpolation between.
+    """
+    try:
+        curve = _cal()[pair][session]["curves"][feat]
+        lo = float(curve["D1"]["hi_val"])   # D1/D2 boundary
+        hi = float(curve["D10"]["lo_val"])  # D9/D10 boundary
+        if lo < hi:
+            return lo, hi
+    except (KeyError, TypeError, ValueError):
+        pass
+    return _FALLBACK_RANGES.get(feat, (-10.0, 10.0))
+
+
+def _norm(v: float, lo: float, hi: float) -> float:
+    if hi == lo:
+        return 0.0
+    return float(np.clip((v - lo) / (hi - lo) * 2 - 1, -1, 1))
 
 
 def score_direction(view: MarketView) -> DirectionOutput:
-    """Compute direction score from H1 momentum factors.
+    """Score market direction from dm_04 raw momentum factors.
 
-    Signal stack (weights from dm_09 ratchet sweep):
-      h1_ret_1bar  -- primary (span ~17p raw, ~9.5p ratchet)
-      rsi_slope    -- secondary (span ~10p raw, ~6p ratchet)
-      zscore_1h    -- tertiary (span ~8.7p raw, ~4.6p ratchet)
-
-    Returns score in [-1, +1] and bias in {long, short, block}.
+    Normalization is per (pair × session) so a strong reading is calibrated
+    to that bucket's D1/D10 boundaries rather than global placeholders.
     """
-    def _norm(v: float, lo: float, hi: float) -> float:
-        if hi == lo:
-            return 0.0
-        return float(np.clip((v - lo) / (hi - lo) * 2 - 1, -1, 1))
+    lo_h1, hi_h1 = _norm_range(view.pair, view.session, "h1_ret_1bar")
+    lo_rs, hi_rs = _norm_range(view.pair, view.session, "rsi_slope")
+    lo_z,  hi_z  = _norm_range(view.pair, view.session, "zscore_1h")
 
-    # Placeholder normalisation ranges (will be loaded per-bucket from dm_09 edges)
-    h1_norm     = _norm(view.h1_ret_1bar, -15.0, 15.0)
-    rsi_s_norm  = _norm(view.rsi_slope,    -5.0,  5.0)
-    z_norm      = _norm(view.zscore_1h,    -2.0,  2.0)
+    h1_norm    = _norm(view.h1_ret_1bar, lo_h1, hi_h1)
+    rsi_s_norm = _norm(view.rsi_slope,   lo_rs, hi_rs)
+    z_norm     = _norm(view.zscore_1h,   lo_z,  hi_z)
 
-    # Weighted sum -- weights reflect dm_09 ratchet span ratios
-    score = 0.55 * h1_norm + 0.28 * rsi_s_norm + 0.17 * z_norm
+    score = (_WEIGHTS["h1_ret_1bar"] * h1_norm
+           + _WEIGHTS["rsi_slope"]   * rsi_s_norm
+           + _WEIGHTS["zscore_1h"]   * z_norm)
     score = float(np.clip(score, -1.0, 1.0))
 
     confidence = abs(score)
