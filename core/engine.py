@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
-from modules.playmaker.playmaker import pick_best
+from modules.playmaker.playmaker import pick_best, TradeTicket
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager
 
@@ -36,6 +36,64 @@ class Engine:
 
         log.info("V5 engine ready | dry_run=%s | %d pairs | %d dir_mods | %d mom_mods",
                  dry_run, len(PAIRS), len(self.dir_mods), len(self.mom_mods))
+
+        if not dry_run:
+            self._recover_open_positions()
+
+    def _recover_open_positions(self) -> None:
+        """Adopt any existing OANDA open trades at startup.
+
+        Allows clean V4→V5 handoff without closing positions, and survives
+        process restarts without orphaning trades.
+        """
+        try:
+            trades = self.broker.open_positions()
+        except Exception as exc:
+            log.error("recovery: cannot fetch open positions: %s", exc)
+            return
+
+        if not trades:
+            log.info("recovery: no open trades to adopt")
+            return
+
+        now = datetime.now(timezone.utc)
+        for t in trades:
+            pair = t["instrument"]
+            if pair in self.managers:
+                continue
+            if pair not in PIP:
+                log.warning("recovery: unknown pair %s — skipping", pair)
+                continue
+
+            units_signed = int(t["currentUnits"])
+            direction    = "long" if units_signed > 0 else "short"
+            entry_price  = float(t["price"])
+            entry_time   = datetime.fromisoformat(t["openTime"].replace("Z", "+00:00"))
+            trade_id     = str(t["id"])
+
+            # Stub ticket — just enough for RatchetManager to know pair + direction
+            ticket = TradeTicket(
+                pair=pair, session="recovery", direction=direction,
+                score=0.0, dir_certainty=0.0, mom_certainty=0.0,
+                vol_regime="unknown", expected_pips=0.0,
+                timestamp=entry_time, reads={},
+            )
+            pos = Position(
+                ticket=ticket,
+                entry_price=entry_price,
+                entry_time=entry_time,
+                units=abs(units_signed),
+                oanda_trade_id=trade_id,
+                pip_size=PIP[pair],
+            )
+            self.managers[pair] = RatchetManager(
+                position=pos,
+                broker=self.broker,
+                dry_run=self.dry_run,
+            )
+            elapsed_min = (now - entry_time).total_seconds() / 60
+            log.info("RECOVERED %s %s | entry=%.5f | trade_id=%s | elapsed=%.1fm",
+                     pair, direction, entry_price, trade_id, elapsed_min)
 
     def run_forever(self, interval_seconds: int = 300):
         log.info("V5 engine starting (dry_run=%s, interval=%ds)", self.dry_run, interval_seconds)
@@ -71,8 +129,7 @@ class Engine:
                 del self.managers[pair]
                 continue
 
-            # Tick ratchet — may call broker.move_stop() if floor tightens;
-            # returns ExitSignal only if local price tracking detects stop crossed
+            # Tick ratchet — may call broker.move_stop() if floor tightens
             signal = mgr.update(mid, now)
             if signal:
                 log.info("EXIT (local detect) %s | %s | net=%.2fp",
@@ -111,7 +168,7 @@ class Engine:
         if not self.dry_run:
             self._open_trade(trade_ticket, views, now)
 
-    def _open_trade(self, ticket, views: list, now: datetime):
+    def _open_trade(self, ticket: TradeTicket, views: list, now: datetime):
         view = next(v for v in views if v.pair == ticket.pair)
         pip  = PIP[ticket.pair]
 
