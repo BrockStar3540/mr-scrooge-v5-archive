@@ -1,0 +1,19 @@
+[Unit]
+Description=Mr. Scrooge V5 Trading Platform (LIVE)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/mr-scrooge-v5
+ExecStart=/home/ubuntu/mr_burns_env/bin/python3 main.py --live
+Restart=always
+RestartSec=15
+Environment=PYTHONUNBUFFERED=1
+TimeoutStopSec=30
+KillSignal=SIGTERM
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

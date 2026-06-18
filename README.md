@@ -229,7 +229,7 @@ python main.py
 python main.py --live
 
 # Dashboard
-open http://[REDACTED-IP]:8095/
+open https://[REDACTED-HOST]:8084/
 
 # Tail logs
 journalctl --user -u mr-scrooge-v5 -f -o cat
