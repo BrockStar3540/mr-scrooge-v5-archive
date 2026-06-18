@@ -52,7 +52,7 @@ _PM_DEFAULTS = {
     "cooldown_after_sl_min": 0.0,
 }
 _PM_ACCT_DEFAULTS = {
-    "risk_pct_per_trade":    0.005,
+    "margin_pct_per_trade":  0.005,   # fraction of BALANCE used as margin per trade
     "max_concurrent_trades": 3,
 }
 
@@ -60,8 +60,11 @@ def _pm_load() -> dict:
     """Return {"account":..., "defaults":..., "per_pair":...} with safe fallbacks."""
     try:
         raw = _json.loads(_PM_CONFIG_PATH.read_text())
+        acct = dict(raw.get("account") or {})
+        if "margin_pct_per_trade" not in acct and "risk_pct_per_trade" in acct:
+            acct["margin_pct_per_trade"] = acct.pop("risk_pct_per_trade")
         return {
-            "account":  {**_PM_ACCT_DEFAULTS, **(raw.get("account") or {})},
+            "account":  {**_PM_ACCT_DEFAULTS, **acct},
             "defaults": {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
             "per_pair": raw.get("per_pair") or {},
         }
@@ -73,8 +76,12 @@ def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff.update(cfg["per_pair"].get(pair) or {})
     return eff
 
-def pm_risk_pct() -> float:
-    return float(_pm_load()["account"]["risk_pct_per_trade"])
+def pm_margin_pct() -> float:
+    """Fraction of BALANCE used as margin per trade (V1 model)."""
+    return float(_pm_load()["account"]["margin_pct_per_trade"])
+
+# Back-compat alias
+pm_risk_pct = pm_margin_pct
 
 def pm_max_concurrent() -> int:
     return int(_pm_load()["account"]["max_concurrent_trades"])

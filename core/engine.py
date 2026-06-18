@@ -18,7 +18,7 @@ from typing import Optional
 from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
-from modules.playmaker.playmaker import pick_best, TradeTicket, pm_risk_pct
+from modules.playmaker.playmaker import pick_best, TradeTicket, pm_margin_pct
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
 
@@ -237,7 +237,7 @@ class Engine:
         entry_price = view.ask if ticket.direction == "long" else view.bid
         initial_sl = initial_sl_pips_for(ticket.pair)
         units = self.broker.size_units(ticket.pair, ticket.direction,
-                                       sl_pips=initial_sl, risk_pct=pm_risk_pct())
+                                       margin_pct=pm_margin_pct())
         trade = self.broker.place_market(
             ticket.pair, ticket.direction, units=units,
             entry_price=entry_price, sl_pips=initial_sl,

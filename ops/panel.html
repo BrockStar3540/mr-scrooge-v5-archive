@@ -255,7 +255,7 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
     <div id="pm-msg" style="padding:8px 10px;font-size:12px"></div>
     <div style="display:flex;gap:24px;flex-wrap:wrap;padding:10px">
       <div>
-        <label style="font-size:11px;color:var(--fg2);display:block;margin-bottom:4px">Risk per trade (fraction of NAV)</label>
+        <label style="font-size:11px;color:var(--fg2);display:block;margin-bottom:4px">Margin per trade (fraction of balance)</label>
         <input id="pm-risk" type="number" step="0.001" min="0.001" max="1"
                style="width:120px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:Menlo,monospace;font-size:13px;text-align:right">
         <div id="pm-risk-warn" style="font-size:11px;margin-top:4px"></div>
@@ -346,7 +346,7 @@ function _updatePmRiskMath() {
     warn.innerHTML = '';
   }
   if (risk > 0 && maxc > 0) {
-    math.innerHTML = `Max simultaneous risk-at-SL: <b>${(risk*maxc*100).toFixed(1)}%</b> of NAV (${maxc} concurrent × ${(risk*100).toFixed(1)}%)`;
+    math.innerHTML = `Max simultaneous margin used: <b>${(risk*maxc*100).toFixed(1)}%</b> of NAV (${maxc} concurrent × ${(risk*100).toFixed(1)}%)`;
   } else {
     math.innerHTML = '';
   }

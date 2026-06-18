@@ -125,9 +125,10 @@ _PM_FIELDS = {
     "cooldown_after_sl_min": {"min": 0.0, "max": 1440.0,    "label": "Cooldown after losing exit (min)"},
 }
 _PM_ACCT_FIELDS = {
-    "risk_pct_per_trade":    {"min": 0.001, "max": 1.0,  "label": "Risk per trade (fraction of NAV)"},
+    "margin_pct_per_trade":  {"min": 0.001, "max": 1.0,  "label": "Margin per trade (fraction of balance)"},
     "max_concurrent_trades": {"min": 1,     "max": 20,   "label": "Max concurrent trades", "int": True},
 }
+_PM_LEGACY_ACCT_KEYS = {"risk_pct_per_trade": "margin_pct_per_trade"}
 
 def _read_playmaker_config() -> dict:
     try:
@@ -152,6 +153,7 @@ def _validate_pm_field(table: dict, k: str, v):
 def _validate_pm_cfg(cfg: dict) -> dict:
     out = {"schema": "v1", "account": {}, "defaults": {}, "per_pair": {}}
     for k, v in (cfg.get("account") or {}).items():
+        k = _PM_LEGACY_ACCT_KEYS.get(k, k)   # back-compat rename
         out["account"][k] = _validate_pm_field(_PM_ACCT_FIELDS, k, v)
     for k, v in (cfg.get("defaults") or {}).items():
         out["defaults"][k] = _validate_pm_field(_PM_FIELDS, k, v)

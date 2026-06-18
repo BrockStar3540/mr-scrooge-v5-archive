@@ -21,7 +21,9 @@ log = logging.getLogger("v5.broker")
 # Hard initial stop on OANDA server — ratchet engages at 60min but we still
 # need a backstop for the first 60 minutes before the ratchet floor is set.
 DEFAULT_INITIAL_SL_PIPS = 12  # 8yr sweep-validated risk-adjusted optimum (V3/V4 history)
-RISK_PCT = 0.005   # 0.5% of NAV per trade
+# Default per-trade MARGIN commitment as a fraction of account balance (V1 model).
+MARGIN_PCT = 0.005   # fallback when playmaker_config.json missing
+RISK_PCT   = MARGIN_PCT  # back-compat alias for any code still importing this
 
 
 def _secrets() -> dict:
@@ -62,6 +64,14 @@ class OandaBroker:
 
     # ── Account ──────────────────────────────────────────────────────────────
 
+    def account_balance(self) -> float:
+        """Cash balance (excludes uPL) — used for margin-pct sizing per V1 model."""
+        try:
+            s = self.account_summary()
+            return float(s.get("balance", 0.0))
+        except Exception:
+            return 0.0
+
     def account_nav(self) -> float:
         """Current account NAV in account currency (USD)."""
         summary = self._req("GET", f"/v3/accounts/{self._acct}/summary")
@@ -79,6 +89,42 @@ class OandaBroker:
             "pl":            round(float(s.get("pl", 0)), 2),
         }
 
+    def _margin_rate(self, pair: str) -> float:
+        """OANDA per-instrument margin rate (e.g. 0.02 = 50:1). Cached on broker."""
+        if not hasattr(self, "_margin_rates_cache"):
+            try:
+                r = self._req("GET", f"/v3/accounts/{self._acct}/instruments")
+                self._margin_rates_cache = {
+                    i["name"]: float(i["marginRate"])
+                    for i in r.get("instruments", [])
+                }
+                log.info("loaded margin rates for %d instruments", len(self._margin_rates_cache))
+            except Exception as exc:
+                log.warning("failed to load margin rates: %s -- using 5%% fallback", exc)
+                self._margin_rates_cache = {}
+        return self._margin_rates_cache.get(pair, 0.05)
+
+    def _pair_mid(self, pair: str) -> float:
+        try:
+            r = self._req("GET",
+                f"/v3/accounts/{self._acct}/pricing?instruments={pair}")
+            p = r["prices"][0]
+            return (float(p["bids"][0]["price"]) + float(p["asks"][0]["price"])) / 2.0
+        except Exception as exc:
+            log.warning("pricing failed for %s: %s", pair, exc)
+            return 0.0
+
+    def _base_price_usd(self, pair: str) -> float:
+        """Spot price of 1 base-currency unit in USD (account currency).
+           USD-base: 1.0. USD-quote: spot(pair). Cross: spot(base_USD)."""
+        base, quote = pair[:3], pair[-3:]
+        if base == "USD":
+            return 1.0
+        if quote == "USD":
+            return self._pair_mid(pair) or 1.0
+        conv = f"{base}_USD"
+        return self._pair_mid(conv) or 1.0
+
     def open_positions(self) -> list[dict]:
         """List of currently open trades."""
         return self._req("GET", f"/v3/accounts/{self._acct}/openTrades").get("trades", [])
@@ -87,46 +133,38 @@ class OandaBroker:
 
     def size_units(
         self,
-        pair:      str,
-        direction: str,    # "long" | "short"
-        sl_pips:   float  = DEFAULT_INITIAL_SL_PIPS,
-        risk_pct:  float  = RISK_PCT,
+        pair:        str,
+        direction:   str,
+        margin_pct:  float | None = None,
+        sl_pips:     float | None = None,  # accepted but ignored (legacy kw)
+        risk_pct:    float | None = None,  # legacy alias: treated as margin_pct
     ) -> int:
-        """Compute units so that sl_pips loss = risk_pct of current NAV.
+        """Margin-based sizing (V1 model).
 
-        pip_value_per_unit:
-          USD-quoted (EUR/USD, GBP/USD, AUD/USD):  pip_size USD per unit
-          USD-based  (USD/JPY, USD/CAD, USD/CHF):  pip_size / current_price USD per unit
-          Cross-yen  (AUD/JPY, EUR/JPY):            pip_size / current_price USD per unit
+        units = (balance * margin_pct) / (base_price_usd * margin_rate)
+
+        SL distance is NOT in this formula -- the SL is set independently by the
+        ratchet config. Old keyword args (sl_pips, risk_pct) are accepted so the
+        engine call site keeps working during the transition; if margin_pct is
+        None we fall back to risk_pct, then MARGIN_PCT.
         """
-        nav         = self.account_nav()
-        risk_amount = nav * risk_pct                 # USD at risk
-        pip         = PIP[pair]
-        quote       = pair.split("_")[1]             # second currency
-        base_       = pair.split("_")[0]
-
-        if quote == "USD":
-            # EUR_USD, GBP_USD, AUD_USD: 1 unit moves quote USD by pip_size
-            pip_value_per_unit = pip
-        else:
-            # USD_JPY, USD_CAD, USD_CHF, AUD_JPY, EUR_JPY: need current price
-            # Approximate: 1 unit of pair moves account by pip_size / mid_price USD
-            # We fetch a quick pricing update; on error fall back to conservative estimate
-            try:
-                px = self._req(
-                    "GET",
-                    f"/v3/accounts/{self._acct}/pricing?instruments={pair}"
-                )["prices"][0]
-                mid = (float(px["bids"][0]["price"]) + float(px["asks"][0]["price"])) / 2
-                pip_value_per_unit = pip / mid
-            except Exception:
-                pip_value_per_unit = pip / 100.0   # conservative fallback
-
-        units = int(risk_amount / (sl_pips * pip_value_per_unit))
-        units = max(units, 1000)     # minimum tradeable lot
-        log.debug("size_units %s: nav=%.2f risk=%.2f sl=%dp → %d units",
-                  pair, nav, risk_amount, sl_pips, units)
-        return units
+        if margin_pct is None:
+            margin_pct = risk_pct if risk_pct is not None else MARGIN_PCT
+        bal = self.account_balance()
+        if bal <= 0:
+            log.warning("size_units %s: balance %.2f <= 0; 1k fallback", pair, bal)
+            return 1000
+        target_margin = bal * float(margin_pct)
+        base_px_usd   = self._base_price_usd(pair)
+        rate          = self._margin_rate(pair)
+        if base_px_usd <= 0 or rate <= 0:
+            log.warning("size_units %s: bad base_px=%.5f rate=%.4f; 1k fallback",
+                        pair, base_px_usd, rate)
+            return 1000
+        units = int(target_margin / (base_px_usd * rate))
+        log.debug("size_units %s | bal=%.2f mp=%.4f target=$%.2f base_usd=%.5f rate=%.4f -> %d units",
+                  pair, bal, margin_pct, target_margin, base_px_usd, rate, units)
+        return max(1, units)
 
     # ── Trade execution ──────────────────────────────────────────────────────
 

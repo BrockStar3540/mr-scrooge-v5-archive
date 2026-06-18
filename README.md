@@ -94,7 +94,7 @@ These are backtested numbers. Allow 50-100 live trades before drawing conclusion
  │      cooldown_after_sl_min     │
  │  • account-level:              │
  │      max_concurrent_trades,    │
- │      risk_pct_per_trade        │
+ │      margin_pct_per_trade      │
  │  • session gate (asia/lon/ny)  │
  │  • spread gate (per pair)      │
  │  • ranked by composite_score   │
@@ -247,8 +247,10 @@ Live-editable via the **PLAYMAKER** tab on the dashboard. Two layers — **accou
 
 | Key | Default | Notes |
 |---|---|---|
-| `risk_pct_per_trade` | **0.20** | Fraction of NAV at risk-to-SL. ⚠ At 20% × 4 concurrent = 80% max simultaneous margin used — OANDA will reject if margin runs out. Lower if entries are getting `INSUFFICIENT_MARGIN`. |
+| `margin_pct_per_trade` | **0.20** | **Margin-based sizing (V1 model)**: fraction of BALANCE used as MARGIN per trade. `units = (balance × margin_pct) / (base_price_usd × per-instrument margin_rate)`. SL distance no longer affects position size. With 4 concurrent → 80% max simultaneous margin used. |
 | `max_concurrent_trades` | 4 | Cap on open positions. |
+
+Per-instrument margin rates are fetched from OANDA `/instruments` and cached on the broker. The base→USD conversion handles USD-base pairs (1.0), USD-quote pairs (the pair's mid), and crosses like AUD_JPY (uses AUD_USD mid).
 
 **Per-pair gates (defaults):**
 
@@ -352,6 +354,7 @@ Deploy: push EC2 → origin, then `git push alien main`. Both are kept in sync a
 
 | Date | Commit | Change |
 |---|---|---|
+| 2026-06-18 | `40b1832`  | **Margin-based sizing** (V1 model): rename `risk_pct_per_trade`→`margin_pct_per_trade`; broker.size_units now `units = (balance × margin_pct) / (base_price_usd × margin_rate)`. SL no longer affects size. Old config key auto-migrates on load. |
 | 2026-06-18 | `d5c4f94` | **PLAYMAKER tab** — per-pair enable/floors/cooldown + account-level risk_pct (default 0.20) + max_concurrent (default 4). Was code constants. |
 | 2026-06-18 | `b31caac` | **TP1/TP2 partial-close ladder** ported from V4 harvest_ladder. Defaults OFF; ratchet-only behavior preserved when disabled. |
 | 2026-06-18 | `e55d403` | **TUNE tab** — live-edit `exit_config.json` for SL + ratchet (defaults + per-pair). Schema migrated to `{defaults, per_pair}`. Initial SL moved from code const to config. |
