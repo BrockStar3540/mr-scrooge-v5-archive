@@ -148,6 +148,16 @@ These are backtested numbers. Allow 50-100 live trades before drawing conclusion
 
 ---
 
+## Dashboard
+
+Served on port `8084`. Six tabs: **LIVE / PAIRS / HEALTH / SYSTEM / TUNE / PLAYMAKER**.
+
+![Mr. Scrooge V5 dashboard — PAIRS tab showing per-pair signal cards for all 8 currencies](docs/images/dashboard-pairs.png)
+
+*PAIRS tab — one card per pair. Each card shows the active session, direction bias (LONG/SHORT/block) with the signed `direction.score`, direction and momentum certainty bars (the playmaker gates each independently), volatility regime + expected pips for the next hour, and a row of raw indicator chips: `RSI` / `RSIΔ` / `H1ret` / `4H` / `ADR%` (range consumed today) / `spd` (spread in pips) / `H20` (20-day signed return). Green border = direction.bias is actionable; red = blocked. Click TUNE or PLAYMAKER to live-edit the gates these cards are scored against.*
+
+---
+
 ## Directory Layout
 
 ```
