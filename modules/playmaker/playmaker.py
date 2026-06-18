@@ -39,6 +39,46 @@ from ..signals.base import PairTicket
 from config.pairs import PAIR_SESSIONS
 
 
+
+# ── Live config (PLAYMAKER tab) ──────────────────────────────────────────────
+import json as _json
+from pathlib import Path as _Path
+_PM_CONFIG_PATH = _Path(__file__).resolve().parents[2] / "config" / "playmaker_config.json"
+_PM_DEFAULTS = {
+    "enabled":             True,
+    "min_direction_score": 0.25,
+    "min_dir_certainty":   0.30,
+    "min_mom_certainty":   0.25,
+    "cooldown_after_sl_min": 0.0,
+}
+_PM_ACCT_DEFAULTS = {
+    "risk_pct_per_trade":    0.005,
+    "max_concurrent_trades": 3,
+}
+
+def _pm_load() -> dict:
+    """Return {"account":..., "defaults":..., "per_pair":...} with safe fallbacks."""
+    try:
+        raw = _json.loads(_PM_CONFIG_PATH.read_text())
+        return {
+            "account":  {**_PM_ACCT_DEFAULTS, **(raw.get("account") or {})},
+            "defaults": {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
+            "per_pair": raw.get("per_pair") or {},
+        }
+    except Exception:
+        return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS), "per_pair": {}}
+
+def _pm_for_pair(cfg: dict, pair: str) -> dict:
+    eff = dict(cfg["defaults"])
+    eff.update(cfg["per_pair"].get(pair) or {})
+    return eff
+
+def pm_risk_pct() -> float:
+    return float(_pm_load()["account"]["risk_pct_per_trade"])
+
+def pm_max_concurrent() -> int:
+    return int(_pm_load()["account"]["max_concurrent_trades"])
+
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
 MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
 MIN_DIR_CERTAINTY   = 0.30   # direction.certainty minimum
@@ -79,34 +119,26 @@ class TradeTicket:
     rivals:        int = 0 # how many other candidates passed all gates this cycle
 
 
-def _passes_gates(t: PairTicket) -> bool:
-    """All certainty + spread gates the playmaker requires (beyond is_actionable)."""
+def _passes_gates(t: PairTicket, pcfg: dict) -> bool:
+    """All certainty + spread gates the playmaker requires (beyond is_actionable).
+    pcfg: per-pair effective config (defaults + override) from _pm_for_pair()."""
     d, m = t.direction, t.momentum
 
-    # Gate 1: base checks from signals (bias, dir_certainty>0.25, vol_regime)
+    if not pcfg.get("enabled", True):
+        return False
     if not t.is_actionable:
         return False
-
-    # Gate 2: direction signal must be meaningfully committed to one side
-    if abs(d.score) < MIN_DIRECTION_SCORE:
+    if abs(d.score) < float(pcfg["min_direction_score"]):
         return False
-
-    # Gate 3: direction module certainty — D9+ on primary indicator with support
-    if d.certainty < MIN_DIR_CERTAINTY:
+    if d.certainty < float(pcfg["min_dir_certainty"]):
         return False
-
-    # Gate 4: momentum module certainty — clearly in a vol regime
-    if m.certainty < MIN_MOM_CERTAINTY:
+    if m.certainty < float(pcfg["min_mom_certainty"]):
         return False
-
-    # Gate 5: spread sanity (skip when spread_pips == 0.0, i.e., feed not live yet)
     if t.spread_pips > 0.0:
         max_spread = _MAX_SPREAD.get(t.pair, _DEFAULT_MAX_SPREAD)
         if t.spread_pips > max_spread:
             return False
-
     return True
-
 
 def _edge_rank(t: PairTicket) -> tuple:
     """Higher is better.  Primary: composite magnitude.  Secondary: expected move."""
@@ -117,43 +149,52 @@ def pick_best(
     tickets:       list[PairTicket],
     hour_utc:      int,
     open_pairs:    set[str],
-    max_positions: int = MAX_OPEN_POSITIONS,
+    max_positions: Optional[int] = None,
+    now:           Optional[datetime] = None,
+    sl_history:    Optional[dict] = None,
 ) -> Optional[TradeTicket]:
     """Select the best-edge trade ticket from active pair tickets.
 
     Returns None when:
-      - position limit is already reached, or
-      - no ticket passes all certainty + spread gates.
+      - position limit is already reached (max_concurrent_trades from playmaker config), or
+      - no ticket passes per-pair certainty + spread gates, or
+      - pair is under cooldown after a recent losing exit.
 
     When multiple tickets pass (group arrival), picks the one with the highest
     abs(composite_score), breaking ties by expected_pips.
     """
+    pm = _pm_load()
+    max_positions = int(max_positions if max_positions is not None
+                        else pm["account"]["max_concurrent_trades"])
     if len(open_pairs) >= max_positions:
         return None
 
-    # Step 1: session + position eligibility.
-    # Gate on each ticket's OWN session — the value the feed stamped via the
-    # dm_04 coarse mapping (asia/london/ny) and that the direction/momentum
-    # calibration used. This guarantees the eligibility gate and the
-    # calculations can never disagree (the prior bug: a separate fine-grained
-    # current_session() returned labels like "ny_mid" that PAIR_SESSIONS never
-    # contained, silently disabling all NY-session trading).
-    eligible = [
-        t for t in tickets
-        if t.pair not in open_pairs
-        and t.session in PAIR_SESSIONS.get(t.pair, [])
-    ]
+    # Step 1: session + position + enabled + cooldown
+    eligible = []
+    for t in tickets:
+        if t.pair in open_pairs:
+            continue
+        if t.session not in PAIR_SESSIONS.get(t.pair, []):
+            continue
+        pcfg = _pm_for_pair(pm, t.pair)
+        if not pcfg.get("enabled", True):
+            continue
+        cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
+        if cd_min > 0 and now is not None and sl_history and t.pair in sl_history:
+            elapsed_min = (now - sl_history[t.pair]).total_seconds() / 60.0
+            if elapsed_min < cd_min:
+                continue
+        eligible.append((t, pcfg))
     if not eligible:
         return None
 
-    # Step 2: all certainty + spread gates
-    candidates = [t for t in eligible if _passes_gates(t)]
+    # Step 2: certainty + spread gates per pair
+    candidates = [t for (t, pcfg) in eligible if _passes_gates(t, pcfg)]
     if not candidates:
         return None
 
-    # Step 3: rank by edge quality; pick the best
+    # Step 3: best edge wins
     best = max(candidates, key=_edge_rank)
-
     return TradeTicket(
         pair=best.pair,
         session=best.session,

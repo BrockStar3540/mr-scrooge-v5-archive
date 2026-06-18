@@ -112,6 +112,66 @@ def _validate_exit_cfg(cfg: dict) -> dict:
             out["per_pair"][pair] = clean
     return out
 
+
+
+# ── Playmaker config (PLAYMAKER tab) ────────────────────────────────────────
+_PM_CONFIG_PATH = _Path("/home/ubuntu/mr-scrooge-v5/config/playmaker_config.json")
+
+_PM_FIELDS = {
+    "enabled":             {"kind": "bool",                 "label": "Enabled"},
+    "min_direction_score": {"min": 0.0,  "max": 1.0,        "label": "Min |direction.score|"},
+    "min_dir_certainty":   {"min": 0.0,  "max": 1.0,        "label": "Min direction.certainty"},
+    "min_mom_certainty":   {"min": 0.0,  "max": 1.0,        "label": "Min momentum.certainty"},
+    "cooldown_after_sl_min": {"min": 0.0, "max": 1440.0,    "label": "Cooldown after losing exit (min)"},
+}
+_PM_ACCT_FIELDS = {
+    "risk_pct_per_trade":    {"min": 0.001, "max": 1.0,  "label": "Risk per trade (fraction of NAV)"},
+    "max_concurrent_trades": {"min": 1,     "max": 20,   "label": "Max concurrent trades", "int": True},
+}
+
+def _read_playmaker_config() -> dict:
+    try:
+        return _j.loads(_PM_CONFIG_PATH.read_text())
+    except Exception as exc:
+        return {"schema": "v1", "account": {}, "defaults": {}, "per_pair": {}, "_error": str(exc)}
+
+def _validate_pm_field(table: dict, k: str, v):
+    if k not in table:
+        raise ValueError(f"unknown field: {k}")
+    spec = table[k]
+    if spec.get("kind") == "bool":
+        if isinstance(v, bool): return v
+        if isinstance(v, (int, float)): return bool(v)
+        if isinstance(v, str): return v.strip().lower() in ("1","true","yes","on")
+        raise ValueError(f"{k}: expected bool")
+    f = float(v)
+    if not (spec["min"] <= f <= spec["max"]):
+        raise ValueError(f"{k}={f} out of bounds [{spec['min']}, {spec['max']}]")
+    return int(f) if spec.get("int") else f
+
+def _validate_pm_cfg(cfg: dict) -> dict:
+    out = {"schema": "v1", "account": {}, "defaults": {}, "per_pair": {}}
+    for k, v in (cfg.get("account") or {}).items():
+        out["account"][k] = _validate_pm_field(_PM_ACCT_FIELDS, k, v)
+    for k, v in (cfg.get("defaults") or {}).items():
+        out["defaults"][k] = _validate_pm_field(_PM_FIELDS, k, v)
+    for pair, ov in (cfg.get("per_pair") or {}).items():
+        if pair not in _PAIRS_ALL:
+            raise ValueError(f"unknown pair: {pair}")
+        clean = {}
+        for k, v in (ov or {}).items():
+            clean[k] = _validate_pm_field(_PM_FIELDS, k, v)
+        if clean:
+            out["per_pair"][pair] = clean
+    return out
+
+def _write_playmaker_config(cfg: dict) -> None:
+    clean = _validate_pm_cfg(cfg)
+    clean["_note"] = "Edited via dashboard PLAYMAKER tab."
+    tmp = _PM_CONFIG_PATH.with_suffix(".tmp")
+    tmp.write_text(_j.dumps(clean, indent=2))
+    tmp.replace(_PM_CONFIG_PATH)
+
 def _write_exit_config(cfg: dict) -> None:
     clean = _validate_exit_cfg(cfg)
     clean["_note"] = ("Nested schema v2. Edited via dashboard TUNE tab. "
@@ -349,6 +409,15 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 }, default=str).encode()
                 ctype = "application/json"
                 code = 200
+            elif self.path.startswith("/api/config/playmaker"):
+                body = _j.dumps({
+                    "cfg": _read_playmaker_config(),
+                    "fields": _PM_FIELDS,
+                    "acct_fields": _PM_ACCT_FIELDS,
+                    "pairs": _PAIRS_ALL,
+                }, default=str).encode()
+                ctype = "application/json"
+                code = 200
             else:
                 body, ctype, code = b"not found", "text/plain", 404
         except Exception as exc:
@@ -373,6 +442,21 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                     body = _j.dumps({"ok": True, "cfg": _read_exit_config()}).encode()
                     ctype, code = "application/json", 200
                     log.info("exit_config updated via dashboard (defaults=%s per_pair=%s)",
+                             list(payload.get("defaults", {}).keys()),
+                             list(payload.get("per_pair", {}).keys()))
+                except Exception as exc:
+                    body = _j.dumps({"ok": False, "error": str(exc)}).encode()
+                    ctype, code = "application/json", 400
+            elif self.path.startswith("/api/config/playmaker"):
+                length = int(self.headers.get("Content-Length", "0") or 0)
+                raw = self.rfile.read(length) if length else b""
+                try:
+                    payload = _j.loads(raw.decode() or "{}")
+                    _write_playmaker_config(payload)
+                    body = _j.dumps({"ok": True, "cfg": _read_playmaker_config()}).encode()
+                    ctype, code = "application/json", 200
+                    log.info("playmaker_config updated (account=%s defaults=%s per_pair=%s)",
+                             list(payload.get("account", {}).keys()),
                              list(payload.get("defaults", {}).keys()),
                              list(payload.get("per_pair", {}).keys()))
                 except Exception as exc:

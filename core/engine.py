@@ -18,7 +18,7 @@ from typing import Optional
 from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
-from modules.playmaker.playmaker import pick_best, TradeTicket
+from modules.playmaker.playmaker import pick_best, TradeTicket, pm_risk_pct
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
 
@@ -36,6 +36,8 @@ class Engine:
         self.dir_mods, self.mom_mods = build_modules(PAIRS, _SESSIONS)
         # pair → RatchetManager; one entry per open trade
         self.managers: dict[str, RatchetManager] = {}
+        # pair -> datetime of last losing exit (in-memory; playmaker cooldown)
+        self._sl_history: dict[str, datetime] = {}
 
         # Dashboard state — updated each cycle
         self.last_views:        list = []
@@ -156,11 +158,14 @@ class Engine:
 
             # Server-side stop already hit on OANDA
             if oanda_open is not None and mgr.position.oanda_trade_id not in oanda_open:
+                _net = mgr.net_pips(mid)
                 log.info("EXIT (server stop hit) %s | trade_id=%s | approx_net=%.2fp",
-                         pair, mgr.position.oanda_trade_id, mgr.net_pips(mid))
+                         pair, mgr.position.oanda_trade_id, _net)
                 self.recent_events.append(
-                    f"{now.strftime('%H:%M:%S')} EXIT {pair} server-stop approx {'+' if mgr.net_pips(mid) >= 0 else ''}{mgr.net_pips(mid):.1f}p"
+                    f"{now.strftime('%H:%M:%S')} EXIT {pair} server-stop approx {'+' if _net >= 0 else ''}{_net:.1f}p"
                 )
+                if _net < 0:
+                    self._sl_history[pair] = now
                 del self.managers[pair]
                 continue
 
@@ -177,6 +182,8 @@ class Engine:
                         self.broker.close_position(mgr.position.oanda_trade_id)
                     except Exception as exc:
                         log.warning("close_position %s: %s (OANDA may have beaten us)", pair, exc)
+                if signal.net_pips < 0:
+                    self._sl_history[pair] = now
                 del self.managers[pair]
 
     def _cycle(self):
@@ -201,6 +208,8 @@ class Engine:
             tickets,
             hour_utc=now.hour,
             open_pairs=set(self.managers.keys()),
+            now=now,
+            sl_history=self._sl_history,
         )
 
         # ── Update dashboard state ────────────────────────────────────────────
@@ -226,8 +235,9 @@ class Engine:
         pip  = PIP[ticket.pair]
 
         entry_price = view.ask if ticket.direction == "long" else view.bid
-        units = self.broker.size_units(ticket.pair, ticket.direction)
         initial_sl = initial_sl_pips_for(ticket.pair)
+        units = self.broker.size_units(ticket.pair, ticket.direction,
+                                       sl_pips=initial_sl, risk_pct=pm_risk_pct())
         trade = self.broker.place_market(
             ticket.pair, ticket.direction, units=units,
             entry_price=entry_price, sl_pips=initial_sl,

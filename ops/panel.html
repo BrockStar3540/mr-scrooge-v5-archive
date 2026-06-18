@@ -116,6 +116,7 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
   <button class="tab" onclick="showTab('health',this)">HEALTH</button>
   <button class="tab" onclick="showTab('system',this)">SYSTEM</button>
   <button class="tab" onclick="showTab('tune',this);loadTune()">TUNE</button>
+  <button class="tab" onclick="showTab('playmaker',this);loadPlaymaker()">PLAYMAKER</button>
   <div class="nav-right">
     <div class="sess-dots">
       <span class="sess-dot" id="sd-asia">ASI</span>
@@ -245,8 +246,198 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
   </div>
 </div>
 
+<!-- PLAYMAKER TAB -->
+<div id="tab-playmaker" class="pane">
+  <div class="card">
+    <div class="card-title">Account knobs
+      <span class="muted" style="font-weight:normal;font-size:11px">(live; reads each new entry / each playmaker cycle)</span>
+    </div>
+    <div id="pm-msg" style="padding:8px 10px;font-size:12px"></div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;padding:10px">
+      <div>
+        <label style="font-size:11px;color:var(--fg2);display:block;margin-bottom:4px">Risk per trade (fraction of NAV)</label>
+        <input id="pm-risk" type="number" step="0.001" min="0.001" max="1"
+               style="width:120px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:Menlo,monospace;font-size:13px;text-align:right">
+        <div id="pm-risk-warn" style="font-size:11px;margin-top:4px"></div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--fg2);display:block;margin-bottom:4px">Max concurrent trades</label>
+        <input id="pm-maxc" type="number" step="1" min="1" max="20"
+               style="width:120px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:Menlo,monospace;font-size:13px;text-align:right">
+      </div>
+      <div id="pm-risk-math" style="font-size:11px;color:var(--fg2);align-self:flex-end;padding-bottom:6px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Per-pair playmaker gates
+      <span class="muted" style="font-weight:normal;font-size:11px">(blank cell on a pair row = inherit default)</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table id="pm-tbl" style="font-size:12px">
+      <thead>
+        <tr>
+          <th style="text-align:left">Scope</th>
+          <th title="If off, this pair is blocked from new entries">Enabled</th>
+          <th title="Minimum |direction.score| to pass the playmaker (was global 0.25)">Min |dir.score|</th>
+          <th title="Minimum direction.certainty (was global 0.30)">Min dir.certainty</th>
+          <th title="Minimum momentum.certainty (was global 0.25)">Min mom.certainty</th>
+          <th title="Minutes the playmaker blocks this pair after a losing exit on it (in-memory; resets on restart)">Cooldown after loss (min)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="pm-body"></tbody>
+    </table>
+    </div>
+    <div style="padding:10px;display:flex;gap:10px;align-items:center">
+      <button id="pm-save"  onclick="savePlaymaker()"  style="padding:8px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Save all changes</button>
+      <button id="pm-reset" onclick="loadPlaymaker()" style="padding:8px 16px;background:var(--bg2);color:var(--fg);border:1px solid var(--border);border-radius:6px;cursor:pointer">Discard edits</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Utilities ────────────────────────────────────────────────────────────────
+
+
+// ── PLAYMAKER tab ────────────────────────────────────────────────────────────
+let PM_META = null;
+async function loadPlaymaker() {
+  const r = await fetch('/api/config/playmaker');
+  const d = await r.json();
+  PM_META = d;
+  renderPlaymaker();
+  document.getElementById('pm-msg').textContent = '';
+}
+function _pmInp(val, ph, w='70px') {
+  const v = (val === null || val === undefined) ? '' : val;
+  return `<input type="number" step="0.01" value="${v}" placeholder="${ph}" `+
+         `style="width:${w};background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:Menlo,monospace;font-size:12px;text-align:right">`;
+}
+function _pmBoolCell(val, isDefault) {
+  if (isDefault) return `<input type="checkbox" ${val ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue)">`;
+  return `<select data-bool="enabled" style="background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:3px;font-size:11.5px">
+    <option value=""    ${val===null?'selected':''}>inherit</option>
+    <option value="on"  ${val===true?'selected':''}>on</option>
+    <option value="off" ${val===false?'selected':''}>off</option></select>`;
+}
+function _pmRow(scope, eff, override, isDefault) {
+  const o = (k) => isDefault ? eff[k] : (override[k] === undefined ? null : override[k]);
+  const enVal = isDefault ? !!eff.enabled : (override.enabled !== undefined ? !!override.enabled : null);
+  const label = isDefault ? `<b>Default (all pairs)</b>` : `<b>${scope.replace('_','/')}</b>`;
+  return `<tr data-scope="${scope}">
+    <td>${label}</td>
+    <td>${_pmBoolCell(enVal, isDefault)}</td>
+    <td>${_pmInp(o('min_direction_score'), eff.min_direction_score)}</td>
+    <td>${_pmInp(o('min_dir_certainty'),   eff.min_dir_certainty)}</td>
+    <td>${_pmInp(o('min_mom_certainty'),   eff.min_mom_certainty)}</td>
+    <td>${_pmInp(o('cooldown_after_sl_min'), eff.cooldown_after_sl_min)}</td>
+    <td>${isDefault ? '' : `<button onclick="clearPmOverride('${scope}')" style="padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:4px;cursor:pointer;font-size:11px">clear</button>`}</td>
+  </tr>`;
+}
+function _updatePmRiskMath() {
+  const risk = parseFloat(document.getElementById('pm-risk').value || 0);
+  const maxc = parseInt(document.getElementById('pm-maxc').value || 0);
+  const warn = document.getElementById('pm-risk-warn');
+  const math = document.getElementById('pm-risk-math');
+  if (risk > 0.05) {
+    warn.innerHTML = `<span style="color:var(--red)">⚠ ${(risk*100).toFixed(1)}% per trade is aggressive</span>`;
+  } else {
+    warn.innerHTML = '';
+  }
+  if (risk > 0 && maxc > 0) {
+    math.innerHTML = `Max simultaneous risk-at-SL: <b>${(risk*maxc*100).toFixed(1)}%</b> of NAV (${maxc} concurrent × ${(risk*100).toFixed(1)}%)`;
+  } else {
+    math.innerHTML = '';
+  }
+}
+function renderPlaymaker() {
+  if (!PM_META) return;
+  const cfg = PM_META.cfg || {};
+  const acct = cfg.account || {};
+  const defaults = cfg.defaults || {};
+  const per      = cfg.per_pair || {};
+  const pairs    = PM_META.pairs || [];
+  document.getElementById('pm-risk').value = (acct.risk_pct_per_trade ?? '');
+  document.getElementById('pm-maxc').value = (acct.max_concurrent_trades ?? '');
+  document.getElementById('pm-risk').oninput  = _updatePmRiskMath;
+  document.getElementById('pm-maxc').oninput  = _updatePmRiskMath;
+  _updatePmRiskMath();
+  let html = _pmRow('__defaults', defaults, defaults, true);
+  for (const p of pairs) {
+    const ov = per[p] || {};
+    const eff = Object.assign({}, defaults, ov);
+    html += _pmRow(p, eff, ov, false);
+  }
+  document.getElementById('pm-body').innerHTML = html;
+}
+function clearPmOverride(pair) {
+  const row = document.querySelector(`#pm-body tr[data-scope="${pair}"]`);
+  if (!row) return;
+  row.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
+  const sel = row.querySelector('select'); if (sel) sel.value = '';
+  document.getElementById('pm-msg').innerHTML = `<span class="muted">Cleared ${pair.replace('_','/')} overrides (unsaved)</span>`;
+}
+function _pmCollectRow(row, isDefault) {
+  const out = {};
+  if (isDefault) {
+    const cb = row.querySelector('input[type="checkbox"]');
+    out.enabled = !!cb?.checked;
+  } else {
+    const sel = row.querySelector('select');
+    if (sel) {
+      if (sel.value === 'on')  out.enabled = true;
+      if (sel.value === 'off') out.enabled = false;
+    }
+  }
+  const inputs = row.querySelectorAll('input[type="number"]');
+  const fields = ['min_direction_score','min_dir_certainty','min_mom_certainty','cooldown_after_sl_min'];
+  fields.forEach((f, i) => {
+    const v = inputs[i]?.value.trim();
+    if (v !== undefined && v !== '') out[f] = parseFloat(v);
+  });
+  return out;
+}
+async function savePlaymaker() {
+  const payload = {account: {}, defaults: {}, per_pair: {}};
+  const risk = parseFloat(document.getElementById('pm-risk').value);
+  const maxc = parseInt(document.getElementById('pm-maxc').value);
+  if (isFinite(risk)) payload.account.risk_pct_per_trade = risk;
+  if (isFinite(maxc)) payload.account.max_concurrent_trades = maxc;
+  document.querySelectorAll('#pm-body tr').forEach(row => {
+    const scope = row.getAttribute('data-scope');
+    const isDef = scope === '__defaults';
+    const vals = _pmCollectRow(row, isDef);
+    if (isDef) {
+      payload.defaults = vals;
+    } else if (Object.keys(vals).length) {
+      payload.per_pair[scope] = vals;
+    }
+  });
+  // Defaults row must include all fields
+  const need = ['enabled','min_direction_score','min_dir_certainty','min_mom_certainty','cooldown_after_sl_min'];
+  for (const k of need) {
+    if (payload.defaults[k] === undefined) {
+      document.getElementById('pm-msg').innerHTML = `<span style="color:var(--red)">Default row missing ${k}</span>`;
+      return;
+    }
+  }
+  const msg = document.getElementById('pm-msg');
+  msg.innerHTML = '<span class="muted">Saving…</span>';
+  try {
+    const r = await fetch('/api/config/playmaker', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    const d = await r.json();
+    if (!r.ok || !d.ok) {
+      msg.innerHTML = `<span style="color:var(--red)">Save rejected: ${d.error || r.status}</span>`;
+      return;
+    }
+    PM_META.cfg = d.cfg;
+    renderPlaymaker();
+    msg.innerHTML = `<span style="color:var(--green)">Saved — live (next playmaker cycle / next entry).</span>`;
+  } catch (exc) {
+    msg.innerHTML = `<span style="color:var(--red)">Network error: ${exc}</span>`;
+  }
+}
 
 // ── TUNE tab ─────────────────────────────────────────────────────────────────
 let TUNE_META = null;
