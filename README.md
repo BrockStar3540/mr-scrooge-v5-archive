@@ -4,6 +4,28 @@ Automated forex trading bot for OANDA. Modular ML pipeline: direction signal →
 
 ---
 
+## Expected Performance
+
+Full analysis in [docs/EDGE_REPORT.md](docs/EDGE_REPORT.md).
+
+| Metric | Value |
+|--------|-------|
+| Direction accuracy (module level) | 70-73% London / 70-72% Asia / 69-73% NY |
+| Estimated trade win rate | 65-70% |
+| E[pip/trade] gross of spread | +3.3-4.9p |
+| E[pip/trade] net of spread | +2.5-4.0p |
+| Initial stop-loss | -15p from entry |
+| Edge classification | **HIGH** |
+| Research basis | 8-year OOS walk-forward, all 8 pairs |
+| Live confirmation | Pending — V5 launched 2026-06-18 |
+
+**The ratchet is essential.** Without the 6-pip step-trail exit, the same signal produces +0.75p/trade (LOW edge). The ratchet converts the 70%+ of trades that run 20+ pips MFE into locked profits, lifting expectation to the +3-5p range.
+
+**London is strongest.** EUR/JPY, USD/JPY, and GBP/USD London are the widest cells (28-30p D1-D10 span). Asia and NY are real but smaller.
+
+**These are backtested numbers.** 8-year walk-forward, year-by-year stability verified. Allow 50-100 live trades before drawing conclusions about live vs backtest alignment.
+
+---
 ## Architecture
 
 ```
