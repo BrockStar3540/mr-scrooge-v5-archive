@@ -49,16 +49,9 @@ def _secrets() -> dict:
     return out
 
 
-def _coarse_session(hour_utc: int) -> str:
-    """Map UTC hour → 3-session label used in dm_04 calibration.
-
-    asia   : 22:00–07:00 UTC  (Tokyo / Sydney)
-    london : 07:00–13:00 UTC  (European morning, pre-NY)
-    ny     : 13:00–22:00 UTC  (NY open through close)
-    """
-    if  7 <= hour_utc < 13: return "london"
-    if 13 <= hour_utc < 22: return "ny"
-    return "asia"
+# 3-session mapping is the canonical one in config.sessions (single source of
+# truth, shared with the playmaker eligibility gate).
+from config.sessions import coarse_session as _coarse_session
 
 
 # ── HTTP helper ──────────────────────────────────────────────────────────────

@@ -37,7 +37,6 @@ from typing import Optional
 
 from ..signals.base import PairTicket
 from config.pairs import PAIR_SESSIONS
-from config.sessions import current_session
 
 
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
@@ -132,13 +131,17 @@ def pick_best(
     if len(open_pairs) >= max_positions:
         return None
 
-    session = current_session(hour_utc)
-
-    # Step 1: session + position eligibility
+    # Step 1: session + position eligibility.
+    # Gate on each ticket's OWN session — the value the feed stamped via the
+    # dm_04 coarse mapping (asia/london/ny) and that the direction/momentum
+    # calibration used. This guarantees the eligibility gate and the
+    # calculations can never disagree (the prior bug: a separate fine-grained
+    # current_session() returned labels like "ny_mid" that PAIR_SESSIONS never
+    # contained, silently disabling all NY-session trading).
     eligible = [
         t for t in tickets
         if t.pair not in open_pairs
-        and session in PAIR_SESSIONS.get(t.pair, [])
+        and t.session in PAIR_SESSIONS.get(t.pair, [])
     ]
     if not eligible:
         return None
@@ -153,7 +156,7 @@ def pick_best(
 
     return TradeTicket(
         pair=best.pair,
-        session=session,
+        session=best.session,
         direction=best.direction.bias,
         score=round(best.composite_score, 4),
         dir_certainty=round(best.direction.certainty, 4),

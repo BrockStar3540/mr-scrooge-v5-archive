@@ -1,21 +1,25 @@
-# Session windows in UTC hours. V5 uses 8 fine-grained sessions.
+# Canonical trading-session mapping — SINGLE SOURCE OF TRUTH.
+#
+# UTC hour -> one of the 3 dm_04 calibration sessions. Everything keys off this:
+#   * the feed stamps MarketView.session with coarse_session() (core/feed/oanda.py)
+#   * the direction/momentum modules are calibrated per (pair x session) on these labels
+#   * the playmaker gates eligibility on these labels (config.pairs.PAIR_SESSIONS)
+# Keep PAIR_SESSIONS in lockstep with the labels defined here.
+
 SESSIONS = {
-    "asia":         (22, 7),    # 22:00-07:00 UTC
-    "asia_late":    (4,  7),    # 04:00-07:00 UTC
-    "london_open":  (7,  9),    # 07:00-09:00 UTC
-    "london":       (9,  15),   # 09:00-15:00 UTC
-    "ny_open":      (13, 15),   # 13:00-15:00 UTC (overlaps london)
-    "ny_mid":       (15, 19),   # 15:00-19:00 UTC
-    "ny_close":     (19, 22),   # 19:00-22:00 UTC
-    "off_hours":    (22, 22),   # effectively closed
+    "asia":   (22, 7),   # 22:00-07:00 UTC  (Tokyo / Sydney)
+    "london": (7, 13),   # 07:00-13:00 UTC  (European morning, pre-NY)
+    "ny":     (13, 22),  # 13:00-22:00 UTC  (NY open through close)
 }
 
-def current_session(hour_utc: int) -> str:
-    if 7 <= hour_utc < 9:   return "london_open"
-    if 13 <= hour_utc < 15: return "ny_open"
-    if 9 <= hour_utc < 15:  return "london"
-    if 15 <= hour_utc < 19: return "ny_mid"
-    if 19 <= hour_utc < 22: return "ny_close"
-    if 4 <= hour_utc < 7:   return "asia_late"
-    if 22 <= hour_utc or hour_utc < 4: return "asia"
-    return "off_hours"
+
+def coarse_session(hour_utc: int) -> str:
+    """UTC hour -> 3-session label used in dm_04 calibration."""
+    if  7 <= hour_utc < 13: return "london"
+    if 13 <= hour_utc < 22: return "ny"
+    return "asia"
+
+
+# Deprecated alias — kept so any stray import returns the ACCURATE coarse session
+# instead of the old (removed) fine-grained mapping. Prefer coarse_session().
+current_session = coarse_session
