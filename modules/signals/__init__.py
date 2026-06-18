@@ -50,4 +50,5 @@ def stamp_pair(
         pair=view.pair, session=view.session, timestamp=view.timestamp,
         direction=d_mod.stamp(view),
         momentum=m_mod.stamp(view),
+        spread_pips=view.spread_pips,
     )

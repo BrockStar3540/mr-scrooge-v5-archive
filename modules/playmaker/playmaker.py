@@ -3,17 +3,32 @@
 The playmaker receives one PairTicket per active pair (already stamped by direction
 and momentum modules) and picks the highest-quality setup to fire.
 
-Selection logic:
-  1. Filter to pairs active in the current session (PAIR_SESSIONS config).
-  2. Drop pairs that already have an open position.
-  3. Drop tickets where direction.bias == 'block'.
-  4. Drop extreme vol-regime (momentum.vol_regime == 'extreme').
-  5. Rank by composite_score = direction.score × direction.certainty × momentum.certainty.
-  6. Fire the top-ranked ticket if composite_score >= MIN_SCORE threshold.
+CERTAINTY FLOORS — derived from dm_04 raw factor sweep (not exit-management calibrated):
 
-TradeTicket is what flows downstream to trade management (RatchetManager or any other
-exit strategy). It carries direction and magnitude readings but no exit instructions —
-those are entirely the trade management module's concern.
+  MIN_DIRECTION_SCORE = 0.25
+    The direction module emits "block" at |score| < 0.15.  Score 0.15–0.25 is
+    technically non-block but directionally weak (D6-D7 territory on primary
+    indicator with poor supporting signal).  0.25+ means the weighted factor
+    composite is committed to a side with meaningful conviction.
+
+  MIN_DIR_CERTAINTY = 0.30
+    Certainty = factor_extremity × (0.4 + 0.6 × agreement).
+    From dm_04: h1_ret_1bar at D9 (norm≈0.85) + 4 supporting factors at D7
+    (norm≈0.45) → certainty ≈ 0.30.  Below that, the signal is not consistently
+    above the noise floor established by the sweep.  The is_actionable property
+    in PairTicket already gates on certainty > 0.25; this adds the stricter
+    playmaker-level bar.
+
+  MIN_MOM_CERTAINTY = 0.25
+    Momentum certainty 0.25 = ATR is at least 25% of the way from the center of
+    the normal regime toward a boundary (low/normal or normal/high).  Below 0.25
+    the vol regime is ambiguous and expected_pips estimates are unreliable.
+
+BEST-EDGE PRIORITY when multiple pairs pass all gates simultaneously:
+  Primary rank:   abs(composite_score) = abs(direction.score) × dir_certainty × mom_certainty
+  Secondary rank: expected_pips        — higher-magnitude setup wins on ties
+  This means a moderately strong signal with high dual-certainty beats a raw
+  signal with middling certainties, which is the correct preference.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -25,8 +40,28 @@ from config.pairs import PAIR_SESSIONS
 from config.sessions import current_session
 
 
+# ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
+MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
+MIN_DIR_CERTAINTY   = 0.30   # direction.certainty minimum
+MIN_MOM_CERTAINTY   = 0.25   # momentum.certainty minimum
+
+# ── Position and spread limits ───────────────────────────────────────────────
 MAX_OPEN_POSITIONS = 3
-MIN_COMPOSITE_SCORE = 0.20   # placeholder; will be calibrated per session from dm_04 data
+
+# Maximum spread to accept a trade (pips).  Above these levels the spread
+# consumes too much of the expected edge.  0.0 in the ticket = feed not yet
+# wired → skip the spread gate (fail-open until feed is live).
+_MAX_SPREAD: dict[str, float] = {
+    "EUR_USD": 2.5,
+    "GBP_USD": 3.0,
+    "USD_JPY": 2.0,
+    "AUD_USD": 2.5,
+    "USD_CAD": 3.0,
+    "USD_CHF": 3.0,
+    "EUR_JPY": 3.5,
+    "AUD_JPY": 4.0,
+}
+_DEFAULT_MAX_SPREAD = 3.0
 
 
 @dataclass
@@ -42,37 +77,79 @@ class TradeTicket:
     expected_pips: float   # from momentum stamp
     timestamp:     datetime
     reads:         dict    # direction.reads + momentum.reads for logging/debug
+    rivals:        int = 0 # how many other candidates passed all gates this cycle
+
+
+def _passes_gates(t: PairTicket) -> bool:
+    """All certainty + spread gates the playmaker requires (beyond is_actionable)."""
+    d, m = t.direction, t.momentum
+
+    # Gate 1: base checks from signals (bias, dir_certainty>0.25, vol_regime)
+    if not t.is_actionable:
+        return False
+
+    # Gate 2: direction signal must be meaningfully committed to one side
+    if abs(d.score) < MIN_DIRECTION_SCORE:
+        return False
+
+    # Gate 3: direction module certainty — D9+ on primary indicator with support
+    if d.certainty < MIN_DIR_CERTAINTY:
+        return False
+
+    # Gate 4: momentum module certainty — clearly in a vol regime
+    if m.certainty < MIN_MOM_CERTAINTY:
+        return False
+
+    # Gate 5: spread sanity (skip when spread_pips == 0.0, i.e., feed not live yet)
+    if t.spread_pips > 0.0:
+        max_spread = _MAX_SPREAD.get(t.pair, _DEFAULT_MAX_SPREAD)
+        if t.spread_pips > max_spread:
+            return False
+
+    return True
+
+
+def _edge_rank(t: PairTicket) -> tuple:
+    """Higher is better.  Primary: composite magnitude.  Secondary: expected move."""
+    return (abs(t.composite_score), t.momentum.expected_pips)
 
 
 def pick_best(
-    tickets:        list[PairTicket],
-    hour_utc:       int,
-    open_pairs:     set[str],
-    max_positions:  int = MAX_OPEN_POSITIONS,
+    tickets:       list[PairTicket],
+    hour_utc:      int,
+    open_pairs:    set[str],
+    max_positions: int = MAX_OPEN_POSITIONS,
 ) -> Optional[TradeTicket]:
-    """Select the best trade ticket from active pair tickets.
+    """Select the best-edge trade ticket from active pair tickets.
 
-    Returns None when no actionable setup exists or position limit is reached.
+    Returns None when:
+      - position limit is already reached, or
+      - no ticket passes all certainty + spread gates.
+
+    When multiple tickets pass (group arrival), picks the one with the highest
+    abs(composite_score), breaking ties by expected_pips.
     """
     if len(open_pairs) >= max_positions:
         return None
 
     session = current_session(hour_utc)
 
-    candidates = [
+    # Step 1: session + position eligibility
+    eligible = [
         t for t in tickets
-        if t.is_actionable
-        and t.pair not in open_pairs
+        if t.pair not in open_pairs
         and session in PAIR_SESSIONS.get(t.pair, [])
     ]
+    if not eligible:
+        return None
 
+    # Step 2: all certainty + spread gates
+    candidates = [t for t in eligible if _passes_gates(t)]
     if not candidates:
         return None
 
-    best = max(candidates, key=lambda t: abs(t.composite_score))
-
-    if abs(best.composite_score) < MIN_COMPOSITE_SCORE:
-        return None
+    # Step 3: rank by edge quality; pick the best
+    best = max(candidates, key=_edge_rank)
 
     return TradeTicket(
         pair=best.pair,
@@ -88,4 +165,5 @@ def pick_best(
             "direction": best.direction.reads,
             "momentum":  best.momentum.reads,
         },
+        rivals=len(candidates) - 1,
     )

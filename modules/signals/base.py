@@ -96,8 +96,9 @@ class PairTicket:
     pair:      str
     session:   str
     timestamp: datetime
-    direction: DirectionStamp
-    momentum:  MomentumStamp
+    direction:   DirectionStamp
+    momentum:    MomentumStamp
+    spread_pips: float = 0.0      # live spread at stamp time — playmaker spread gate
 
     @property
     def composite_score(self) -> float:
