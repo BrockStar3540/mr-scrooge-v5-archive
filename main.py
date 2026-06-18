@@ -27,6 +27,9 @@ def main():
     broker = OandaBroker()
     engine = Engine(feed=feed, broker=broker, dry_run=dry_run)
 
+    from ops.server import start_dashboard
+    start_dashboard(engine, port=8095)
+
     engine.run_forever(interval_seconds=300)   # one cycle per M5 bar
 
 

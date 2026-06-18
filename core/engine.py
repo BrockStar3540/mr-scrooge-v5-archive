@@ -9,8 +9,11 @@ Flow per M5 bar:
   6. Entry: size units + place market order via broker; register RatchetManager
 """
 from __future__ import annotations
-import logging, time
+import collections
+import logging
+import time
 from datetime import datetime, timezone
+from typing import Optional
 
 from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
@@ -33,6 +36,14 @@ class Engine:
         self.dir_mods, self.mom_mods = build_modules(PAIRS, _SESSIONS)
         # pair → RatchetManager; one entry per open trade
         self.managers: dict[str, RatchetManager] = {}
+
+        # Dashboard state — updated each cycle
+        self.last_views:        list = []
+        self.last_tickets:      list = []
+        self.last_trade_ticket: Optional[TradeTicket] = None
+        self.recent_events:     collections.deque = collections.deque(maxlen=40)
+        self.cycle_count:       int = 0
+        self.last_cycle_time:   Optional[datetime] = None
 
         log.info("V5 engine ready | dry_run=%s | %d pairs | %d dir_mods | %d mom_mods",
                  dry_run, len(PAIRS), len(self.dir_mods), len(self.mom_mods))
@@ -97,6 +108,9 @@ class Engine:
             elapsed_min = (now - entry_time).total_seconds() / 60
             log.info("RECOVERED %s %s | entry=%.5f | trade_id=%s | elapsed=%.1fm",
                      pair, direction, entry_price, trade_id, elapsed_min)
+            self.recent_events.append(
+                f"{datetime.now(timezone.utc).strftime('%H:%M:%S')} RECOVERED {pair} {direction} @ {entry_price:.5f}"
+            )
 
     def run_forever(self, interval_seconds: int = 300):
         log.info("V5 engine starting (dry_run=%s, interval=%ds)", self.dry_run, interval_seconds)
@@ -129,6 +143,9 @@ class Engine:
             if oanda_open is not None and mgr.position.oanda_trade_id not in oanda_open:
                 log.info("EXIT (server stop hit) %s | trade_id=%s | approx_net=%.2fp",
                          pair, mgr.position.oanda_trade_id, mgr.net_pips(mid))
+                self.recent_events.append(
+                    f"{now.strftime('%H:%M:%S')} EXIT {pair} server-stop approx {'+' if mgr.net_pips(mid) >= 0 else ''}{mgr.net_pips(mid):.1f}p"
+                )
                 del self.managers[pair]
                 continue
 
@@ -137,6 +154,9 @@ class Engine:
             if signal:
                 log.info("EXIT (local detect) %s | %s | net=%.2fp",
                          pair, signal.reason, signal.net_pips)
+                self.recent_events.append(
+                    f"{now.strftime('%H:%M:%S')} EXIT {pair} {signal.reason} {'+' if signal.net_pips >= 0 else ''}{signal.net_pips:.1f}p"
+                )
                 if not self.dry_run:
                     try:
                         self.broker.close_position(mgr.position.oanda_trade_id)
@@ -159,6 +179,13 @@ class Engine:
             hour_utc=now.hour,
             open_pairs=set(self.managers.keys()),
         )
+
+        # ── Update dashboard state ────────────────────────────────────────────
+        self.last_views        = views
+        self.last_tickets      = tickets
+        self.last_trade_ticket = trade_ticket
+        self.cycle_count      += 1
+        self.last_cycle_time   = now
 
         if trade_ticket is None:
             return
@@ -202,3 +229,6 @@ class Engine:
         log.info("ENTERED %s %s @ %.5f | %d units | SL -%dp | trade_id=%s",
                  ticket.pair, ticket.direction, entry_price, units,
                  DEFAULT_INITIAL_SL_PIPS, trade["id"])
+        self.recent_events.append(
+            f"{now.strftime('%H:%M:%S')} ENTER {ticket.pair} {ticket.direction} @ {entry_price:.5f}"
+        )

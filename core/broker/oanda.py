@@ -67,6 +67,18 @@ class OandaBroker:
         summary = self._req("GET", f"/v3/accounts/{self._acct}/summary")
         return float(summary["account"]["NAV"])
 
+    def account_summary(self) -> dict:
+        """Full account metrics for the dashboard."""
+        s = self._req("GET", f"/v3/accounts/{self._acct}/summary")["account"]
+        return {
+            "nav":           round(float(s.get("NAV", 0)), 2),
+            "balance":       round(float(s.get("balance", 0)), 2),
+            "unrealized_pl": round(float(s.get("unrealizedPL", 0)), 2),
+            "margin_used":   round(float(s.get("marginUsed", 0)), 2),
+            "open_trades":   int(s.get("openTradeCount", 0)),
+            "pl":            round(float(s.get("pl", 0)), 2),
+        }
+
     def open_positions(self) -> list[dict]:
         """List of currently open trades."""
         return self._req("GET", f"/v3/accounts/{self._acct}/openTrades").get("trades", [])
