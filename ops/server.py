@@ -24,6 +24,68 @@ log = logging.getLogger("v5.dashboard")
 
 _PANEL = Path(__file__).resolve().parent / "panel.html"
 
+# ── Exit-tuning config (TUNE tab) ───────────────────────────────────────────
+from pathlib import Path as _Path
+_EXIT_CONFIG_PATH = _Path("/home/ubuntu/mr-scrooge-v5/config/exit_config.json")
+
+_EXIT_FIELDS = {
+    "initial_sl_pips":   {"min": 1.0,  "max": 100.0, "label": "Initial SL (pips)"},
+    "step_engage_min":   {"min": 0.0,  "max": 240.0, "label": "Engage delay (min)"},
+    "step_cadence_min":  {"min": 0.1,  "max": 60.0,  "label": "Cadence (min)"},
+    "step_trigger_pips": {"min": 0.5,  "max": 100.0, "label": "TP1 trigger (peak pips)"},
+    "step_trail_pips":   {"min": 0.1,  "max": 100.0, "label": "Trail behind level (pips)"},
+    "step_size_pips":    {"min": 0.5,  "max": 50.0,  "label": "Rung spacing (pips)"},
+}
+_PAIRS_ALL = ["AUD_JPY","AUD_USD","EUR_JPY","EUR_USD","GBP_USD","USD_CAD","USD_CHF","USD_JPY"]
+
+def _read_exit_config() -> dict:
+    try:
+        return _j.loads(_EXIT_CONFIG_PATH.read_text())
+    except Exception as exc:
+        return {"schema": "v2", "defaults": {}, "per_pair": {}, "_error": str(exc)}
+
+def _validate_exit_field(k: str, v) -> float:
+    if k not in _EXIT_FIELDS:
+        raise ValueError(f"unknown field: {k}")
+    f = float(v)
+    spec = _EXIT_FIELDS[k]
+    if not (spec["min"] <= f <= spec["max"]):
+        raise ValueError(f"{k}={f} out of bounds [{spec['min']}, {spec['max']}]")
+    return f
+
+def _validate_exit_cfg(cfg: dict) -> dict:
+    out = {"schema": "v2", "defaults": {}, "per_pair": {}}
+    defaults = cfg.get("defaults") or {}
+    for k in _EXIT_FIELDS:
+        if k in defaults:
+            out["defaults"][k] = _validate_exit_field(k, defaults[k])
+    if "step_trail_pips" in out["defaults"] and "step_trigger_pips" in out["defaults"]:
+        if out["defaults"]["step_trail_pips"] >= out["defaults"]["step_trigger_pips"]:
+            raise ValueError("defaults: step_trail_pips must be < step_trigger_pips (else first lock <= 0)")
+    per = cfg.get("per_pair") or {}
+    for pair, ov in per.items():
+        if pair not in _PAIRS_ALL:
+            raise ValueError(f"unknown pair: {pair}")
+        clean = {}
+        for k, v in (ov or {}).items():
+            clean[k] = _validate_exit_field(k, v)
+        merged_trig  = clean.get("step_trigger_pips", out["defaults"].get("step_trigger_pips"))
+        merged_trail = clean.get("step_trail_pips",   out["defaults"].get("step_trail_pips"))
+        if merged_trig is not None and merged_trail is not None and merged_trail >= merged_trig:
+            raise ValueError(f"{pair}: step_trail_pips must be < step_trigger_pips")
+        if clean:
+            out["per_pair"][pair] = clean
+    return out
+
+def _write_exit_config(cfg: dict) -> None:
+    clean = _validate_exit_cfg(cfg)
+    clean["_note"] = ("Nested schema v2. Edited via dashboard TUNE tab. "
+                      "Per-pair fields override defaults for that pair only.")
+    tmp = _EXIT_CONFIG_PATH.with_suffix(".tmp")
+    tmp.write_text(_j.dumps(clean, indent=2))
+    tmp.replace(_EXIT_CONFIG_PATH)
+
+
 
 def _state(engine: "Engine") -> dict:
     now = datetime.now(timezone.utc)
@@ -244,6 +306,14 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 body = _j.dumps(_sysinfo(), default=str).encode()
                 ctype = "application/json"
                 code = 200
+            elif self.path.startswith("/api/config/exit"):
+                body = _j.dumps({
+                    "cfg": _read_exit_config(),
+                    "fields": _EXIT_FIELDS,
+                    "pairs": _PAIRS_ALL,
+                }, default=str).encode()
+                ctype = "application/json"
+                code = 200
             else:
                 body, ctype, code = b"not found", "text/plain", 404
         except Exception as exc:
@@ -251,6 +321,34 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             body = _j.dumps({"error": str(exc)}).encode()
             ctype, code = "application/json", 500
 
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        try:
+            if self.path.startswith("/api/config/exit"):
+                length = int(self.headers.get("Content-Length", "0") or 0)
+                raw = self.rfile.read(length) if length else b""
+                try:
+                    payload = _j.loads(raw.decode() or "{}")
+                    _write_exit_config(payload)
+                    body = _j.dumps({"ok": True, "cfg": _read_exit_config()}).encode()
+                    ctype, code = "application/json", 200
+                    log.info("exit_config updated via dashboard (defaults=%s per_pair=%s)",
+                             list(payload.get("defaults", {}).keys()),
+                             list(payload.get("per_pair", {}).keys()))
+                except Exception as exc:
+                    body = _j.dumps({"ok": False, "error": str(exc)}).encode()
+                    ctype, code = "application/json", 400
+            else:
+                body, ctype, code = b"not found", "text/plain", 404
+        except Exception as exc:
+            log.exception("dashboard POST handler error: %s", exc)
+            body = _j.dumps({"ok": False, "error": str(exc)}).encode()
+            ctype, code = "application/json", 500
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Access-Control-Allow-Origin", "*")

@@ -20,7 +20,7 @@ from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
 from modules.playmaker.playmaker import pick_best, TradeTicket
 from modules.management.base import Position
-from modules.management.ratchet import RatchetManager
+from modules.management.ratchet import RatchetManager, initial_sl_pips_for
 
 log = logging.getLogger("v5.engine")
 
@@ -224,14 +224,15 @@ class Engine:
 
         entry_price = view.ask if ticket.direction == "long" else view.bid
         units = self.broker.size_units(ticket.pair, ticket.direction)
+        initial_sl = initial_sl_pips_for(ticket.pair)
         trade = self.broker.place_market(
             ticket.pair, ticket.direction, units=units,
-            entry_price=entry_price,
+            entry_price=entry_price, sl_pips=initial_sl,
         )
 
-        initial_sl_price = (entry_price - DEFAULT_INITIAL_SL_PIPS * pip
+        initial_sl_price = (entry_price - initial_sl * pip
                             if ticket.direction == "long"
-                            else entry_price + DEFAULT_INITIAL_SL_PIPS * pip)
+                            else entry_price + initial_sl * pip)
         pos = Position(
             ticket=ticket,
             entry_price=entry_price,
@@ -246,9 +247,9 @@ class Engine:
             broker=self.broker,
             dry_run=self.dry_run,
         )
-        log.info("ENTERED %s %s @ %.5f | %d units | SL -%dp | trade_id=%s",
+        log.info("ENTERED %s %s @ %.5f | %d units | SL -%.1fp | trade_id=%s",
                  ticket.pair, ticket.direction, entry_price, units,
-                 DEFAULT_INITIAL_SL_PIPS, trade["id"])
+                 initial_sl, trade["id"])
         self.recent_events.append(
             f"{now.strftime('%H:%M:%S')} ENTER {ticket.pair} {ticket.direction} @ {entry_price:.5f}"
         )

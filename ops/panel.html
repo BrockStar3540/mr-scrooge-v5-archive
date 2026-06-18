@@ -115,6 +115,7 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
   <button class="tab" onclick="showTab('pairs',this)">PAIRS</button>
   <button class="tab" onclick="showTab('health',this)">HEALTH</button>
   <button class="tab" onclick="showTab('system',this)">SYSTEM</button>
+  <button class="tab" onclick="showTab('tune',this);loadTune()">TUNE</button>
   <div class="nav-right">
     <div class="sess-dots">
       <span class="sess-dot" id="sd-asia">ASI</span>
@@ -183,8 +184,147 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
   </div>
 </div>
 
+<!-- TUNE TAB -->
+<div id="tab-tune" class="pane">
+  <div class="card">
+    <div class="card-title">Exit knobs — defaults + per-pair overrides
+      <span class="muted" style="font-weight:normal;font-size:11px">(live; ratchet re-reads each 30s tick, new entries read on placement)</span>
+    </div>
+    <div id="tune-msg" style="padding:8px 10px;font-size:12px"></div>
+    <div style="overflow-x:auto">
+    <table id="tune-tbl" style="font-size:12px">
+      <thead>
+        <tr>
+          <th style="text-align:left">Scope</th>
+          <th title="Initial server-side stop loss in pips from entry">SL (pips)</th>
+          <th title="Peak MFE required to arm the first ratchet rung (TP1)">TP1 trigger</th>
+          <th title="Pips below the rung level where the SL parks (give-back)">Trail</th>
+          <th title="Distance between ratchet rungs (TP2 = TP1 + this)">Rung step</th>
+          <th title="Minutes after entry before the ratchet can engage (0 = immediate)">Engage min</th>
+          <th title="Minimum minutes between ratchet re-checks">Cadence min</th>
+          <th title="Derived: first lock = trigger - trail; second lock = trigger + step - trail">TP1 lock / TP2 lock</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tune-body"></tbody>
+    </table>
+    </div>
+    <div style="padding:10px;display:flex;gap:10px;align-items:center">
+      <button id="tune-save"  onclick="saveTune()"  style="padding:8px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Save all changes</button>
+      <button id="tune-reset" onclick="loadTune()" style="padding:8px 16px;background:var(--bg2);color:var(--fg);border:1px solid var(--border);border-radius:6px;cursor:pointer">Discard edits</button>
+      <span class="muted" style="font-size:11px">Per-pair: blank = inherit default. Cross-rule: <code>Trail &lt; TP1 trigger</code>.</span>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Utilities ────────────────────────────────────────────────────────────────
+
+// ── TUNE tab ─────────────────────────────────────────────────────────────────
+let TUNE_META = null;
+async function loadTune() {
+  const r = await fetch('/api/config/exit');
+  const d = await r.json();
+  TUNE_META = d;
+  renderTune();
+  document.getElementById('tune-msg').textContent = '';
+}
+function _inp(val, ph, w='62px') {
+  const v = (val === null || val === undefined) ? '' : val;
+  return `<input type="number" step="0.1" value="${v}" placeholder="${ph}" `+
+         `style="width:${w};background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:Menlo,monospace;font-size:12px;text-align:right">`;
+}
+function _row(scope, eff, override, isDefault) {
+  // eff = effective values for this scope (defaults merged with override)
+  // override = per-pair overrides dict (or defaults dict for the default row); blank cells = inherit
+  const o = (k) => isDefault ? eff[k] : (override[k] === undefined ? null : override[k]);
+  const trig  = eff.step_trigger_pips, trail = eff.step_trail_pips, size = eff.step_size_pips;
+  const tp1   = (trig != null && trail != null) ? (trig - trail).toFixed(1)+'p' : '—';
+  const tp2   = (trig != null && trail != null && size != null) ? (trig + size - trail).toFixed(1)+'p' : '—';
+  const label = isDefault
+    ? `<b>Default (all pairs)</b>`
+    : `<b>${scope.replace('_','/')}</b> <span class="muted" style="font-size:10.5px">override only listed fields</span>`;
+  return `<tr data-scope="${scope}">
+    <td>${label}</td>
+    <td>${_inp(o('initial_sl_pips'),   eff.initial_sl_pips)}</td>
+    <td>${_inp(o('step_trigger_pips'), eff.step_trigger_pips)}</td>
+    <td>${_inp(o('step_trail_pips'),   eff.step_trail_pips)}</td>
+    <td>${_inp(o('step_size_pips'),    eff.step_size_pips)}</td>
+    <td>${_inp(o('step_engage_min'),   eff.step_engage_min)}</td>
+    <td>${_inp(o('step_cadence_min'),  eff.step_cadence_min)}</td>
+    <td class="muted" style="font-size:11px;font-family:Menlo,monospace">+${tp1} / +${tp2}</td>
+    <td>${isDefault ? '' : `<button onclick="clearPairOverride('${scope}')" style="padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:4px;cursor:pointer;font-size:11px">clear</button>`}</td>
+  </tr>`;
+}
+function renderTune() {
+  if (!TUNE_META) return;
+  const cfg = TUNE_META.cfg || {};
+  const defaults = cfg.defaults || {};
+  const per      = cfg.per_pair || {};
+  const pairs    = TUNE_META.pairs || [];
+  const tbody    = document.getElementById('tune-body');
+  let html = _row('__defaults', defaults, defaults, true);
+  for (const p of pairs) {
+    const ov = per[p] || {};
+    // effective = defaults merged with override (only for display of "current effective")
+    const eff = Object.assign({}, defaults, ov);
+    html += _row(p, eff, ov, false);
+  }
+  tbody.innerHTML = html;
+}
+function clearPairOverride(pair) {
+  const row = document.querySelector(`tr[data-scope="${pair}"]`);
+  if (!row) return;
+  row.querySelectorAll('input').forEach(i => i.value = '');
+  document.getElementById('tune-msg').innerHTML = `<span class="muted">Cleared ${pair.replace('_','/')} overrides (unsaved)</span>`;
+}
+function _collectRow(row) {
+  const fields = ['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min'];
+  const inputs = row.querySelectorAll('input');
+  const out = {};
+  fields.forEach((f, i) => {
+    const v = inputs[i].value.trim();
+    if (v !== '') out[f] = parseFloat(v);
+  });
+  return out;
+}
+async function saveTune() {
+  const rows = document.querySelectorAll('#tune-body tr');
+  const payload = {defaults: {}, per_pair: {}};
+  rows.forEach(row => {
+    const scope = row.getAttribute('data-scope');
+    const vals = _collectRow(row);
+    if (scope === '__defaults') {
+      payload.defaults = vals;
+    } else if (Object.keys(vals).length) {
+      payload.per_pair[scope] = vals;
+    }
+  });
+  // sanity: defaults must have all 6 fields
+  const need = ['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min'];
+  for (const k of need) {
+    if (payload.defaults[k] === undefined) {
+      document.getElementById('tune-msg').innerHTML = `<span style="color:var(--red)">Default row missing ${k} — every default field is required.</span>`;
+      return;
+    }
+  }
+  const msg = document.getElementById('tune-msg');
+  msg.innerHTML = '<span class="muted">Saving…</span>';
+  try {
+    const r = await fetch('/api/config/exit', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    const d = await r.json();
+    if (!r.ok || !d.ok) {
+      msg.innerHTML = `<span style="color:var(--red)">Save rejected: ${d.error || r.status}</span>`;
+      return;
+    }
+    TUNE_META.cfg = d.cfg;
+    renderTune();
+    msg.innerHTML = `<span style="color:var(--green)">Saved — live (next ratchet tick).</span>`;
+  } catch (exc) {
+    msg.innerHTML = `<span style="color:var(--red)">Network error: ${exc}</span>`;
+  }
+}
+
 function showTab(name, btn) {
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));

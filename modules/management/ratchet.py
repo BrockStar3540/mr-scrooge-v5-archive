@@ -33,6 +33,7 @@ log = logging.getLogger("v5.ratchet")
 
 # Defaults — match exit_config.json; used when JSON is missing or corrupt
 _DEFAULTS: dict = {
+    "initial_sl_pips":   12.0,   # initial server-side stop loss (pips from entry, abs)
     "step_engage_min":   0.0,    # minutes before first cadence check (0 = immediate)
     "step_cadence_min":  20.0,   # minutes between SL evaluation checks
     "step_size_pips":    5.0,    # ratchet step size (SL level every N pips above trigger)
@@ -43,12 +44,29 @@ _DEFAULTS: dict = {
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "exit_config.json"
 
 
-def _load_config() -> dict:
+def _load_config(pair: Optional[str] = None) -> dict:
+    """Return effective exit knobs. Supports both schemas:
+       v2 nested: {"defaults": {...}, "per_pair": {"EUR_USD": {...}}}
+       v1 flat:   {"step_trigger_pips": ..., ...}        (legacy fallback)
+    With pair given, per-pair overrides are merged on top of defaults."""
     try:
         raw = json.loads(_CONFIG_PATH.read_text())
+        if isinstance(raw.get("defaults"), dict):
+            defaults = {k: float(v) for k, v in raw["defaults"].items() if not k.startswith("_")}
+            cfg = {**_DEFAULTS, **defaults}
+            if pair:
+                override = raw.get("per_pair", {}).get(pair) or {}
+                cfg.update({k: float(v) for k, v in override.items() if not k.startswith("_")})
+            return cfg
+        # legacy flat schema
         return {**_DEFAULTS, **{k: float(v) for k, v in raw.items() if not k.startswith("_")}}
     except Exception:
         return _DEFAULTS.copy()
+
+
+def initial_sl_pips_for(pair: str) -> float:
+    """Public helper for the engine — initial server-side SL for a fresh trade."""
+    return _load_config(pair)["initial_sl_pips"]
 
 
 class RatchetManager(TradeManager):
@@ -99,7 +117,7 @@ class RatchetManager(TradeManager):
         """
         self._update_peak(current_price)
 
-        cfg             = _load_config()
+        cfg             = _load_config(self.position.ticket.pair)
         elapsed_total   = (current_time - self.position.entry_time).total_seconds() / 60
         elapsed_check   = (current_time - self.last_check_time).total_seconds() / 60
         engage_ok       = elapsed_total >= cfg["step_engage_min"]

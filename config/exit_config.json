@@ -1,8 +1,13 @@
 {
-  "step_engage_min": 0.0,
-  "step_cadence_min": 0.5,
-  "step_size_pips": 5.0,
-  "step_trigger_pips": 4.5,
-  "step_trail_pips": 1.5,
-  "_note": "Step trail. SL=-12p (code, 8yr-validated), no engage delay. Mgmt poll 30s + cadence 0.5min => trail re-locks ~every 30s. First lock at +4.5p peak (SL->+3.0p), +5p steps (SL parks 1.5p below level): +4.5->+3, +9.5->+8, +14.5->+13. Live-editable. Phase1+2 + early-lock tune 2026-06-18."
+  "schema": "v2",
+  "defaults": {
+    "initial_sl_pips": 12.0,
+    "step_engage_min": 0.0,
+    "step_cadence_min": 0.5,
+    "step_trigger_pips": 4.5,
+    "step_trail_pips": 1.5,
+    "step_size_pips": 5.0
+  },
+  "per_pair": {},
+  "_note": "Nested schema v2. Edited via dashboard TUNE tab. Per-pair fields override defaults for that pair only."
 }
