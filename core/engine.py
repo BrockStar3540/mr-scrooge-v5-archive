@@ -78,6 +78,8 @@ class Engine:
                 vol_regime="unknown", expected_pips=0.0,
                 timestamp=entry_time, reads={},
             )
+            oanda_sl = t.get("stopLossOrder", {}).get("price")
+            initial_sl_price = float(oanda_sl) if oanda_sl else 0.0
             pos = Position(
                 ticket=ticket,
                 entry_price=entry_price,
@@ -85,6 +87,7 @@ class Engine:
                 units=abs(units_signed),
                 oanda_trade_id=trade_id,
                 pip_size=PIP[pair],
+                initial_sl_price=initial_sl_price,
             )
             self.managers[pair] = RatchetManager(
                 position=pos,
@@ -179,6 +182,9 @@ class Engine:
             entry_price=entry_price,
         )
 
+        initial_sl_price = (entry_price - DEFAULT_INITIAL_SL_PIPS * pip
+                            if ticket.direction == "long"
+                            else entry_price + DEFAULT_INITIAL_SL_PIPS * pip)
         pos = Position(
             ticket=ticket,
             entry_price=entry_price,
@@ -186,6 +192,7 @@ class Engine:
             units=units,
             oanda_trade_id=str(trade["id"]),
             pip_size=pip,
+            initial_sl_price=initial_sl_price,
         )
         self.managers[ticket.pair] = RatchetManager(
             position=pos,

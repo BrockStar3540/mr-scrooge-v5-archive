@@ -14,6 +14,7 @@ class Position:
     units:          int
     oanda_trade_id: str
     pip_size:       float
+    initial_sl_price: float = 0.0  # OANDA SL at open; ratchet inits from this
 
 
 @dataclass
