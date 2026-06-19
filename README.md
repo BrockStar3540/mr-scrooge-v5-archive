@@ -374,3 +374,35 @@ Deploy: push EC2 → origin, then `git push alien main`. Both are kept in sync a
 | 2026-06-18 | `843a460` | Dashboard relabel: "Today P/L" → "All-Time P/L" (it always was lifetime realized). |
 | 2026-06-18 | `e26dba7` | **Session-label fix**: `pick_best` was computing fine-grained labels (`ny_mid`/`ny_open`/…) that never matched `PAIR_SESSIONS` — silently disabled all NY-session trading + half of every other session. Single source of truth now `config.sessions.coarse_session`; playmaker gates on each ticket's feed-stamped session. |
 | 2026-06-18 | V5 init | Modular ML pipeline, step-trail ratchet, 8 pairs. V4 retired same day; full archive on Dropbox `V4-Archive-2026-06-18/`. |
+
+---
+
+## v2 Modules — Staged for Shadow-Mode A/B (2026-06-19)
+
+Three drop-in modules live alongside V5 v1 in `modules/signals/`:
+
+- `direction_v2.py` — per-(pair × session) weight profiles + aggregator amplifier rules
+- `direction_profiles.py` — 3 profile types (continuation_strong, reversion, default) assigned per cell
+- `momentum_v2.py` — calibrated `expected_pips` (×0.30 scaler) + wall_frac magnitude amplifier
+- `README_v2_deployment.md` — full deployment + shadow-mode guide
+- `test_v2_smoke.py` — standalone smoke test (all checks pass)
+
+**Status**: STAGED. Not yet imported by `core/engine.py`. V5 still runs on v1.
+**Derivation**: from `note_scrooge_v5_findings_matrix_2026-06-18.md` (vault) + per-bucket live smoke evidence (29 trades, 2026-06-18).
+**Activation**: shadow-mode A/B first (see `modules/signals/README_v2_deployment.md`), then swap imports in `core/engine.py` after 5-10 trading days of confirmation.
+**Rollback**: single-line import revert + `systemctl --user restart mr-scrooge-v5`.
+
+## Self-Eval ML — Nightly Smoke Cron (2026-06-19)
+
+A nightly cron at **23:30 UTC** runs `/home/ubuntu/v5_smoke_nightly.py`:
+
+- Parses the day’s V5 SIGNAL/ENTERED/EXIT events from journalctl
+- Pulls fresh OANDA M5/H1/D candles for the affected pairs
+- Recomputes V5’s 24 direction features at each trade entry timestamp
+- Tags hit/miss per feature against realized direction (sign of `approx_net`)
+- Appends one row per trade to `/data/v5-smoke-history/all_trades_per_feature.csv`
+- Writes a per-day summary at `/data/v5-smoke-history/YYYY-MM-DD.txt`
+
+This is the empirical evidence base for refining v2 weight profiles. After 10–15 trading days, each (pair × session) bucket has enough sample for confident weight rebalancing.
+
+**Crontab line**: `30 23 * * * (set -a; . /home/ubuntu/.openclaw/secrets.env; set +a; /usr/bin/python3 /home/ubuntu/v5_smoke_nightly.py) >> /data/v5-smoke-history/cron_run.log 2>&1`
