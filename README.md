@@ -1,3 +1,4 @@
+<img width="900" height="900" alt="Scrooge Money" src="https://github.com/user-attachments/assets/df689e08-0799-414d-b7f6-7dec7a645813" />
 # Mr. Scrooge V5
 
 Automated forex trading bot for OANDA. Modular ML pipeline: direction signal → momentum filter → playmaker decision → step-trail ratchet exit (with optional TP1/TP2 partial-close ladder). Live on 8 currency pairs.
