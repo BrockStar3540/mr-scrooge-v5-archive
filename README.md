@@ -460,3 +460,68 @@ candles. Cell assignment derived from per-(pair × session) WR/sum_out and
 per-session top-3 predictors (h1_ret_aligned, rvol, atr_conc, adr_consumed,
 trend_4h sign). Sample sizes per cell: 1-5; per session: 14-16. Reassess
 after 100+ more trades.
+
+## Per-direction extension (2026-06-19 PM, commit 969eefc, still staged)
+
+Both v2 direction module and v3 momentum module extended from per-(pair × session) to per-(pair × session × direction). 48 cells each.
+
+### direction_v2 changes
+
+PROFILE_ASSIGNMENT is now nested {pair: {session: {long: ..., short: ...}}}.
+DirectionModule.stamp() dual-computes:
+  1. compute score using the long-side profile weights
+  2. compute score using the short-side profile weights
+  3. pick whichever has stronger absolute score as the final direction
+
+DirectionStamp shape is unchanged so playmaker doesn't change. The reads
+payload now exposes both long_score and short_score plus which side won
+(active_side) for shadow-mode debugging.
+
+Distribution: 24 default cells (V5 v1 unchanged), 14 continuation_strong,
+10 reversion. Cells without per-direction evidence default to V5 v1 so
+zero regression risk in unseen cells.
+
+### momentum_v3 changes
+
+PROFILE_ASSIGNMENT keys are now (pair, session, direction) tuples.
+MomentumModule.stamp(view, direction) now requires the direction argument
+from the caller. When engine activates, the order is:
+  1. direction_stamp = direction_v2.stamp(view)
+  2. momentum_stamp = momentum_v3.stamp(view, direction_stamp.bias)
+
+Distribution: 30 default, 7 london_exhaustion, 4 asia_volume_rev,
+4 ny_volatility, 3 ny_volatility_strict.
+
+### Why per-direction matters
+
+Live evidence shows direction-asymmetric WRs in many cells. Examples:
+  - AUD_JPY/asia: 5 shorts won, 0 longs traded
+  - USD_CHF/ny: 0/3 longs lost, 0 shorts traded
+  - GBP_USD/ny: 4 shorts 25% WR, 0 longs traded
+  - EUR_USD/ny: 0/2 shorts lost, 0 longs traded
+
+Per-direction profiles capture these asymmetries instead of averaging them.
+
+### Test coverage
+
+test_per_direction.py validates:
+  1. direction_profiles assigns all 48 cells
+  2. momentum_profiles assigns all 48 cells
+  3. DirectionModule dual-computes and picks stronger
+  4. MomentumModule emits different stamps for same view, different direction
+  5. Chaos veto (atr_conc >= 15) trumps profile in both directions
+  6. BAD evidence yields stricter rejection than NO_DATA in opposite direction
+
+All six pass on EC2 and local.
+
+### Activation
+
+Single import change in engine.py:
+  from modules.signals.direction_v2 import DirectionModule
+  from modules.signals.momentum_v3 import MomentumModule
+
+Plus update engine.py to pass direction to momentum.stamp():
+  d_stamp = direction.stamp(view)
+  m_stamp = momentum.stamp(view, d_stamp.bias)
+
+Rollback: revert that one engine.py change + restart. No state migration needed.
