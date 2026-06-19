@@ -406,3 +406,56 @@ A nightly cron at **23:30 UTC** runs `/home/ubuntu/v5_smoke_nightly.py`:
 This is the empirical evidence base for refining v2 weight profiles. After 10–15 trading days, each (pair × session) bucket has enough sample for confident weight rebalancing.
 
 **Crontab line**: `30 23 * * * (set -a; . /home/ubuntu/.openclaw/secrets.env; set +a; /usr/bin/python3 /home/ubuntu/v5_smoke_nightly.py) >> /data/v5-smoke-history/cron_run.log 2>&1`
+
+## momentum_v3 — per-pair × per-session (2026-06-19, staged)
+
+`modules/signals/momentum_v3.py` + `momentum_profiles.py` — per-pair momentum
+module with per-session profile slots. Mirrors `direction_v2`s architecture.
+STAGED, not imported by engine.py — V5 still runs `momentum.py` v1 live.
+
+### How it differs from v2
+
+v2 was a global module with a single `EXPECTED_PIPS_SCALER = 0.30` constant.
+v3 is per-pair-configurable, with each (pair, session) cell assigned a profile.
+
+### Cell assignment (14 active / 10 V5-v1-unchanged)
+
+- `asia_volume_rev` — 3 cells (AUD_JPY/USD_JPY/AUD_USD asia). Gates: rvol_5bar floor, h1_ret_1bar floor, adr ceiling. Reversion confirm boosts cert.
+- `london_exhaustion` — 5 cells (mixed evidence). Gates: adr_consumed <= 1.20, atr_conc floor, h1_ret floor.
+- `ny_volatility` — 3 cells (USD_JPY/USD_CAD/EUR_JPY ny). Gates: atr_conc + atr_5m + h1_ret floors, rvol ceiling 1.5 (no spikes). Continuation confirm boosts cert.
+- `ny_volatility_strict` — 3 cells (EUR_USD/GBP_USD/USD_CHF ny BAD evidence). Same as ny_volatility but 1.5x floors.
+- `default` (V5 v1) — 10 cells with no live evidence.
+
+### Per-pair tuning layer
+
+Each pair has its own constants: atr_d_typical_pips, rvol_floor, h1_ret_floor_pips,
+atr_conc_floor, expected_pips_scaler, adr_consumed_ceiling. The SAME profile is
+configured DIFFERENTLY per pair (e.g. USD_JPY/asia uses h1_floor=3.0p vs
+AUD_JPY/asia at 2.0p because USD_JPY ATR is larger).
+
+### Evidence-strictness multiplier
+
+Floors get multiplied by: STRONG=1.00, MEDIUM/WEAK=1.10-1.20, BAD=1.40.
+A BAD cell runs with 40% tighter floors than a STRONG cell on the same profile.
+
+### Activation pathway
+
+1. Shadow logging: add `from modules.signals.momentum_v3 import MomentumModule as V3` to engine
+2. Run v1 + v3 in parallel a few days; log both certainty values
+3. Compare: do v3-rejected entries match the losing trades?
+4. Swap import: `from modules.signals.momentum_v3 import MomentumModule`
+5. Rollback: single-line revert + service restart
+
+### How playmaker is impacted
+
+When a v3 profile fails its gates, `certainty = 0.0` is emitted. The existing
+`min_mom_certainty = 0.25` gate in playmaker.py rejects the entry.
+NO playmaker code changes needed to activate v3.
+
+### Built from live trade evidence
+
+44 closed trades (2026-06-18 -> 2026-06-19), journalctl + OANDA M1/M5/H1/D
+candles. Cell assignment derived from per-(pair × session) WR/sum_out and
+per-session top-3 predictors (h1_ret_aligned, rvol, atr_conc, adr_consumed,
+trend_4h sign). Sample sizes per cell: 1-5; per session: 14-16. Reassess
+after 100+ more trades.
