@@ -26,7 +26,7 @@ _SECRETS_CACHE: Optional[dict] = None
 
 # Candle counts — enough lookback for every indicator
 _M5_COUNT = 200   # covers 16h+ of M5 bars; need 50 for EMAs, 30 for ATR14, 32 for rvol
-_H1_COUNT = 100   # 100H; need 65 for RSI14+slope, 61 for htf_pct_60
+_H1_COUNT = 200   # 200H; need 65 for RSI14+slope, 61 for htf_pct_60, ~100 for atr_h1_relative baseline
 _D_COUNT  = 100   # 100 days; need 63 for htf_pct_60
 
 
@@ -171,8 +171,28 @@ def _compute_features(
     ema20_h1 = float(_ema(h1c, 20).iloc[-1])
     ema20_1h_dist = (mid - ema20_h1) / mid if mid > 0 else 0.0
 
-    # atr_1h
+    # atr_1h (single Wilder ATR14 value)
     atr_1h = _atr14(h1, pip)
+
+    # atr_h1_relative: current 1H ATR / its rolling-mean over recent window
+    # Mirrors the canonical definition in scripts/v5_smoke_nightly.py compute_features_at()
+    # Used by v2 direction aggregator rules (atr_h1_relative > 1.6 → boost reversion / suppress HTF)
+    try:
+        _h1h = h1["high"].astype(float); _h1l = h1["low"].astype(float)
+        _h1pc = h1["close"].astype(float).shift(1)
+        _h1_tr = pd.concat([(_h1h - _h1l).abs(), (_h1h - _h1pc).abs(), (_h1l - _h1pc).abs()],
+                          axis=1).max(axis=1).dropna()
+        _h1_atr_series = _h1_tr.ewm(alpha=1.0 / 14, adjust=False).mean()
+        _baseline = _h1_atr_series.iloc[-100:] if len(_h1_atr_series) >= 100 else _h1_atr_series
+        _bmean = float(_baseline.mean())
+        atr_h1_relative = float(_h1_atr_series.iloc[-1]) / _bmean if _bmean > 0 else 1.0
+    except Exception:
+        atr_h1_relative = 1.0
+
+    # trend_4h: sign of h1_ret_4bar (V3 candidate; v2 direction profiles weight it)
+    if   h1_ret_4bar > 0: trend_4h = 1.0
+    elif h1_ret_4bar < 0: trend_4h = -1.0
+    else:                 trend_4h = 0.0
 
     # htf_pct (from daily closes — computed in D section below, placeholder for now)
     htf_pct_20 = 0.0
@@ -318,6 +338,8 @@ def _compute_features(
         range_12bar=round(range_12bar, 4),
         d_range_pips=round(d_range_pips, 4),
         atr_conc=round(atr_conc, 4),
+        atr_h1_relative=round(atr_h1_relative, 4),
+        trend_4h=trend_4h,
         # Execution
         bid=bid, ask=ask, spread_pips=round(spread_pips, 4),
     )

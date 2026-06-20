@@ -222,10 +222,19 @@ class Engine:
         if trade_ticket is None:
             return
 
-        log.info("SIGNAL %s %s | score=%.3f d_cert=%.3f m_cert=%.3f expected=%.1fp vol=%s rivals=%d",
+        dr = trade_ticket.reads.get("direction", {})
+        mr = trade_ticket.reads.get("momentum", {})
+        # First word of each profile label so log stays single-token-per-field (parseable)
+        _lp = (dr.get("long_profile",  "?") or "?").split()[0]
+        _sp = (dr.get("short_profile", "?") or "?").split()[0]
+        _mp = (mr.get("profile",       "?") or "?").split()[0]
+        log.info("SIGNAL %s %s | score=%.3f d_cert=%.3f m_cert=%.3f expected=%.1fp vol=%s rivals=%d "
+                 "| active_side=%s long_prof=%s short_prof=%s mom_prof=%s gates=%s cert_boost=%s",
                  trade_ticket.pair, trade_ticket.direction,
                  trade_ticket.score, trade_ticket.dir_certainty, trade_ticket.mom_certainty,
-                 trade_ticket.expected_pips, trade_ticket.vol_regime, trade_ticket.rivals)
+                 trade_ticket.expected_pips, trade_ticket.vol_regime, trade_ticket.rivals,
+                 dr.get("active_side", "?"), _lp, _sp, _mp,
+                 mr.get("gates_passed", "?"), mr.get("cert_boost", "?"))
 
         if not self.dry_run:
             self._open_trade(trade_ticket, views, now)

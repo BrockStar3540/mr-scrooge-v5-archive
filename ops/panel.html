@@ -894,6 +894,21 @@ function renderPairs(tickets, views) {
         ${volPill}
         <span style="font-size:11px;color:var(--fg2)">~${fmt(t.expected_pips,1)}p expected</span>
       </div>
+      <div class="pair-row" title="Direction module v2: each cell holds a long-side weight profile and a short-side weight profile; whichever yields the stronger |score| wins.">
+        <span class="pair-lbl">Dir prof</span>
+        <span style="font-size:11px;color:var(--fg2)">
+          L:<b style="color:var(--fg)">${t.long_profile||'?'}</b> · S:<b style="color:var(--fg)">${t.short_profile||'?'}</b>
+          ${t.active_side ? `<span style="color:var(--fg2)"> · active ${(t.active_side||'').replace('_profile','')}</span>` : ''}
+        </span>
+      </div>
+      <div class="pair-row" title="Momentum module v3: per-(pair×session×direction) profile. Gates check rvol/atr/h1_ret/adr per profile spec. gates✗ → certainty=0 → playmaker rejects.">
+        <span class="pair-lbl">Mom prof</span>
+        <span style="font-size:11px">
+          <b style="color:var(--fg)">${t.mom_profile||'?'}</b>
+          · gates <span style="color:${t.gates_passed?'var(--green)':'var(--red)'};font-weight:600">${t.gates_passed===true?'✓':t.gates_passed===false?'✗':'—'}</span>
+          ${t.cert_boost ? `<span style="color:var(--fg2)"> · boost ${t.cert_boost}×</span>` : ''}
+        </span>
+      </div>
       ${chips ? `<div class="feat-row">${chips}</div>` : ''}
     </div>`;
   }).join('');

@@ -239,6 +239,10 @@ def _state(engine: "Engine") -> dict:
     # ── Last tickets (from last engine cycle) ─────────────────────────────────
     last_tickets = []
     for t in (engine.last_tickets or []):
+        # v2/v3 reads: first word of profile labels (drop the "[NO_DATA, strictness=...]" suffix)
+        _dr = t.direction.reads or {}
+        _mr = t.momentum.reads  or {}
+        _firstword = lambda s: (s or "?").split()[0]
         last_tickets.append({
             "pair":          t.pair,
             "session":       t.session,
@@ -252,6 +256,17 @@ def _state(engine: "Engine") -> dict:
             "spread_pips":   round(t.spread_pips, 2),
             "composite":     round(t.composite_score, 3),
             "actionable":    t.is_actionable,
+            # ── v2/v3 profile fields ─────────────────────────────────────
+            "active_side":    _dr.get("active_side"),
+            "long_profile":   _firstword(_dr.get("long_profile")),
+            "short_profile":  _firstword(_dr.get("short_profile")),
+            "long_score":     _dr.get("long_score"),
+            "short_score":    _dr.get("short_score"),
+            "agreement":      _dr.get("agreement"),
+            "mom_profile":    _firstword(_mr.get("profile")),
+            "gates_passed":   _mr.get("gates_passed"),
+            "cert_boost":     _mr.get("cert_boost"),
+            "profile_reasons":_mr.get("profile_reasons"),
         })
 
     # ── Last market views (for market-feature chips) ─────────────────────────
@@ -272,6 +287,9 @@ def _state(engine: "Engine") -> dict:
             "htf_pct_60":  round(v.htf_pct_60, 3) if hasattr(v, "htf_pct_60") else None,
             "pdh_dist":    round(v.pdh_dist, 1) if hasattr(v, "pdh_dist") else None,
             "pdl_dist":    round(v.pdl_dist, 1) if hasattr(v, "pdl_dist") else None,
+            "atr_h1_relative": round(v.atr_h1_relative, 3) if hasattr(v, "atr_h1_relative") else None,
+            "trend_4h":    int(v.trend_4h) if hasattr(v, "trend_4h") else None,
+            "atr_conc":    round(v.atr_conc, 3) if hasattr(v, "atr_conc") else None,
         })
 
     return {
