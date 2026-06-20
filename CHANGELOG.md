@@ -8,6 +8,13 @@ Format:
   - **Why** — motivation
   - **Outcome** — measured result if known, or status if not yet validated
 
+## 2026-06-20
+
+### `[06-20 PM]` `<commit>` — direction_v2 + momentum_v3 activated LIVE
+- **What**: Swapped `modules/signals/__init__.py` to import `DirectionModule` from `direction_v2` and `MomentumModule` from `momentum_v3`. `stamp_pair()` now computes the direction stamp first and passes `direction_stamp.bias` into `momentum.stamp(view, direction)` — the v3 signature requires the caller's direction so it can pick the per-(pair × session × direction) profile. `core/engine.py` untouched. Added three alias properties (`pdh_dist_pips`, `pdl_dist_pips`, `ema20_1h_dist_pct`) to `MarketView` so v2/v3 field-name reads resolve to the existing live fields. Deleted obsolete `test_momentum_v3.py` (asserted 24-cell coverage; superseded by `test_per_direction.py` 48-cell coverage after the 06-19 PM extension).
+- **Why**: v2/v3 modules have been staged since 06-19 with passing per-direction smoke tests. Saturday market-closed window is the safe restart slot — verifies behavior before London open Sun 22:00 UTC. Per-direction profiles encode the live evidence that direction_v1 / momentum_v1 was averaging across mixed-WR sides.
+- **Outcome**: Live since 2026-06-20 19:44 UTC (cycle 1). First-cycle diff vs v1 baseline (cycle 577): `expected_pips` ~3× lower across the board (matches v3 `EXPECTED_PIPS_SCALER=0.30` cap; v1 was overshooting); EUR_JPY/ny bias `block → short` (dual-compute picked stronger short side); AUD_USD/ny + GBP_USD/ny score signs flipped (same reason); USD_JPY/ny + USD_CHF/ny `mom_certainty` 0.64/0.12 → 0.00 (profile gate kills). USD_CAD/ny short remains the strongest signal at composite -0.092 in both v1 and v2/v3. No process errors. Journal clean.
+
 ## 2026-06-19
 
 ### `[06-19 PM]` `2b084e7` — Per-(pair × session × direction) extension

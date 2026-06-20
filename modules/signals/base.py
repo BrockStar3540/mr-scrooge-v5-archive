@@ -65,6 +65,14 @@ class MarketView:
     ask:            float = 0.0
     spread_pips:    float = 0.0
 
+    # ── v2/v3 module field-name aliases (read-only) ─────────────────────
+    @property
+    def pdh_dist_pips(self) -> float: return self.pdh_dist
+    @property
+    def pdl_dist_pips(self) -> float: return self.pdl_dist
+    @property
+    def ema20_1h_dist_pct(self) -> float: return self.ema20_1h_dist
+
 
 @dataclass
 class DirectionStamp:

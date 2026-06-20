@@ -88,7 +88,7 @@ Rollback is always: revert the import line + restart. The old module file stays 
 
 ## Per-(pair × session × direction) module activation order
 
-If activating direction_v2 + momentum_v3 together (the staged state as of 2026-06-19):
+**Activated 2026-06-20** — direction_v2 + momentum_v3 are now the live modules. The activation was applied via `modules/signals/__init__.py` (single source of truth for which module the engine uses), so `core/engine.py` was unchanged. The historical activation steps below remain valid as the rollback procedure:
 
 1. Update engine imports:
    ```python

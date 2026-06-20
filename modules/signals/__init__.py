@@ -5,8 +5,8 @@ Then call stamp_pair(view, dir_modules, mom_modules) to produce a PairTicket.
 """
 from __future__ import annotations
 from .base import MarketView, PairTicket
-from .direction import DirectionModule, build_direction_modules
-from .momentum  import MomentumModule, build_momentum_modules
+from .direction_v2 import DirectionModule, build_direction_modules
+from .momentum_v3  import MomentumModule, build_momentum_modules
 
 __all__ = [
     "MarketView",
@@ -46,9 +46,11 @@ def stamp_pair(
     if d_mod is None or m_mod is None:
         raise KeyError(f"No modules registered for {view.pair}/{view.session}")
 
+    direction_stamp = d_mod.stamp(view)
+    momentum_stamp  = m_mod.stamp(view, direction_stamp.bias)
     return PairTicket(
         pair=view.pair, session=view.session, timestamp=view.timestamp,
-        direction=d_mod.stamp(view),
-        momentum=m_mod.stamp(view),
+        direction=direction_stamp,
+        momentum=momentum_stamp,
         spread_pips=view.spread_pips,
     )

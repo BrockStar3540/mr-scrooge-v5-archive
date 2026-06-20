@@ -1,6 +1,6 @@
-# Signal modules — current state
+# Signal modules — live (v2 direction + v3 momentum)
 
-This doc describes the **staged** v2/v3 modules — what's in the repo today, ready to activate. The **live** modules are still v1 (`direction.py` + `momentum.py`); the engine.py imports them by name. v1 is the dm_04 calibration; see [signal-module-spec.md](signal-module-spec.md) for that.
+This doc describes the **live** v2/v3 modules — wired into `modules/signals/__init__.py` as of 2026-06-20. The v1 modules (`direction.py` + `momentum.py`) are retained in the repo as the previous calibration but no longer imported; see [signal-module-spec.md](signal-module-spec.md) for the v1 history.
 
 For the historical reasoning behind why we built these → [EDGE_REPORT.md](EDGE_REPORT.md) and the session research at [../research/sessions/](../research/sessions/).
 

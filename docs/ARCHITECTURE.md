@@ -129,12 +129,12 @@ Vault state (read-only mirror to Obsidian on EC2):
 | Broker | `core/broker/oanda.py` | OANDA REST client — orders, pricing, positions |
 | Feed | `core/feed/oanda.py` | Candle fetching with retry + rate-limit handling |
 | Sessions | `config/sessions.py` | UTC hour → coarse session (asia/london/ny) |
-| Direction module v1 | `modules/signals/direction.py` | LIVE — V5's original per-(pair × session) direction signal |
-| Direction module v2 | `modules/signals/direction_v2.py` | STAGED — per-(pair × session × direction), dual-compute |
+| Direction module v1 | `modules/signals/direction.py` | RETAINED — V5's original per-(pair × session) direction signal; no longer imported |
+| Direction module v2 | `modules/signals/direction_v2.py` | LIVE — per-(pair × session × direction), dual-compute |
 | Direction profiles | `modules/signals/direction_profiles.py` | 48-cell `PROFILE_ASSIGNMENT` + 3 templates + aggregator rules |
-| Momentum module v1 | `modules/signals/momentum.py` | LIVE — V5's original momentum module |
-| Momentum module v2 | `modules/signals/momentum_v2.py` | STAGED — earlier per-(pair × session) momentum |
-| Momentum module v3 | `modules/signals/momentum_v3.py` | STAGED — per-(pair × session × direction), `stamp(view, direction)` |
+| Momentum module v1 | `modules/signals/momentum.py` | RETAINED — V5's original momentum module; no longer imported |
+| Momentum module v2 | `modules/signals/momentum_v2.py` | RETAINED — intermediate per-(pair × session) momentum; superseded by v3 |
+| Momentum module v3 | `modules/signals/momentum_v3.py` | LIVE — per-(pair × session × direction), `stamp(view, direction)` |
 | Momentum profiles | `modules/signals/momentum_profiles.py` | 48-cell `PROFILE_ASSIGNMENT` + 5 templates + per-pair tuning |
 | Playmaker | `modules/playmaker/playmaker.py` | Entry gates + tournament across eligible pairs |
 | Ratchet | `modules/management/ratchet.py` | Step-trail SL ratchet, polls OANDA, patches server-side SL |
