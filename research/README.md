@@ -64,6 +64,49 @@ research/
 | 2026-06-19 | [matrix_compilation](sessions/2026-06-19_matrix_compilation/) | 44-trade live matrix with 24 → 36 features per trade | Per-session correlations driving v2/v3 cell assignments |
 | 2026-06-19 | [live_smoke_v1-v5](sessions/2026-06-19_live_smoke_v1-v5/) | Per-bucket aggregator amplification on live trades | Per-session predictor rankings; ratchet retune diagnosis |
 | 2026-06-19 | [per_direction_extension](sessions/2026-06-19_per_direction_extension/) | direction_v2 + momentum_v3 promoted to (pair × session × direction) | 48-cell modules staged |
+| 2026-06-20 | [quantalib_eval](sessions/2026-06-20_quantalib_eval/) | QuanTAlib lib validated vs V5 hand-codes + 53 candidate indicators + speed bench | EMA/SMA/BB bit-exact; qtl ~3x faster; reference for new research |
+| 2026-06-20 | [qtl_indicator_discovery](sessions/2026-06-20_qtl_indicator_discovery/) | 31 qtl indicators on 44-trade matrix | kurtosis_m5/bbwp_m5 looked strong (later refuted at 8yr scale) |
+| 2026-06-20 | [qtl_8yr_per_cell](sessions/2026-06-20_qtl_8yr_per_cell/) | 8yr per-(pair x session) XGB, 4.4M bars, willr/Aroon candidates | willr top-3 in 24/24 cells (8yr avg - later shown regime-specific) |
+| 2026-06-21 | [v5_2026_audit](sessions/2026-06-21_v5_2026_audit/) | Profiles + aggregators + qtl re-audited on 2026 only; year/month drift | 38/48 cells profile-mismatched on 2026; atr_conc rule DEAD; drift is real |
+| 2026-06-21 | [master_matrix](sessions/2026-06-21_master_matrix/) | 48-cell x all-evidence matrix + live replay + indicator roles | Live replay killed qtl-as-binary-rules; 5 cells disabled |
+| 2026-06-21 | [real_oanda_trades](sessions/2026-06-21_real_oanda_trades/) | **Pulled ACTUAL 120 trades from OANDA API (journal missed 70)** | Journal-derived matrix was wrong; broker is ground truth |
+| 2026-06-21 | [broker_validation](sessions/2026-06-21_broker_validation/) | Fresh OANDA candles per trade then 1H forward pip; matrix+broker disable | Realized P/L matches fwd dir only 68%; 6 then 10 cells disabled |
+| 2026-06-21 | [app_config_test](sessions/2026-06-21_app_config_test/) | 8 RSI/EMA/StochRSI MTF configs, 910k signals, 8yr | ZERO 1H edge; MTF alignment is decorative; RSI cross slightly anti-predicts |
+| 2026-06-21 | [indicator_sweep](sessions/2026-06-21_indicator_sweep/) | 46 RSI/EMA/StochRSI variants x TF as standalone + aggregator/verifier | No param rescues standalone; fast=exhaustion, slow=confirm; session-signed |
+| 2026-06-21 | [percell_exhaustion](sessions/2026-06-21_percell_exhaustion/) | Per-cell momentum fade/trend, walk-forward + inversion test | **NY = momentum FADE, 8/8 pairs walk-forward**; explains broker losses |
+| 2026-06-21 | [v4_bucket_test](sessions/2026-06-21_v4_bucket_test/) | V4-era ALIGN/bucket claims tested on 8yr; align resolution | ALIGN climbs (ny_open steepest); RSI-extreme-only-aligned confirmed; align sign flips by session |
+| 2026-06-21 | [cell_ruleset](sessions/2026-06-21_cell_ruleset/) | **Consolidated 48-cell module spec** from 6 validated tests | ~5 confirmed winners; conflicts prove per-cell modules needed |
+
+## Methodology learnings - the 2026-06-20/21 weekend (read before any trade analysis)
+
+This weekend overhauled how we measure Scrooge. The hard-won rules:
+
+1. **Pull from OANDA API, not the bot journal.** The journal captures V5's INTENT (SIGNAL/ENTERED markers); only the broker has actual fills, manual closes, spread costs, realized P/L. The 44-trade journal matrix missed 70 of the actual 120 trades. Use the transactions/idrange endpoint. (`sessions/2026-06-21_real_oanda_trades/`)
+
+2. **Use 1H FORWARD PIP for entry-indicator decisions, NOT realized P/L.** Exit logic (ratchet/SL/manual) is tuned constantly and flips 32% of trades from the actual market direction. Realized P/L confounds entry quality with exit choices. Compute forward pip from fresh OANDA candles: (close[t+12]-close[t])/pip * dir_sign. (`sessions/2026-06-21_broker_validation/`)
+
+3. **Include manual-closed trades in forward analysis.** A manual close affects realized P/L only - NEVER the entry-bar indicators or the 1H forward market direction. Filtering them out discards real data. (caught + fixed in broker_validation)
+
+4. **Walk-forward everything.** Train < 2024, test >= 2024. The "overlap trends" claim was strongly positive in-sample but FLIPPED negative out-of-sample. Only walk-forward-stable findings (e.g. NY fade, 8/8 pairs) are trustworthy. (`sessions/2026-06-21_percell_exhaustion/`)
+
+5. **Per-(pair x session x direction), never global.** The same indicator/momentum/alignment has OPPOSITE sign in different cells: momentum fades in NY but trends in overlap; willr +0.57 corr in USD_CAD/ny but -0.57 in EUR_USD/london. Validated four independent ways (broker P/L + broker forward + 8yr walk-forward + align resolution). The cells genuinely disagree, so each needs its own rules. (`sessions/2026-06-21_cell_ruleset/`)
+
+6. **App-confluence visual != forward-price edge.** Multi-timeframe RSI/EMA/StochRSI confluence has ZERO 1H edge at any parameter setting (910k signals). The MTF alignment that looks authoritative is decorative. Only "scan every occurrence, measure the forward move" tells the truth. (`sessions/2026-06-21_app_config_test/`)
+
+### Key live-trader facts established this weekend
+- V5 has been LOSING: -$6,114 over 120 trades (V4+V5), -$2,234 V5-era 36 trades. Edge is concentrated in ~5 cells; the bot trades the whole 48-cell grid including fade cells.
+- **NY is a momentum-FADE session** (8/8 pairs, walk-forward, broker-corroborated). V5 trend-follows h1_ret (its #1 factor) into a fade regime, producing the NY losses.
+- **Confirmed winner cells:** USD_CAD/ny/long (+6.61p, n=7), EUR_USD/london/short (+6.31p, n=7), AUD_JPY/asia long+short (trend).
+- **10 cells disabled** (config/playmaker_config.json disabled_cells); 2 cells (GBP_USD/ny, EUR_JPY/ny) shadow-logging inverted direction.
+- **ALIGN (HTF agreement) is live** in V5 (htf_pct_20/60 + trend_4h non-zero) - the V4-era freeze is fixed; align CAN be wired now, but session-signed (confirm in overlap, fade in NY/london).
+- Architectural refinement flagged: V5's ny session (13-21 UTC) lumps trend-y overlap (13-14) with fade-y late-ny (15-21) - split for coherent per-module regime.
+
+### The 8yr corpus + Mini compute (all heavy work runs HERE)
+- Per-pair M5/H1/D parquets: /Volumes/Alien Device/direction_ml/raw_bars/ (8 pairs, ~553k M5 bars each, 2019-2026)
+- Computed feature parquets: ~/qtl-discovery-8yr/features/<PAIR>_features.parquet (84 features incl. fwd_ret_pips)
+- Python venv with quantalib + xgboost + scipy: ~/.venvs/quantalib/ (Python 3.12)
+- Monthly Master Matrix cron: ~/.local/bin/master_matrix_monthly.sh (1st of month, 04:00)
+- All scripts reproducible - see each session's analyses/. Device serial check (CPYQTH294R) guards every heavy script.
 
 ## Index of matrices
 
