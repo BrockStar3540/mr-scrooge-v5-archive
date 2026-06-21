@@ -12,7 +12,7 @@
     "cooldown_after_sl_min": 0.0
   },
   "per_pair": {},
-  "_note": "Per-cell (pair, session, direction) disable list added 2026-06-21. Cells with strongly negative 8yr ML \u0394AUC + zero live trades to defend. See research/sessions/2026-06-21_master_matrix/.",
+  "_note": "Per-cell disable list. 5 cells added 2026-06-21 from Master Matrix research/sessions/2026-06-21_master_matrix/. 1 more (EUR_JPY/london/short) added 2026-06-21 after broker-validation session research/sessions/2026-06-21_broker_validation/ confirmed cell is losing in actual 1H forward direction (-5.73p mean, n=4) and matrix delta_auc_2026 agrees (-0.0003). GBP_USD/ny/long was considered but matrix disagrees (+0.0014 delta_2026, +0.0052 recent_3yr, all 3 recent years positive) \u2014 NOT disabled.",
   "disabled_cells": [
     [
       "AUD_USD",
@@ -38,6 +38,11 @@
       "EUR_USD",
       "ny",
       "long"
+    ],
+    [
+      "EUR_JPY",
+      "london",
+      "short"
     ]
   ]
 }
