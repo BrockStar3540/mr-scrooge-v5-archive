@@ -1,0 +1,1442 @@
+{
+  "(USD_CAD,ny,long)": {
+    "delta_auc": 0.0065,
+    "base_rate": 0.485,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0641,
+        "threshold": -69.4786,
+        "side": "lt",
+        "wr_target_side": 0.518,
+        "wr_delta": 0.044
+      },
+      {
+        "feature": "q_atrn_m5",
+        "importance": 0.0181,
+        "threshold": 0.0521,
+        "side": "gt",
+        "wr_target_side": 0.492,
+        "wr_delta": 0.024
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0169,
+        "threshold": 2.75,
+        "side": "lt",
+        "wr_target_side": 0.533,
+        "wr_delta": 0.054
+      }
+    ]
+  },
+  "(USD_CAD,ny,short)": {
+    "delta_auc": 0.0065,
+    "base_rate": 0.515,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0641,
+        "threshold": -69.4786,
+        "side": "gt",
+        "wr_target_side": 0.526,
+        "wr_delta": 0.044
+      },
+      {
+        "feature": "q_atrn_m5",
+        "importance": 0.0181,
+        "threshold": 0.0521,
+        "side": "lt",
+        "wr_target_side": 0.532,
+        "wr_delta": 0.024
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0169,
+        "threshold": 2.75,
+        "side": "gt",
+        "wr_target_side": 0.521,
+        "wr_delta": 0.054
+      }
+    ]
+  },
+  "(USD_CHF,ny,short)": {
+    "delta_auc": 0.0064,
+    "base_rate": 0.506,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0676,
+        "threshold": -54.3797,
+        "side": "gt",
+        "wr_target_side": 0.53,
+        "wr_delta": 0.052
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0264,
+        "threshold": 63.6647,
+        "side": "gt",
+        "wr_target_side": 0.525,
+        "wr_delta": 0.032
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0177,
+        "threshold": -3.8776,
+        "side": "gt",
+        "wr_target_side": 0.558,
+        "wr_delta": 0.073
+      }
+    ]
+  },
+  "(USD_CHF,ny,long)": {
+    "delta_auc": 0.0064,
+    "base_rate": 0.494,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0676,
+        "threshold": -54.3797,
+        "side": "lt",
+        "wr_target_side": 0.522,
+        "wr_delta": 0.052
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0264,
+        "threshold": 63.6647,
+        "side": "lt",
+        "wr_target_side": 0.507,
+        "wr_delta": 0.032
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0177,
+        "threshold": -3.8776,
+        "side": "lt",
+        "wr_target_side": 0.514,
+        "wr_delta": 0.073
+      }
+    ]
+  },
+  "(AUD_USD,london,short)": {
+    "delta_auc": 0.0063,
+    "base_rate": 0.499,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0581,
+        "threshold": -36.7433,
+        "side": "gt",
+        "wr_target_side": 0.51,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0273,
+        "threshold": 0.0049,
+        "side": "gt",
+        "wr_target_side": 0.513,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0223,
+        "threshold": -2.25,
+        "side": "gt",
+        "wr_target_side": 0.516,
+        "wr_delta": 0.022
+      }
+    ]
+  },
+  "(AUD_USD,london,long)": {
+    "delta_auc": 0.0063,
+    "base_rate": 0.501,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0581,
+        "threshold": -36.7433,
+        "side": "lt",
+        "wr_target_side": 0.509,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0273,
+        "threshold": 0.0049,
+        "side": "lt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0223,
+        "threshold": -2.25,
+        "side": "lt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.022
+      }
+    ]
+  },
+  "(GBP_USD,london,short)": {
+    "delta_auc": 0.0062,
+    "base_rate": 0.503,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0544,
+        "threshold": -85.0169,
+        "side": "gt",
+        "wr_target_side": 0.502,
+        "wr_delta": 0.02
+      },
+      {
+        "feature": "q_cci_m5",
+        "importance": 0.0252,
+        "threshold": 123.7136,
+        "side": "gt",
+        "wr_target_side": 0.514,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_vwap_dist_pips_m5",
+        "importance": 0.0182,
+        "threshold": 9.9087,
+        "side": "gt",
+        "wr_target_side": 0.513,
+        "wr_delta": 0.02
+      }
+    ]
+  },
+  "(GBP_USD,london,long)": {
+    "delta_auc": 0.0062,
+    "base_rate": 0.497,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0544,
+        "threshold": -85.0169,
+        "side": "lt",
+        "wr_target_side": 0.518,
+        "wr_delta": 0.02
+      },
+      {
+        "feature": "q_cci_m5",
+        "importance": 0.0252,
+        "threshold": 123.7136,
+        "side": "lt",
+        "wr_target_side": 0.504,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_vwap_dist_pips_m5",
+        "importance": 0.0182,
+        "threshold": 9.9087,
+        "side": "lt",
+        "wr_target_side": 0.507,
+        "wr_delta": 0.02
+      }
+    ]
+  },
+  "(EUR_USD,ny,long)": {
+    "delta_auc": 0.0061,
+    "base_rate": 0.511,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0621,
+        "threshold": -39.7241,
+        "side": "lt",
+        "wr_target_side": 0.53,
+        "wr_delta": 0.046
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.024,
+        "threshold": 3.85,
+        "side": "lt",
+        "wr_target_side": 0.557,
+        "wr_delta": 0.064
+      },
+      {
+        "feature": "q_atrn_m5",
+        "importance": 0.019,
+        "threshold": 0.3248,
+        "side": "lt",
+        "wr_target_side": 0.533,
+        "wr_delta": 0.039
+      }
+    ]
+  },
+  "(EUR_USD,ny,short)": {
+    "delta_auc": 0.0061,
+    "base_rate": 0.489,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0621,
+        "threshold": -39.7241,
+        "side": "gt",
+        "wr_target_side": 0.517,
+        "wr_delta": 0.046
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.024,
+        "threshold": 3.85,
+        "side": "gt",
+        "wr_target_side": 0.507,
+        "wr_delta": 0.064
+      },
+      {
+        "feature": "q_atrn_m5",
+        "importance": 0.019,
+        "threshold": 0.3248,
+        "side": "gt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.039
+      }
+    ]
+  },
+  "(GBP_USD,asia,long)": {
+    "delta_auc": 0.0059,
+    "base_rate": 0.502,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0368,
+        "threshold": -49.4809,
+        "side": "lt",
+        "wr_target_side": 0.515,
+        "wr_delta": 0.028
+      },
+      {
+        "feature": "q_cci_m5",
+        "importance": 0.0152,
+        "threshold": 75.9157,
+        "side": "lt",
+        "wr_target_side": 0.51,
+        "wr_delta": 0.035
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0137,
+        "threshold": -3.5714,
+        "side": "gt",
+        "wr_target_side": 0.53,
+        "wr_delta": 0.082
+      }
+    ]
+  },
+  "(GBP_USD,asia,short)": {
+    "delta_auc": 0.0059,
+    "base_rate": 0.498,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0368,
+        "threshold": -49.4809,
+        "side": "gt",
+        "wr_target_side": 0.514,
+        "wr_delta": 0.028
+      },
+      {
+        "feature": "q_cci_m5",
+        "importance": 0.0152,
+        "threshold": 75.9157,
+        "side": "gt",
+        "wr_target_side": 0.525,
+        "wr_delta": 0.035
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0137,
+        "threshold": -3.5714,
+        "side": "lt",
+        "wr_target_side": 0.551,
+        "wr_delta": 0.082
+      }
+    ]
+  },
+  "(EUR_USD,asia,short)": {
+    "delta_auc": 0.0059,
+    "base_rate": 0.497,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.077,
+        "threshold": -43.1412,
+        "side": "gt",
+        "wr_target_side": 0.511,
+        "wr_delta": 0.024
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0202,
+        "threshold": -2.8532,
+        "side": "gt",
+        "wr_target_side": 0.519,
+        "wr_delta": 0.031
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0163,
+        "threshold": -3.5714,
+        "side": "lt",
+        "wr_target_side": 0.557,
+        "wr_delta": 0.091
+      }
+    ]
+  },
+  "(EUR_USD,asia,long)": {
+    "delta_auc": 0.0059,
+    "base_rate": 0.503,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.077,
+        "threshold": -43.1412,
+        "side": "lt",
+        "wr_target_side": 0.512,
+        "wr_delta": 0.024
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0202,
+        "threshold": -2.8532,
+        "side": "lt",
+        "wr_target_side": 0.512,
+        "wr_delta": 0.031
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0163,
+        "threshold": -3.5714,
+        "side": "gt",
+        "wr_target_side": 0.534,
+        "wr_delta": 0.091
+      }
+    ]
+  },
+  "(USD_JPY,london,long)": {
+    "delta_auc": 0.0058,
+    "base_rate": 0.516,
+    "candidates": [
+      {
+        "feature": "q_efi",
+        "importance": 0.0316,
+        "threshold": 0.0583,
+        "side": "lt",
+        "wr_target_side": 0.528,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0192,
+        "threshold": 89.1777,
+        "side": "lt",
+        "wr_target_side": 0.522,
+        "wr_delta": 0.021
+      },
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0166,
+        "threshold": -27.7042,
+        "side": "lt",
+        "wr_target_side": 0.525,
+        "wr_delta": 0.019
+      }
+    ]
+  },
+  "(USD_JPY,london,short)": {
+    "delta_auc": 0.0058,
+    "base_rate": 0.484,
+    "candidates": [
+      {
+        "feature": "q_efi",
+        "importance": 0.0316,
+        "threshold": 0.0583,
+        "side": "gt",
+        "wr_target_side": 0.491,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0192,
+        "threshold": 89.1777,
+        "side": "gt",
+        "wr_target_side": 0.499,
+        "wr_delta": 0.021
+      },
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0166,
+        "threshold": -27.7042,
+        "side": "gt",
+        "wr_target_side": 0.494,
+        "wr_delta": 0.019
+      }
+    ]
+  },
+  "(AUD_USD,asia,short)": {
+    "delta_auc": 0.0058,
+    "base_rate": 0.488,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0409,
+        "threshold": -28.9687,
+        "side": "gt",
+        "wr_target_side": 0.5,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0235,
+        "threshold": 45.5513,
+        "side": "gt",
+        "wr_target_side": 0.493,
+        "wr_delta": 0.012
+      },
+      {
+        "feature": "q_macd_m5",
+        "importance": 0.0207,
+        "threshold": -0.0003,
+        "side": "gt",
+        "wr_target_side": 0.489,
+        "wr_delta": 0.029
+      }
+    ]
+  },
+  "(AUD_USD,asia,long)": {
+    "delta_auc": 0.0058,
+    "base_rate": 0.512,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0409,
+        "threshold": -28.9687,
+        "side": "lt",
+        "wr_target_side": 0.519,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0235,
+        "threshold": 45.5513,
+        "side": "lt",
+        "wr_target_side": 0.519,
+        "wr_delta": 0.012
+      },
+      {
+        "feature": "q_macd_m5",
+        "importance": 0.0207,
+        "threshold": -0.0003,
+        "side": "lt",
+        "wr_target_side": 0.54,
+        "wr_delta": 0.029
+      }
+    ]
+  },
+  "(AUD_JPY,london,long)": {
+    "delta_auc": 0.0057,
+    "base_rate": 0.51,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0375,
+        "threshold": -72.5733,
+        "side": "lt",
+        "wr_target_side": 0.529,
+        "wr_delta": 0.022
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.03,
+        "threshold": 2.7511,
+        "side": "lt",
+        "wr_target_side": 0.519,
+        "wr_delta": 0.03
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0189,
+        "threshold": 15.8125,
+        "side": "lt",
+        "wr_target_side": 0.531,
+        "wr_delta": 0.023
+      }
+    ]
+  },
+  "(AUD_JPY,london,short)": {
+    "delta_auc": 0.0057,
+    "base_rate": 0.49,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0375,
+        "threshold": -72.5733,
+        "side": "gt",
+        "wr_target_side": 0.493,
+        "wr_delta": 0.022
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.03,
+        "threshold": 2.7511,
+        "side": "gt",
+        "wr_target_side": 0.51,
+        "wr_delta": 0.03
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0189,
+        "threshold": 15.8125,
+        "side": "gt",
+        "wr_target_side": 0.492,
+        "wr_delta": 0.023
+      }
+    ]
+  },
+  "(AUD_JPY,ny,short)": {
+    "delta_auc": 0.0054,
+    "base_rate": 0.482,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0622,
+        "threshold": -61.7007,
+        "side": "gt",
+        "wr_target_side": 0.495,
+        "wr_delta": 0.034
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0251,
+        "threshold": -3.85,
+        "side": "gt",
+        "wr_target_side": 0.517,
+        "wr_delta": 0.048
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0159,
+        "threshold": 3.5714,
+        "side": "lt",
+        "wr_target_side": 0.514,
+        "wr_delta": 0.078
+      }
+    ]
+  },
+  "(AUD_JPY,ny,long)": {
+    "delta_auc": 0.0054,
+    "base_rate": 0.518,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0622,
+        "threshold": -61.7007,
+        "side": "lt",
+        "wr_target_side": 0.539,
+        "wr_delta": 0.034
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0251,
+        "threshold": -3.85,
+        "side": "lt",
+        "wr_target_side": 0.531,
+        "wr_delta": 0.048
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0159,
+        "threshold": 3.5714,
+        "side": "gt",
+        "wr_target_side": 0.564,
+        "wr_delta": 0.078
+      }
+    ]
+  },
+  "(EUR_USD,london,short)": {
+    "delta_auc": 0.0054,
+    "base_rate": 0.505,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0447,
+        "threshold": -59.7739,
+        "side": "gt",
+        "wr_target_side": 0.512,
+        "wr_delta": 0.023
+      },
+      {
+        "feature": "q_vwap_dist_pips_m5",
+        "importance": 0.014,
+        "threshold": -0.4495,
+        "side": "gt",
+        "wr_target_side": 0.511,
+        "wr_delta": 0.017
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0139,
+        "threshold": -0.0098,
+        "side": "gt",
+        "wr_target_side": 0.51,
+        "wr_delta": 0.022
+      }
+    ]
+  },
+  "(EUR_USD,london,long)": {
+    "delta_auc": 0.0054,
+    "base_rate": 0.495,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0447,
+        "threshold": -59.7739,
+        "side": "lt",
+        "wr_target_side": 0.511,
+        "wr_delta": 0.023
+      },
+      {
+        "feature": "q_vwap_dist_pips_m5",
+        "importance": 0.014,
+        "threshold": -0.4495,
+        "side": "lt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.017
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0139,
+        "threshold": -0.0098,
+        "side": "lt",
+        "wr_target_side": 0.512,
+        "wr_delta": 0.022
+      }
+    ]
+  },
+  "(USD_CHF,asia,long)": {
+    "delta_auc": 0.0053,
+    "base_rate": 0.513,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0635,
+        "threshold": -53.5943,
+        "side": "lt",
+        "wr_target_side": 0.526,
+        "wr_delta": 0.03
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0204,
+        "threshold": 10.45,
+        "side": "lt",
+        "wr_target_side": 0.515,
+        "wr_delta": 0.048
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0138,
+        "threshold": -3.5714,
+        "side": "gt",
+        "wr_target_side": 0.541,
+        "wr_delta": 0.082
+      }
+    ]
+  },
+  "(USD_CHF,asia,short)": {
+    "delta_auc": 0.0053,
+    "base_rate": 0.487,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0635,
+        "threshold": -53.5943,
+        "side": "gt",
+        "wr_target_side": 0.504,
+        "wr_delta": 0.03
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0204,
+        "threshold": 10.45,
+        "side": "gt",
+        "wr_target_side": 0.532,
+        "wr_delta": 0.048
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0138,
+        "threshold": -3.5714,
+        "side": "lt",
+        "wr_target_side": 0.541,
+        "wr_delta": 0.082
+      }
+    ]
+  },
+  "(USD_CAD,london,short)": {
+    "delta_auc": 0.0052,
+    "base_rate": 0.496,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0551,
+        "threshold": -45.7324,
+        "side": "gt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0375,
+        "threshold": -0.002,
+        "side": "gt",
+        "wr_target_side": 0.504,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0199,
+        "threshold": 4.35,
+        "side": "gt",
+        "wr_target_side": 0.502,
+        "wr_delta": 0.018
+      }
+    ]
+  },
+  "(USD_CAD,london,long)": {
+    "delta_auc": 0.0052,
+    "base_rate": 0.504,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0551,
+        "threshold": -45.7324,
+        "side": "lt",
+        "wr_target_side": 0.513,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0375,
+        "threshold": -0.002,
+        "side": "lt",
+        "wr_target_side": 0.516,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0199,
+        "threshold": 4.35,
+        "side": "lt",
+        "wr_target_side": 0.516,
+        "wr_delta": 0.018
+      }
+    ]
+  },
+  "(USD_CHF,london,long)": {
+    "delta_auc": 0.0052,
+    "base_rate": 0.501,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0463,
+        "threshold": -61.1828,
+        "side": "lt",
+        "wr_target_side": 0.507,
+        "wr_delta": 0.011
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0239,
+        "threshold": 32.7064,
+        "side": "lt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.008
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.016,
+        "threshold": -6.95,
+        "side": "lt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.009
+      }
+    ]
+  },
+  "(USD_CHF,london,short)": {
+    "delta_auc": 0.0052,
+    "base_rate": 0.499,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0463,
+        "threshold": -61.1828,
+        "side": "gt",
+        "wr_target_side": 0.503,
+        "wr_delta": 0.011
+      },
+      {
+        "feature": "q_stochrsi_m5",
+        "importance": 0.0239,
+        "threshold": 32.7064,
+        "side": "gt",
+        "wr_target_side": 0.502,
+        "wr_delta": 0.008
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.016,
+        "threshold": -6.95,
+        "side": "gt",
+        "wr_target_side": 0.503,
+        "wr_delta": 0.009
+      }
+    ]
+  },
+  "(USD_CAD,asia,long)": {
+    "delta_auc": 0.005,
+    "base_rate": 0.495,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0569,
+        "threshold": -46.9066,
+        "side": "lt",
+        "wr_target_side": 0.511,
+        "wr_delta": 0.024
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0187,
+        "threshold": 3.5714,
+        "side": "gt",
+        "wr_target_side": 0.553,
+        "wr_delta": 0.085
+      },
+      {
+        "feature": "q_macd_m5",
+        "importance": 0.0179,
+        "threshold": 0.0003,
+        "side": "lt",
+        "wr_target_side": 0.503,
+        "wr_delta": 0.044
+      }
+    ]
+  },
+  "(USD_CAD,asia,short)": {
+    "delta_auc": 0.005,
+    "base_rate": 0.505,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0569,
+        "threshold": -46.9066,
+        "side": "gt",
+        "wr_target_side": 0.513,
+        "wr_delta": 0.024
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0187,
+        "threshold": 3.5714,
+        "side": "lt",
+        "wr_target_side": 0.532,
+        "wr_delta": 0.085
+      },
+      {
+        "feature": "q_macd_m5",
+        "importance": 0.0179,
+        "threshold": 0.0003,
+        "side": "gt",
+        "wr_target_side": 0.541,
+        "wr_delta": 0.044
+      }
+    ]
+  },
+  "(USD_JPY,ny,short)": {
+    "delta_auc": 0.0049,
+    "base_rate": 0.488,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0527,
+        "threshold": -54.3182,
+        "side": "gt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.045
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0226,
+        "threshold": -3.9988,
+        "side": "gt",
+        "wr_target_side": 0.534,
+        "wr_delta": 0.062
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0207,
+        "threshold": -2.75,
+        "side": "gt",
+        "wr_target_side": 0.533,
+        "wr_delta": 0.058
+      }
+    ]
+  },
+  "(USD_JPY,ny,long)": {
+    "delta_auc": 0.0049,
+    "base_rate": 0.512,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0527,
+        "threshold": -54.3182,
+        "side": "lt",
+        "wr_target_side": 0.538,
+        "wr_delta": 0.045
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0226,
+        "threshold": -3.9988,
+        "side": "lt",
+        "wr_target_side": 0.528,
+        "wr_delta": 0.062
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0207,
+        "threshold": -2.75,
+        "side": "lt",
+        "wr_target_side": 0.525,
+        "wr_delta": 0.058
+      }
+    ]
+  },
+  "(GBP_USD,ny,short)": {
+    "delta_auc": 0.0046,
+    "base_rate": 0.492,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.074,
+        "threshold": -48.3312,
+        "side": "gt",
+        "wr_target_side": 0.517,
+        "wr_delta": 0.051
+      },
+      {
+        "feature": "q_vwap_dist_pips_m5",
+        "importance": 0.021,
+        "threshold": 8.8349,
+        "side": "gt",
+        "wr_target_side": 0.514,
+        "wr_delta": 0.034
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0174,
+        "threshold": 3.5714,
+        "side": "lt",
+        "wr_target_side": 0.517,
+        "wr_delta": 0.067
+      }
+    ]
+  },
+  "(GBP_USD,ny,long)": {
+    "delta_auc": 0.0046,
+    "base_rate": 0.508,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.074,
+        "threshold": -48.3312,
+        "side": "lt",
+        "wr_target_side": 0.534,
+        "wr_delta": 0.051
+      },
+      {
+        "feature": "q_vwap_dist_pips_m5",
+        "importance": 0.021,
+        "threshold": 8.8349,
+        "side": "lt",
+        "wr_target_side": 0.521,
+        "wr_delta": 0.034
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0174,
+        "threshold": 3.5714,
+        "side": "gt",
+        "wr_target_side": 0.55,
+        "wr_delta": 0.067
+      }
+    ]
+  },
+  "(EUR_JPY,ny,long)": {
+    "delta_auc": 0.0046,
+    "base_rate": 0.521,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0533,
+        "threshold": -54.4089,
+        "side": "lt",
+        "wr_target_side": 0.544,
+        "wr_delta": 0.041
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0178,
+        "threshold": -3.8334,
+        "side": "lt",
+        "wr_target_side": 0.532,
+        "wr_delta": 0.066
+      },
+      {
+        "feature": "q_tsi_m5",
+        "importance": 0.0163,
+        "threshold": 3.9215,
+        "side": "lt",
+        "wr_target_side": 0.539,
+        "wr_delta": 0.04
+      }
+    ]
+  },
+  "(EUR_JPY,ny,short)": {
+    "delta_auc": 0.0046,
+    "base_rate": 0.479,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0533,
+        "threshold": -54.4089,
+        "side": "gt",
+        "wr_target_side": 0.497,
+        "wr_delta": 0.041
+      },
+      {
+        "feature": "q_kc_up_dist_pips",
+        "importance": 0.0178,
+        "threshold": -3.8334,
+        "side": "gt",
+        "wr_target_side": 0.534,
+        "wr_delta": 0.066
+      },
+      {
+        "feature": "q_tsi_m5",
+        "importance": 0.0163,
+        "threshold": 3.9215,
+        "side": "gt",
+        "wr_target_side": 0.501,
+        "wr_delta": 0.04
+      }
+    ]
+  },
+  "(AUD_USD,ny,short)": {
+    "delta_auc": 0.0045,
+    "base_rate": 0.494,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0465,
+        "threshold": -46.6377,
+        "side": "gt",
+        "wr_target_side": 0.514,
+        "wr_delta": 0.04
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0195,
+        "threshold": -1.65,
+        "side": "gt",
+        "wr_target_side": 0.537,
+        "wr_delta": 0.052
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0188,
+        "threshold": -3.5714,
+        "side": "lt",
+        "wr_target_side": 0.535,
+        "wr_delta": 0.067
+      }
+    ]
+  },
+  "(AUD_USD,ny,long)": {
+    "delta_auc": 0.0045,
+    "base_rate": 0.506,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0465,
+        "threshold": -46.6377,
+        "side": "lt",
+        "wr_target_side": 0.526,
+        "wr_delta": 0.04
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0195,
+        "threshold": -1.65,
+        "side": "lt",
+        "wr_target_side": 0.515,
+        "wr_delta": 0.052
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0188,
+        "threshold": -3.5714,
+        "side": "gt",
+        "wr_target_side": 0.532,
+        "wr_delta": 0.067
+      }
+    ]
+  },
+  "(EUR_JPY,asia,long)": {
+    "delta_auc": 0.0045,
+    "base_rate": 0.513,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0366,
+        "threshold": -46.4014,
+        "side": "lt",
+        "wr_target_side": 0.53,
+        "wr_delta": 0.033
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0227,
+        "threshold": 0.0298,
+        "side": "lt",
+        "wr_target_side": 0.532,
+        "wr_delta": 0.038
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0172,
+        "threshold": -8.15,
+        "side": "lt",
+        "wr_target_side": 0.527,
+        "wr_delta": 0.025
+      }
+    ]
+  },
+  "(EUR_JPY,asia,short)": {
+    "delta_auc": 0.0045,
+    "base_rate": 0.487,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0366,
+        "threshold": -46.4014,
+        "side": "gt",
+        "wr_target_side": 0.503,
+        "wr_delta": 0.033
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0227,
+        "threshold": 0.0298,
+        "side": "gt",
+        "wr_target_side": 0.506,
+        "wr_delta": 0.038
+      },
+      {
+        "feature": "q_dc_up_dist_pips",
+        "importance": 0.0172,
+        "threshold": -8.15,
+        "side": "gt",
+        "wr_target_side": 0.498,
+        "wr_delta": 0.025
+      }
+    ]
+  },
+  "(USD_JPY,asia,short)": {
+    "delta_auc": 0.0035,
+    "base_rate": 0.489,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0479,
+        "threshold": -89.4976,
+        "side": "gt",
+        "wr_target_side": 0.49,
+        "wr_delta": 0.025
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0195,
+        "threshold": 6.75,
+        "side": "gt",
+        "wr_target_side": 0.498,
+        "wr_delta": 0.023
+      },
+      {
+        "feature": "q_tsi_m5",
+        "importance": 0.0148,
+        "threshold": -17.5159,
+        "side": "gt",
+        "wr_target_side": 0.492,
+        "wr_delta": 0.025
+      }
+    ]
+  },
+  "(USD_JPY,asia,long)": {
+    "delta_auc": 0.0035,
+    "base_rate": 0.511,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0479,
+        "threshold": -89.4976,
+        "side": "lt",
+        "wr_target_side": 0.535,
+        "wr_delta": 0.025
+      },
+      {
+        "feature": "q_dc_lo_dist_pips",
+        "importance": 0.0195,
+        "threshold": 6.75,
+        "side": "lt",
+        "wr_target_side": 0.525,
+        "wr_delta": 0.023
+      },
+      {
+        "feature": "q_tsi_m5",
+        "importance": 0.0148,
+        "threshold": -17.5159,
+        "side": "lt",
+        "wr_target_side": 0.533,
+        "wr_delta": 0.025
+      }
+    ]
+  },
+  "(AUD_JPY,asia,short)": {
+    "delta_auc": 0.0033,
+    "base_rate": 0.482,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0422,
+        "threshold": -64.938,
+        "side": "gt",
+        "wr_target_side": 0.487,
+        "wr_delta": 0.017
+      },
+      {
+        "feature": "q_cci_m5",
+        "importance": 0.0213,
+        "threshold": 33.3344,
+        "side": "gt",
+        "wr_target_side": 0.492,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0178,
+        "threshold": 3.5714,
+        "side": "lt",
+        "wr_target_side": 0.52,
+        "wr_delta": 0.099
+      }
+    ]
+  },
+  "(AUD_JPY,asia,long)": {
+    "delta_auc": 0.0033,
+    "base_rate": 0.518,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0422,
+        "threshold": -64.938,
+        "side": "lt",
+        "wr_target_side": 0.53,
+        "wr_delta": 0.017
+      },
+      {
+        "feature": "q_cci_m5",
+        "importance": 0.0213,
+        "threshold": 33.3344,
+        "side": "lt",
+        "wr_target_side": 0.526,
+        "wr_delta": 0.019
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0178,
+        "threshold": 3.5714,
+        "side": "gt",
+        "wr_target_side": 0.579,
+        "wr_delta": 0.099
+      }
+    ]
+  },
+  "(EUR_JPY,london,long)": {
+    "delta_auc": 0.0026,
+    "base_rate": 0.509,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0451,
+        "threshold": -49.4269,
+        "side": "lt",
+        "wr_target_side": 0.521,
+        "wr_delta": 0.011
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0208,
+        "threshold": -0.664,
+        "side": "lt",
+        "wr_target_side": 0.525,
+        "wr_delta": 0.015
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0168,
+        "threshold": -3.5714,
+        "side": "gt",
+        "wr_target_side": 0.555,
+        "wr_delta": 0.109
+      }
+    ]
+  },
+  "(EUR_JPY,london,short)": {
+    "delta_auc": 0.0026,
+    "base_rate": 0.491,
+    "candidates": [
+      {
+        "feature": "q_willr_m5",
+        "importance": 0.0451,
+        "threshold": -49.4269,
+        "side": "gt",
+        "wr_target_side": 0.49,
+        "wr_delta": 0.011
+      },
+      {
+        "feature": "q_efi",
+        "importance": 0.0208,
+        "threshold": -0.664,
+        "side": "gt",
+        "wr_target_side": 0.49,
+        "wr_delta": 0.015
+      },
+      {
+        "feature": "q_aroonosc_h1",
+        "importance": 0.0168,
+        "threshold": -3.5714,
+        "side": "lt",
+        "wr_target_side": 0.555,
+        "wr_delta": 0.109
+      }
+    ]
+  }
+}
