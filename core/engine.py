@@ -18,7 +18,7 @@ from typing import Optional
 from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
-from modules.playmaker.playmaker import pick_best, TradeTicket, pm_margin_pct
+from modules.playmaker.playmaker import pick_best, TradeTicket, pm_margin_pct, pm_inverted_shadow_cells
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
 
@@ -38,6 +38,8 @@ class Engine:
         self.managers: dict[str, RatchetManager] = {}
         # pair -> datetime of last losing exit (in-memory; playmaker cooldown)
         self._sl_history: dict[str, datetime] = {}
+        # (pair, session, dir) -> bool actionable last cycle; rising edge => SHADOW_INVERT log
+        self._invert_shadow_actionable: dict[tuple, bool] = {}
 
         # Dashboard state — updated each cycle
         self.last_views:        list = []
@@ -218,6 +220,29 @@ class Engine:
         self.last_trade_ticket = trade_ticket
         self.cycle_count      += 1
         self.last_cycle_time   = now
+
+        # ── Shadow-inverted cells: log signal stream on rising edge (NOT traded) ──
+        # research/sessions/2026-06-21_percell_exhaustion/: GBP_USD/ny + EUR_JPY/ny
+        # are NY momentum-fade cells; inverting them looks +2.5-3.0p net of spread.
+        # Log each fresh actionable signal so a later job measures the 1H forward.
+        _shadow_cells = pm_inverted_shadow_cells()
+        if _shadow_cells:
+            for t in tickets:
+                if (t.pair, t.session) not in _shadow_cells:
+                    continue
+                key = (t.pair, t.session, t.direction.bias)
+                was = self._invert_shadow_actionable.get(key, False)
+                is_now = t.is_actionable
+                self._invert_shadow_actionable[key] = is_now
+                if is_now and not was:   # rising edge = fresh signal
+                    _v = next((v for v in views if v.pair == t.pair), None)
+                    _mid = ((_v.bid + _v.ask) / 2.0) if _v and _v.bid and _v.ask else 0.0
+                    _inv = "short" if t.direction.bias == "long" else "long"
+                    log.info("SHADOW_INVERT %s %s | v5_dir=%s inverted_dir=%s score=%.3f "
+                             "d_cert=%.3f m_cert=%.3f mid=%.5f ts=%s",
+                             t.pair, t.session, t.direction.bias, _inv,
+                             t.direction.score, t.direction.certainty, t.momentum.certainty,
+                             _mid, now.isoformat())
 
         if trade_ticket is None:
             return

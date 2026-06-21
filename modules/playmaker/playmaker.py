@@ -66,15 +66,19 @@ def _pm_load() -> dict:
         # disabled_cells: list of [pair, session, direction] triples → frozenset of tuples
         dc_raw = raw.get("disabled_cells") or []
         dc = frozenset(tuple(x) for x in dc_raw if len(x) == 3)
+        # inverted_shadow_cells: list of [pair, session] pairs → frozenset of tuples
+        isc_raw = raw.get("inverted_shadow_cells") or []
+        isc = frozenset(tuple(x) for x in isc_raw if len(x) == 2)
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
             "per_pair":        raw.get("per_pair") or {},
             "disabled_cells":  dc,
+            "inverted_shadow_cells": isc,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
-                "per_pair": {}, "disabled_cells": frozenset()}
+                "per_pair": {}, "disabled_cells": frozenset(), "inverted_shadow_cells": frozenset()}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -90,6 +94,10 @@ pm_risk_pct = pm_margin_pct
 
 def pm_max_concurrent() -> int:
     return int(_pm_load()["account"]["max_concurrent_trades"])
+
+def pm_inverted_shadow_cells() -> frozenset:
+    """(pair, session) cells whose signal stream is shadow-logged for invert evaluation."""
+    return _pm_load().get("inverted_shadow_cells", frozenset())
 
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
 MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
