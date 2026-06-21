@@ -57,19 +57,24 @@ _PM_ACCT_DEFAULTS = {
 }
 
 def _pm_load() -> dict:
-    """Return {"account":..., "defaults":..., "per_pair":...} with safe fallbacks."""
+    """Return {"account":..., "defaults":..., "per_pair":..., "disabled_cells":...} with safe fallbacks."""
     try:
         raw = _json.loads(_PM_CONFIG_PATH.read_text())
         acct = dict(raw.get("account") or {})
         if "margin_pct_per_trade" not in acct and "risk_pct_per_trade" in acct:
             acct["margin_pct_per_trade"] = acct.pop("risk_pct_per_trade")
+        # disabled_cells: list of [pair, session, direction] triples → frozenset of tuples
+        dc_raw = raw.get("disabled_cells") or []
+        dc = frozenset(tuple(x) for x in dc_raw if len(x) == 3)
         return {
-            "account":  {**_PM_ACCT_DEFAULTS, **acct},
-            "defaults": {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
-            "per_pair": raw.get("per_pair") or {},
+            "account":         {**_PM_ACCT_DEFAULTS, **acct},
+            "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
+            "per_pair":        raw.get("per_pair") or {},
+            "disabled_cells":  dc,
         }
     except Exception:
-        return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS), "per_pair": {}}
+        return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
+                "per_pair": {}, "disabled_cells": frozenset()}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -185,6 +190,9 @@ def pick_best(
             continue
         pcfg = _pm_for_pair(pm, t.pair)
         if not pcfg.get("enabled", True):
+            continue
+        # 2026-06-21 Master Matrix: per-cell disable for cells with negative ML edge + no live evidence
+        if (t.pair, t.session, t.direction.bias) in pm.get("disabled_cells", frozenset()):
             continue
         cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
         if cd_min > 0 and now is not None and sl_history and t.pair in sl_history:

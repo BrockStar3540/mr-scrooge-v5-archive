@@ -228,13 +228,19 @@ class Engine:
         _lp = (dr.get("long_profile",  "?") or "?").split()[0]
         _sp = (dr.get("short_profile", "?") or "?").split()[0]
         _mp = (mr.get("profile",       "?") or "?").split()[0]
+        # Shadow features (logged but NOT used in scoring until 2026-07-04 evaluation)
+        _view = next((v for v in views if v.pair == trade_ticket.pair), None)
+        _vortex = getattr(_view, "vortex_diff_h1", 0.0) if _view else 0.0
+        _cpd    = getattr(_view, "close_pos_daily", 0.0) if _view else 0.0
         log.info("SIGNAL %s %s | score=%.3f d_cert=%.3f m_cert=%.3f expected=%.1fp vol=%s rivals=%d "
-                 "| active_side=%s long_prof=%s short_prof=%s mom_prof=%s gates=%s cert_boost=%s",
+                 "| active_side=%s long_prof=%s short_prof=%s mom_prof=%s gates=%s cert_boost=%s "
+                 "| shadow_vortex_diff=%.4f shadow_close_pos=%.4f",
                  trade_ticket.pair, trade_ticket.direction,
                  trade_ticket.score, trade_ticket.dir_certainty, trade_ticket.mom_certainty,
                  trade_ticket.expected_pips, trade_ticket.vol_regime, trade_ticket.rivals,
                  dr.get("active_side", "?"), _lp, _sp, _mp,
-                 mr.get("gates_passed", "?"), mr.get("cert_boost", "?"))
+                 mr.get("gates_passed", "?"), mr.get("cert_boost", "?"),
+                 _vortex, _cpd)
 
         if not self.dry_run:
             self._open_trade(trade_ticket, views, now)

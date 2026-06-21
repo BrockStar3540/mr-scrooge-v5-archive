@@ -60,6 +60,7 @@ class MarketView:
     d_range_pips:   float = 0.0     # today's high-low range, pips
     atr_conc:       float = 0.0     # ATR concentration ratio
     atr_h1_relative: float = 1.0    # current 1H ATR / its rolling-mean (1.0=normal; v2/v3 aggregator: >1.6 = elevated)
+    vortex_diff_h1: float = 0.0     # Vortex VI+ minus VI- on H1 — directional signal (Master Matrix 2026-06-21; shadow only until 2026-07-04)
     trend_4h:       float = 0.0     # sign of last-4 H1 bars net return (+1 up, 0 flat, -1 down)
 
     # ── Execution ────────────────────────────────────────────────────────────

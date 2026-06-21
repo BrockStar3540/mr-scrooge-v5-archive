@@ -289,6 +289,7 @@ def _state(engine: "Engine") -> dict:
             "pdl_dist":    round(v.pdl_dist, 1) if hasattr(v, "pdl_dist") else None,
             "atr_h1_relative": round(v.atr_h1_relative, 3) if hasattr(v, "atr_h1_relative") else None,
             "trend_4h":    int(v.trend_4h) if hasattr(v, "trend_4h") else None,
+            "vortex_diff_h1": round(v.vortex_diff_h1, 4) if hasattr(v, "vortex_diff_h1") else None,
             "atr_conc":    round(v.atr_conc, 3) if hasattr(v, "atr_conc") else None,
         })
 

@@ -118,6 +118,33 @@ def _atr14(df: pd.DataFrame, pip: float) -> float:
     return float(tr.ewm(alpha=1.0 / 14, adjust=False).mean().iloc[-1]) / pip
 
 
+def _vortex_diff(df: pd.DataFrame, period: int = 14) -> float:
+    """Vortex VI+ minus VI- on the last `period` bars. Directional indicator.
+
+    VI+ = sum(|H[t] - L[t-1]|) / sum(TR) over last `period` bars
+    VI- = sum(|L[t] - H[t-1]|) / sum(TR) over last `period` bars
+    Returns (VI+ - VI-) as a float; >0 = up-pressure, <0 = down-pressure.
+    """
+    if df is None or len(df) < period + 2:
+        return 0.0
+    df2 = df.iloc[-(period+2):]
+    h = df2["high"].astype(float)
+    l = df2["low"].astype(float)
+    c = df2["close"].astype(float)
+    pc = c.shift(1)
+    tr = pd.concat([(h - l).abs(), (h - pc).abs(), (l - pc).abs()], axis=1).max(axis=1).dropna()
+    if len(tr) < period:
+        return 0.0
+    vm_plus  = (h - l.shift(1)).abs().dropna()
+    vm_minus = (l - h.shift(1)).abs().dropna()
+    sum_tr   = float(tr.iloc[-period:].sum())
+    if sum_tr <= 0:
+        return 0.0
+    vi_plus  = float(vm_plus.iloc[-period:].sum())  / sum_tr
+    vi_minus = float(vm_minus.iloc[-period:].sum()) / sum_tr
+    return vi_plus - vi_minus
+
+
 def _rsi14_series(closes: pd.Series) -> pd.Series:
     """Wilder RSI14 series on the full close series."""
     delta = closes.astype(float).diff()
@@ -193,6 +220,13 @@ def _compute_features(
     if   h1_ret_4bar > 0: trend_4h = 1.0
     elif h1_ret_4bar < 0: trend_4h = -1.0
     else:                 trend_4h = 0.0
+
+    # vortex_diff_h1: Vortex VI+ minus VI- on H1, period 14 (Master Matrix 2026-06-21)
+    # Directional signal: >0 = up-pressure, <0 = down-pressure. SHADOW until 2026-07-04.
+    try:
+        vortex_diff_h1 = _vortex_diff(h1, period=14)
+    except Exception:
+        vortex_diff_h1 = 0.0
 
     # htf_pct (from daily closes — computed in D section below, placeholder for now)
     htf_pct_20 = 0.0
@@ -340,6 +374,7 @@ def _compute_features(
         atr_conc=round(atr_conc, 4),
         atr_h1_relative=round(atr_h1_relative, 4),
         trend_4h=trend_4h,
+        vortex_diff_h1=round(vortex_diff_h1, 4),
         # Execution
         bid=bid, ask=ask, spread_pips=round(spread_pips, 4),
     )
