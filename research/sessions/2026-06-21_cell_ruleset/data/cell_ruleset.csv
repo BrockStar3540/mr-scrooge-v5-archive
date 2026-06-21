@@ -1,0 +1,49 @@
+pair,session,direction,enabled,invert_shadow,direction_profile,momentum_sign,momentum_stable,align_sign,ml_delta_auc_2026,broker_fwd_pip,broker_n,evidence_tier,recommended_rule
+AUD_JPY,asia,long,True,False,default,TREND,False,FADE,-0.0011,6.7,1,STRONG,profile=default; TREND momentum (overlap/asia confirm)
+AUD_JPY,asia,short,True,False,continuation_strong,TREND,False,FADE,-0.0011,1.8,6,STRONG,profile=continuation_strong; TREND momentum (overlap/asia confirm)
+AUD_JPY,london,long,True,False,reversion,FADE,False,FADE,-0.0033,2.83,3,MODERATE,profile=reversion; momentum neutral
+AUD_JPY,london,short,False,False,default,FADE,False,FADE,-0.0033,-1.23,3,MODERATE,"DISABLED (ML -0.003, broker -1.2p)"
+AUD_JPY,ny,long,False,False,continuation_strong,FADE,True,CONFIRM,-0.0004,,0,WEAK,DISABLED (ML -0.000)
+AUD_JPY,ny,short,True,False,continuation_strong,FADE,True,CONFIRM,-0.0004,5.1,1,WEAK,"profile=continuation_strong; FADE momentum (NY/london fade, walk-forward stable)"
+AUD_USD,asia,long,True,False,default,FADE,True,FADE,0.0028,-1.1,2,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+AUD_USD,asia,short,True,False,continuation_strong,FADE,True,FADE,0.0028,-3.38,4,STRONG,"profile=continuation_strong; FADE momentum (NY/london fade, walk-forward stable)"
+AUD_USD,london,long,True,False,default,FADE,True,FADE,-0.005,,0,WEAK,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+AUD_USD,london,short,True,False,default,FADE,True,FADE,-0.005,-4.6,1,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+AUD_USD,ny,long,False,False,reversion,FADE,True,FADE,-0.0324,-2.4,1,STRONG,"DISABLED (ML -0.032, broker -2.4p)"
+AUD_USD,ny,short,False,False,reversion,FADE,True,FADE,-0.0324,,0,WEAK,DISABLED (ML -0.032)
+EUR_JPY,asia,long,True,False,continuation_strong,TREND,False,FADE,-0.0029,,0,WEAK,profile=continuation_strong; TREND momentum (overlap/asia confirm)
+EUR_JPY,asia,short,True,False,continuation_strong,TREND,False,FADE,-0.0029,,0,WEAK,profile=continuation_strong; TREND momentum (overlap/asia confirm)
+EUR_JPY,london,long,True,False,reversion,TREND,True,FADE,-0.0003,-1.6,1,WEAK,profile=reversion; TREND momentum (overlap/asia confirm)
+EUR_JPY,london,short,False,False,reversion,TREND,True,FADE,-0.0003,-5.72,4,MODERATE,"DISABLED (ML -0.000, broker -5.7p)"
+EUR_JPY,ny,long,False,True,continuation_strong,FADE,True,CONFIRM,-0.0053,-6.27,3,STRONG,"DISABLED (ML -0.005, broker -6.3p)"
+EUR_JPY,ny,short,True,True,default,FADE,True,CONFIRM,-0.0053,,0,WEAK,"SHADOW-INVERT (broker fade, testing inverted)"
+EUR_USD,asia,long,True,False,default,FADE,True,CONFIRM,-0.0045,,0,WEAK,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+EUR_USD,asia,short,True,False,default,FADE,True,CONFIRM,-0.0045,-6.1,1,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+EUR_USD,london,long,True,False,default,FADE,True,FADE,-0.0033,-13.55,2,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+EUR_USD,london,short,True,False,reversion,FADE,True,FADE,-0.0033,6.31,7,MODERATE,"profile=reversion; FADE momentum (NY/london fade, walk-forward stable)"
+EUR_USD,ny,long,False,False,default,FADE,True,CONFIRM,-0.0129,-2.7,1,STRONG,"DISABLED (ML -0.013, broker -2.7p)"
+EUR_USD,ny,short,True,False,reversion,FADE,True,CONFIRM,-0.0129,4.0,1,WEAK,"profile=reversion; FADE momentum (NY/london fade, walk-forward stable)"
+GBP_USD,asia,long,True,False,default,FADE,True,FADE,0.0053,-5.7,2,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+GBP_USD,asia,short,True,False,default,FADE,True,FADE,0.0053,11.4,1,WEAK,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+GBP_USD,london,long,True,False,continuation_strong,FADE,True,FADE,-0.0059,-0.45,2,STRONG,"profile=continuation_strong; FADE momentum (NY/london fade, walk-forward stable)"
+GBP_USD,london,short,True,False,continuation_strong,FADE,True,FADE,-0.0059,-3.95,2,STRONG,"profile=continuation_strong; FADE momentum (NY/london fade, walk-forward stable)"
+GBP_USD,ny,long,True,True,default,FADE,True,CONFIRM,0.0014,-10.52,4,STRONG,"SHADOW-INVERT (broker fade, testing inverted)"
+GBP_USD,ny,short,True,True,reversion,FADE,True,CONFIRM,0.0014,-0.4,5,STRONG,"SHADOW-INVERT (broker fade, testing inverted)"
+USD_CAD,asia,long,True,False,default,FADE,True,CONFIRM,-0.0024,-1.9,1,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+USD_CAD,asia,short,True,False,default,FADE,True,CONFIRM,-0.0024,-1.8,1,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+USD_CAD,london,long,True,False,default,FADE,True,CONFIRM,-0.0055,-1.55,2,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+USD_CAD,london,short,True,False,default,FADE,True,CONFIRM,-0.0055,,0,WEAK,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+USD_CAD,ny,long,True,False,reversion,FADE,True,FADE,-0.0091,6.61,7,MODERATE,"profile=reversion; FADE momentum (NY/london fade, walk-forward stable)"
+USD_CAD,ny,short,False,False,default,FADE,True,FADE,-0.0091,-8.7,1,STRONG,"DISABLED (ML -0.009, broker -8.7p)"
+USD_CHF,asia,long,True,False,default,FADE,True,FADE,-0.0024,-4.0,1,STRONG,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+USD_CHF,asia,short,True,False,default,FADE,True,FADE,-0.0024,,0,WEAK,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+USD_CHF,london,long,True,False,continuation_strong,TREND,False,FADE,-0.0081,-0.48,6,MODERATE,profile=continuation_strong; TREND momentum (overlap/asia confirm)
+USD_CHF,london,short,False,False,default,TREND,False,FADE,-0.0081,-3.05,2,WEAK,"DISABLED (ML -0.008, broker -3.0p)"
+USD_CHF,ny,long,False,False,reversion,FADE,True,FADE,-0.0011,-2.42,5,STRONG,"DISABLED (ML -0.001, broker -2.4p)"
+USD_CHF,ny,short,True,False,default,FADE,True,FADE,-0.0011,,0,WEAK,"profile=default; FADE momentum (NY/london fade, walk-forward stable)"
+USD_JPY,asia,long,True,False,continuation_strong,TREND,True,CONFIRM,0.013,-6.3,1,WEAK,profile=continuation_strong; TREND momentum (overlap/asia confirm)
+USD_JPY,asia,short,True,False,continuation_strong,TREND,True,CONFIRM,0.013,-1.78,6,MODERATE,profile=continuation_strong; TREND momentum (overlap/asia confirm)
+USD_JPY,london,long,True,False,default,FADE,False,FADE,0.002,,0,WEAK,profile=default; momentum neutral
+USD_JPY,london,short,True,False,default,FADE,False,FADE,0.002,,0,WEAK,profile=default; momentum neutral
+USD_JPY,ny,long,True,False,continuation_strong,FADE,True,CONFIRM,0.0017,1.5,1,WEAK,"profile=continuation_strong; FADE momentum (NY/london fade, walk-forward stable)"
+USD_JPY,ny,short,True,False,continuation_strong,FADE,True,CONFIRM,0.0017,-17.8,2,STRONG,"profile=continuation_strong; FADE momentum (NY/london fade, walk-forward stable)"
