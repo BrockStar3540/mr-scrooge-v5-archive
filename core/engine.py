@@ -257,15 +257,20 @@ class Engine:
         _view = next((v for v in views if v.pair == trade_ticket.pair), None)
         _vortex = getattr(_view, "vortex_diff_h1", 0.0) if _view else 0.0
         _cpd    = getattr(_view, "close_pos_daily", 0.0) if _view else 0.0
+        _inv_live = getattr(trade_ticket, "inverted_live", False)
+        _sig_dir  = dr.get("signal_direction", trade_ticket.direction)
         log.info("SIGNAL %s %s | score=%.3f d_cert=%.3f m_cert=%.3f expected=%.1fp vol=%s rivals=%d "
                  "| active_side=%s long_prof=%s short_prof=%s mom_prof=%s gates=%s cert_boost=%s "
-                 "| shadow_vortex_diff=%.4f shadow_close_pos=%.4f",
+                 "| shadow_vortex_diff=%.4f shadow_close_pos=%.4f"
+                 "%s",
                  trade_ticket.pair, trade_ticket.direction,
                  trade_ticket.score, trade_ticket.dir_certainty, trade_ticket.mom_certainty,
                  trade_ticket.expected_pips, trade_ticket.vol_regime, trade_ticket.rivals,
                  dr.get("active_side", "?"), _lp, _sp, _mp,
                  mr.get("gates_passed", "?"), mr.get("cert_boost", "?"),
-                 _vortex, _cpd)
+                 _vortex, _cpd,
+                 (f" | INVERTED_LIVE signal_dir={_sig_dir} trade_dir={trade_ticket.direction}"
+                  if _inv_live else ""))
 
         if not self.dry_run:
             self._open_trade(trade_ticket, views, now)

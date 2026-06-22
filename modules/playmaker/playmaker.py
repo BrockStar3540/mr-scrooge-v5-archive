@@ -69,16 +69,24 @@ def _pm_load() -> dict:
         # inverted_shadow_cells: list of [pair, session] pairs → frozenset of tuples
         isc_raw = raw.get("inverted_shadow_cells") or []
         isc = frozenset(tuple(x) for x in isc_raw if len(x) == 2)
+        # inverted_live_cells: list of [pair, session] pairs → frozenset of tuples
+        # When the winning ticket's (pair, session) is in this set, the trade direction
+        # is FLIPPED before execution (long signal → short trade, short signal → long).
+        ilc_raw = raw.get("inverted_live_cells") or []
+        ilc = frozenset(tuple(x) for x in ilc_raw if len(x) == 2)
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
             "per_pair":        raw.get("per_pair") or {},
             "disabled_cells":  dc,
             "inverted_shadow_cells": isc,
+            "inverted_live_cells":   ilc,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
-                "per_pair": {}, "disabled_cells": frozenset(), "inverted_shadow_cells": frozenset()}
+                "per_pair": {}, "disabled_cells": frozenset(),
+                "inverted_shadow_cells": frozenset(),
+                "inverted_live_cells":   frozenset()}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -98,6 +106,10 @@ def pm_max_concurrent() -> int:
 def pm_inverted_shadow_cells() -> frozenset:
     """(pair, session) cells whose signal stream is shadow-logged for invert evaluation."""
     return _pm_load().get("inverted_shadow_cells", frozenset())
+
+def pm_inverted_live_cells() -> frozenset:
+    """(pair, session) cells whose live trade direction is FLIPPED at execution."""
+    return _pm_load().get("inverted_live_cells", frozenset())
 
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
 MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
@@ -137,6 +149,7 @@ class TradeTicket:
     timestamp:     datetime
     reads:         dict    # direction.reads + momentum.reads for logging/debug
     rivals:        int = 0 # how many other candidates passed all gates this cycle
+    inverted_live: bool = False  # True when direction was flipped by inverted_live_cells
 
 
 def _passes_gates(t: PairTicket, pcfg: dict) -> bool:
@@ -218,10 +231,14 @@ def pick_best(
 
     # Step 3: best edge wins
     best = max(candidates, key=_edge_rank)
+    # Step 4: per-cell live inversion — flip trade direction for inverted_live_cells
+    signal_dir = best.direction.bias
+    inverted = (best.pair, best.session) in pm.get("inverted_live_cells", frozenset())
+    trade_dir = ("short" if signal_dir == "long" else "long") if inverted else signal_dir
     return TradeTicket(
         pair=best.pair,
         session=best.session,
-        direction=best.direction.bias,
+        direction=trade_dir,
         score=round(best.composite_score, 4),
         dir_certainty=round(best.direction.certainty, 4),
         mom_certainty=round(best.momentum.certainty, 4),
@@ -231,6 +248,8 @@ def pick_best(
         reads={
             "direction": best.direction.reads,
             "momentum":  best.momentum.reads,
+            "signal_direction": signal_dir,  # what the engine SAW pre-inversion
         },
         rivals=len(candidates) - 1,
+        inverted_live=inverted,
     )
