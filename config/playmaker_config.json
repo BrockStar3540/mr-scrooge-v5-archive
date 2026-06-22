@@ -12,7 +12,7 @@
     "cooldown_after_sl_min": 0.0
   },
   "per_pair": {},
-  "_note": "Per-cell disable list. 10 cells total as of 2026-06-21 broker-validation session. 5 added 2026-06-21 from Master Matrix research/sessions/2026-06-21_master_matrix/. EUR_JPY/london/short added after broker validation (-5.73p fwd 1H n=4 + matrix -0.0003). 4 more added per Brock 2026-06-21: EUR_JPY/ny/long (-6.27p fwd n=3 + matrix -0.005), USD_CHF/ny/long (-2.42p fwd n=5 + matrix -0.001), AUD_JPY/london/short (-1.23p fwd n=3 + matrix -0.003), AUD_JPY/ny/long (matrix -0.0004 + realized -$136/trade n=3 manual closes; weakest broker forward evidence \u2014 flag to re-evaluate after clean trades accumulate). See research/sessions/2026-06-21_broker_validation/. | inverted_shadow_cells (2026-06-21): GBP_USD/ny + EUR_JPY/ny log their signal stream (rising edge) as SHADOW_INVERT; disabled for real trading but research/sessions/2026-06-21_percell_exhaustion/ shows inverting them is +2.5-3.0p net of spread (n=4-10) + walk-forward-stable NY fade. Measure forward on ~30 NY signals before promoting disabled->inverted-active.",
+  "_note": "Per-cell disable list. 10 cells total as of 2026-06-21 broker-validation session. 5 added 2026-06-21 from Master Matrix research/sessions/2026-06-21_master_matrix/. EUR_JPY/london/short added after broker validation (-5.73p fwd 1H n=4 + matrix -0.0003). 4 more added per Brock 2026-06-21: EUR_JPY/ny/long (-6.27p fwd n=3 + matrix -0.005), USD_CHF/ny/long (-2.42p fwd n=5 + matrix -0.001), AUD_JPY/london/short (-1.23p fwd n=3 + matrix -0.003), AUD_JPY/ny/long (matrix -0.0004 + realized -$136/trade n=3 manual closes; weakest broker forward evidence \u2014 flag to re-evaluate after clean trades accumulate). See research/sessions/2026-06-21_broker_validation/. | inverted_shadow_cells (2026-06-21): GBP_USD/ny + EUR_JPY/ny log their signal stream (rising edge) as SHADOW_INVERT; disabled for real trading but research/sessions/2026-06-21_percell_exhaustion/ shows inverting them is +2.5-3.0p net of spread (n=4-10) + walk-forward-stable NY fade. Measure forward on ~30 NY signals before promoting disabled->inverted-active. | 4 more disabled 2026-06-21 (inversion analysis): EUR_USD/london/long (-13.55p n=2; opp EUR_USD/london/short is confirmed winner), USD_JPY/ny/short (-17.80p n=2; ML conflict + broker+momentum=fade, inversion unconfirmed n=1), AUD_USD/asia/short (-3.38p n=4; both sides of AUD_USD/asia negative, no edge in cell), AUD_USD/asia/long (-1.10p n=2; same). Total disabled: 14.",
   "disabled_cells": [
     [
       "AUD_USD",
@@ -62,6 +62,26 @@
     [
       "AUD_JPY",
       "ny",
+      "long"
+    ],
+    [
+      "EUR_USD",
+      "london",
+      "long"
+    ],
+    [
+      "USD_JPY",
+      "ny",
+      "short"
+    ],
+    [
+      "AUD_USD",
+      "asia",
+      "short"
+    ],
+    [
+      "AUD_USD",
+      "asia",
       "long"
     ]
   ],
