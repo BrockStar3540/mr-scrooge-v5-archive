@@ -1,0 +1,27 @@
+V5 ratchet proposal — simulated on 14 actual trades
+Proposed bands: [(4.0, -4.0), (6.0, 4.0), (7.5, 5.0), (10.0, 7.5)] ... (existing bands above)
+
+tid   pair     dir       MFE       old       new        Δ  reason
+---------------------------------------------------------------------------
+9133  AUD_JPY  short   +9.8p    +6.55p    +6.00p   -0.55p  candle_end_close
+9139  USD_JPY  long    +4.8p    +8.45p    -4.00p  -12.45p  ratchet_stop ✗ worse
+9142  AUD_USD  short  +14.6p    +9.80p   +10.00p   +0.20p  ratchet_stop
+9145  EUR_JPY  short   +6.4p    +8.40p    +4.00p   -4.40p  ratchet_stop ✗ worse
+9148  GBP_USD  short  +10.2p    +5.80p    +7.50p   +1.70p  ratchet_stop
+9159  GBP_USD  short   +7.8p    +7.45p    +5.00p   -2.45p  ratchet_stop ✗ worse
+9170  GBP_USD  short   +8.1p    +5.75p    +5.00p   -0.75p  ratchet_stop
+9176  GBP_USD  short   +4.7p   +12.95p    -4.00p  -16.95p  ratchet_stop ✗ worse
+9186  GBP_USD  short   +8.4p    +6.05p    +5.00p   -1.05p  ratchet_stop
+9192  EUR_JPY  short   +4.7p   +19.95p    -4.00p  -23.95p  ratchet_stop ✗ worse
+9208  EUR_JPY  short   +2.0p   -19.00p   -19.20p   -0.20p  candle_end_close
+9213  AUD_JPY  long    +0.0p   -20.40p   -20.00p   +0.40p  ratchet_stop
+9223  AUD_JPY  long    +8.1p    +5.10p    +5.00p   -0.10p  ratchet_stop
+9230  AUD_JPY  long    +7.9p   -18.65p    +5.00p  +23.65p  ratchet_stop ★ saved
+
+=== aggregate ===
+  OLD: sum=+38.20p, mean=+2.73p, WR=79%
+  NEW: sum=+1.30p, mean=+0.09p, WR=64%
+  Δ:   sum=-36.90p, mean=-2.64p
+  Trades better: 4 (sum gain=+25.95p)
+  Trades worse:  10 (sum loss=-62.85p)
+  Trades same:   0

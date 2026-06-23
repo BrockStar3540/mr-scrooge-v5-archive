@@ -1,0 +1,28 @@
+V5 ratchet + exit assessment (14 closed trades since 2026-06-22 04:14:00)
+
+tid   pair     dir    hold  realized     MFE     MAE    left   sl%
+-------------------------------------------------------------------
+9133  AUD_JPY  short   69m    +6.55p   +9.8p   -6.6p   +3.2p  -33%
+9139  USD_JPY  long   355m    +8.45p  +10.9p   -8.4p   +2.5p  -42%
+9142  AUD_USD  short 1019m    +9.80p  +14.6p  -16.4p   +4.8p  -82%
+9145  EUR_JPY  short   58m    +8.40p  +10.1p   -7.4p   +1.7p  -37%
+9148  GBP_USD  short   25m    +5.80p  +10.2p   -5.4p   +4.4p  -27%
+9159  GBP_USD  short   13m    +7.45p  +11.3p   -5.0p   +3.9p  -25%
+9170  GBP_USD  short    4m    +5.75p   +9.3p   -2.3p   +3.5p  -12%
+9176  GBP_USD  short   25m   +12.95p  +13.8p   -5.2p   +0.8p  -26%
+9186  GBP_USD  short   71m    +6.05p   +8.4p  -13.3p   +2.4p  -66%
+9192  EUR_JPY  short  159m   +19.95p  +20.7p  -10.4p   +0.8p  -52%
+9208  EUR_JPY  short   34m   -19.00p   +2.0p  -19.2p  +21.0p  -96%
+9213  AUD_JPY  long    35m   -20.40p   -0.8p  -21.0p  +19.6p -105%
+9223  AUD_JPY  long    10m    +5.10p   +8.1p   -4.4p   +3.0p  -22%
+9230  AUD_JPY  long   141m   -18.65p   +7.9p  -19.0p  +26.6p  -95%
+
+=== aggregates (n=14) ===
+  realized:  mean=+2.73p, sum=+38.20p, wr=79%
+  MFE:       mean=+9.74p, max=+20.70p
+  MAE:       mean=-10.29p, worst=-21.00p
+  left_on_table: mean=+7.01p (positive = ratchet exited below the peak)
+  sl_used:   mean=-51% of 20p initial SL
+
+  WINS  (11): mean_realized=+8.75p, mean_MFE=+11.56p, mean_capture=73% of MFE
+  LOSSES (3): mean_realized=-19.35p, mean_MFE=+3.03p (MFE>0 = trade went profitable before reversing)
