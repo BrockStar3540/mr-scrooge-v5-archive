@@ -117,6 +117,11 @@ class PairTicket:
     direction:   DirectionStamp
     momentum:    MomentumStamp
     spread_pips: float = 0.0      # live spread at stamp time — playmaker spread gate
+    # 2026-06-23: raw view features piped through for per-cell gates in playmaker
+    # (e.g. per_cell_willr_range, per_cell_close_pos_range).
+    willr_m5:        float = 0.0
+    close_pos_daily: float = 0.0
+    vortex_diff_h1:  float = 0.0
 
     @property
     def composite_score(self) -> float:

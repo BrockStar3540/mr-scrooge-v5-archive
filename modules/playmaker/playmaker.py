@@ -96,6 +96,16 @@ def _pm_load() -> dict:
         pcmn_raw = raw.get("per_cell_mom_cert_min") or {}
         per_cell_mom_cert_min = {tuple(k.split("/")): float(v) for k, v in pcmn_raw.items()
                                   if "/" in k and len(k.split("/")) == 2}
+        # per_cell_willr_range: dict of "pair/session/direction" -> [min, max] on willr_m5.
+        # 2026-06-23 backtest finding (EUR_JPY/ny/short): willr in [-85, -7] gives
+        # +8.48p/70.2% WR vs baseline +6.95p/64.8% (1999 V5-actionable bars).
+        # Per (pair, session, direction) granularity since willr behavior is direction-asymmetric.
+        pcwr_raw = raw.get("per_cell_willr_range") or {}
+        per_cell_willr_range = {}
+        for k, v in pcwr_raw.items():
+            parts = k.split("/")
+            if len(parts) == 3 and isinstance(v, (list, tuple)) and len(v) == 2:
+                per_cell_willr_range[tuple(parts)] = (float(v[0]), float(v[1]))
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
@@ -106,6 +116,7 @@ def _pm_load() -> dict:
             "random_pick":     random_pick,
             "per_cell_mom_cert_max": per_cell_mom_cert_max,
             "per_cell_mom_cert_min": per_cell_mom_cert_min,
+            "per_cell_willr_range":  per_cell_willr_range,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
@@ -114,7 +125,8 @@ def _pm_load() -> dict:
                 "inverted_live_cells":   frozenset(),
                 "random_pick":     False,
                 "per_cell_mom_cert_max": {},
-                "per_cell_mom_cert_min": {}}
+                "per_cell_mom_cert_min": {},
+                "per_cell_willr_range":  {}}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -262,6 +274,15 @@ def pick_best(
         _cell_min = _pcmn.get((t.pair, t.session))
         if _cell_min is not None and t.momentum.certainty < _cell_min:
             continue
+        # 2026-06-23 per-cell willr_m5 range gate (per pair/session/direction).
+        # 2026 backtest finding: EUR_JPY/ny/short willr in [-85, -7] = +8.5p/70% WR
+        # vs baseline +6.9p/65% on 1999 V5-actionable bars. Block bars outside the range.
+        _pcwr = pm.get("per_cell_willr_range", {})
+        _willr_rng = _pcwr.get((t.pair, t.session, t.direction.bias))
+        if _willr_rng is not None:
+            _willr = getattr(t, "willr_m5", 0.0)
+            if _willr < _willr_rng[0] or _willr > _willr_rng[1]:
+                continue
         cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
         if cd_min > 0 and now is not None and sl_history and t.pair in sl_history:
             elapsed_min = (now - sl_history[t.pair]).total_seconds() / 60.0

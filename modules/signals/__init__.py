@@ -53,4 +53,7 @@ def stamp_pair(
         direction=direction_stamp,
         momentum=momentum_stamp,
         spread_pips=view.spread_pips,
+        willr_m5=getattr(view, "willr_m5", 0.0),
+        close_pos_daily=getattr(view, "close_pos_daily", 0.0),
+        vortex_diff_h1=getattr(view, "vortex_diff_h1", 0.0),
     )
