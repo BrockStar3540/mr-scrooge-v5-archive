@@ -145,6 +145,61 @@ def _vortex_diff(df: pd.DataFrame, period: int = 14) -> float:
     return vi_plus - vi_minus
 
 
+# ── 2026-06-23 matrix shadow features (Williams %R, Aroon Osc, KC up dist, EFI) ──
+def _willr(df: pd.DataFrame, period: int = 14) -> float:
+    """Williams %R on the last bar. Range -100..0; -50 = midpoint, -100 = extreme oversold."""
+    if df is None or len(df) < period + 1:
+        return 0.0
+    seg = df.iloc[-period:]
+    hh = float(seg["high"].max())
+    ll = float(seg["low"].min())
+    c  = float(df["close"].iloc[-1])
+    if hh == ll:
+        return -50.0
+    return -100.0 * (hh - c) / (hh - ll)
+
+
+def _aroon_osc(df: pd.DataFrame, period: int = 14) -> float:
+    """Aroon Oscillator = AroonUp − AroonDown over last `period` bars, on H1."""
+    if df is None or len(df) < period + 1:
+        return 0.0
+    seg = df.iloc[-(period + 1):]
+    highs = seg["high"].astype(float).reset_index(drop=True)
+    lows  = seg["low"].astype(float).reset_index(drop=True)
+    # Position of the highest-high / lowest-low within last `period+1` bars (0..period)
+    idx_hh = int(highs.idxmax())
+    idx_ll = int(lows.idxmin())
+    aroon_up   = 100.0 * idx_hh / period
+    aroon_down = 100.0 * idx_ll / period
+    return aroon_up - aroon_down
+
+
+def _kc_up_dist_pips(df: pd.DataFrame, pip: float, period: int = 20, mult: float = 2.0) -> float:
+    """Distance from current close to upper Keltner Channel band, in pips. Signed.
+    Upper KC = EMA(close, period) + mult × ATR(period). Positive = close above band."""
+    if df is None or len(df) < period + 1:
+        return 0.0
+    c = df["close"].astype(float)
+    h = df["high"].astype(float)
+    l = df["low"].astype(float)
+    pc = c.shift(1)
+    tr = pd.concat([(h - l).abs(), (h - pc).abs(), (l - pc).abs()], axis=1).max(axis=1)
+    atr = tr.ewm(alpha=1.0 / period, adjust=False).mean()
+    ema = c.ewm(span=period, adjust=False).mean()
+    upper = ema + mult * atr
+    return float((c.iloc[-1] - upper.iloc[-1]) / pip)
+
+
+def _efi(df: pd.DataFrame, period: int = 13) -> float:
+    """Elder Force Index: (close - prev_close) × volume, smoothed with EMA(period)."""
+    if df is None or len(df) < period + 2:
+        return 0.0
+    c = df["close"].astype(float)
+    v = df["volume"].astype(float)
+    raw = (c - c.shift(1)) * v
+    return float(raw.ewm(span=period, adjust=False).mean().iloc[-1])
+
+
 def _rsi14_series(closes: pd.Series) -> pd.Series:
     """Wilder RSI14 series on the full close series."""
     delta = closes.astype(float).diff()
@@ -227,6 +282,19 @@ def _compute_features(
         vortex_diff_h1 = _vortex_diff(h1, period=14)
     except Exception:
         vortex_diff_h1 = 0.0
+
+    # 2026-06-23 matrix shadow features (no scoring; CYCLE log only):
+    #   willr_m5 (Williams %R, M5/14), aroonosc_h1 (Aroon Osc, H1/14),
+    #   kc_up_dist_pips (Keltner upper band distance, M5/20),
+    #   efi (Elder Force Index, M5/13).
+    try:    willr_m5         = _willr(m5, period=14)
+    except Exception: willr_m5 = 0.0
+    try:    aroonosc_h1      = _aroon_osc(h1, period=14)
+    except Exception: aroonosc_h1 = 0.0
+    try:    kc_up_dist_pips  = _kc_up_dist_pips(m5, pip, period=20, mult=2.0)
+    except Exception: kc_up_dist_pips = 0.0
+    try:    efi              = _efi(m5, period=13)
+    except Exception: efi    = 0.0
 
     # htf_pct (from daily closes — computed in D section below, placeholder for now)
     htf_pct_20 = 0.0
@@ -375,6 +443,10 @@ def _compute_features(
         atr_h1_relative=round(atr_h1_relative, 4),
         trend_4h=trend_4h,
         vortex_diff_h1=round(vortex_diff_h1, 4),
+        willr_m5=round(willr_m5, 2),
+        aroonosc_h1=round(aroonosc_h1, 2),
+        kc_up_dist_pips=round(kc_up_dist_pips, 2),
+        efi=round(efi, 4),
         # Execution
         bid=bid, ask=ask, spread_pips=round(spread_pips, 4),
     )

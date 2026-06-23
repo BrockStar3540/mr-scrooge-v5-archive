@@ -62,6 +62,13 @@ class MarketView:
     atr_h1_relative: float = 1.0    # current 1H ATR / its rolling-mean (1.0=normal; v2/v3 aggregator: >1.6 = elevated)
     vortex_diff_h1: float = 0.0     # Vortex VI+ minus VI- on H1 — directional signal (Master Matrix 2026-06-21; shadow only until 2026-07-04)
     trend_4h:       float = 0.0     # sign of last-4 H1 bars net return (+1 up, 0 flat, -1 down)
+    # ── 2026-06-23 matrix features (SHADOW logging only, no scoring effect) ──
+    # Per Master Matrix 2026-06-21 + per-session analysis 2026-06-23.
+    # CYCLE log emits per pair per cycle for backtest of alternative rankers.
+    willr_m5:        float = 0.0    # Williams %R on M5, period 14 (range -100..0; top-3 in 24/24 cells)
+    aroonosc_h1:     float = 0.0    # Aroon Oscillator on H1, period 14 (range -100..+100; asia+NY top-3)
+    kc_up_dist_pips: float = 0.0    # Distance close→upper Keltner band, M5 period 20 (pips signed; +=close above)
+    efi:             float = 0.0    # Elder Force Index on M5, period 13 (asia+london top binary rule, 22/32 cells)
 
     # ── Execution ────────────────────────────────────────────────────────────
     bid:            float = 0.0

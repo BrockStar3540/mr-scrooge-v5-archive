@@ -235,11 +235,16 @@ class Engine:
             _v = next((v for v in views if v.pair == t.pair), None)
             _vortex = getattr(_v, "vortex_diff_h1", 0.0) if _v else 0.0
             _cpd    = getattr(_v, "close_pos_daily", 0.0) if _v else 0.0
+            _willr  = getattr(_v, "willr_m5", 0.0) if _v else 0.0
+            _aroon  = getattr(_v, "aroonosc_h1", 0.0) if _v else 0.0
+            _kc     = getattr(_v, "kc_up_dist_pips", 0.0) if _v else 0.0
+            _efi    = getattr(_v, "efi", 0.0) if _v else 0.0
             _cycle_parts.append(
                 f"{t.pair}/{t.session}/{t.direction.bias} act={'T' if t.is_actionable else 'F'} "
                 f"dscore={t.direction.score:+.3f} dcert={t.direction.certainty:.2f} "
                 f"mcert={t.momentum.certainty:.2f} comp={t.composite_score:+.4f} "
-                f"vortex={_vortex:+.3f} close_pos={_cpd:.3f}"
+                f"vortex={_vortex:+.3f} close_pos={_cpd:.3f} "
+                f"willr={_willr:+.1f} aroon={_aroon:+.1f} kc_up={_kc:+.2f} efi={_efi:+.3f}"
             )
         log.info(" | ".join(_cycle_parts))
 
