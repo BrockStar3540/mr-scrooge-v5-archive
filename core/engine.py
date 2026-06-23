@@ -221,6 +221,28 @@ class Engine:
         self.cycle_count      += 1
         self.last_cycle_time   = now
 
+        # ── Per-cycle ticket dump (data collection for alternative-ranker backtests) ──
+        # One line per scan cycle: every pair's actionable/composite/vortex + which won.
+        # Pipe-delimited: CYCLE <iso_ts> picked=<pair/sess/dir or NONE> method=<random|edge_rank|none>
+        #   | <pair>/<sess>/<bias> act=<T|F> dscore=<x> dcert=<x> mcert=<x> comp=<x> vortex=<x> close_pos=<x> | ...
+        _picked_tag = "NONE"
+        _picked_method = "none"
+        if trade_ticket is not None:
+            _picked_tag = f"{trade_ticket.pair}/{trade_ticket.session}/{trade_ticket.direction}"
+            _picked_method = trade_ticket.reads.get("pick_method", "edge_rank")
+        _cycle_parts = [f"CYCLE {now.isoformat()} picked={_picked_tag} method={_picked_method}"]
+        for t in tickets:
+            _v = next((v for v in views if v.pair == t.pair), None)
+            _vortex = getattr(_v, "vortex_diff_h1", 0.0) if _v else 0.0
+            _cpd    = getattr(_v, "close_pos_daily", 0.0) if _v else 0.0
+            _cycle_parts.append(
+                f"{t.pair}/{t.session}/{t.direction.bias} act={'T' if t.is_actionable else 'F'} "
+                f"dscore={t.direction.score:+.3f} dcert={t.direction.certainty:.2f} "
+                f"mcert={t.momentum.certainty:.2f} comp={t.composite_score:+.4f} "
+                f"vortex={_vortex:+.3f} close_pos={_cpd:.3f}"
+            )
+        log.info(" | ".join(_cycle_parts))
+
         # ── Shadow-inverted cells: log signal stream on rising edge (NOT traded) ──
         # research/sessions/2026-06-21_percell_exhaustion/: GBP_USD/ny + EUR_JPY/ny
         # are NY momentum-fade cells; inverting them looks +2.5-3.0p net of spread.

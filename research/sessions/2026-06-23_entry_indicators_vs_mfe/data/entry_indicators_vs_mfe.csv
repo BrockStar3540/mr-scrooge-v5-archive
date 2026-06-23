@@ -1,0 +1,15 @@
+tid,pair,dir,session,inverted,realized,mfe,mae,dir_score,d_cert,m_cert,expected,vol,cert_boost,vortex_diff,close_pos,long_prof,short_prof,mom_prof,class,rsi14_m5,rsi14_h1,atr_5m_p,atr_1h_p,bb_pos_m5,h1_ret_1bar_p,h1_ret_4bar_p
+9133,AUD_JPY,short,london,True,6.55,9.8,-6.6,0.045,0.344,0.499,3.2,normal,1.0,0.2806,0.8066,default,continuation_strong,default,SMALL_WIN,,,,,,,
+9139,USD_JPY,long,london,False,8.45,10.9,-8.4,0.102,0.375,0.958,4.4,normal,1.0,0.6037,0.9777,default,default,default,BIG_WIN,,,,,,,
+9142,AUD_USD,short,london,False,9.8,14.6,-16.4,-0.103,0.414,0.842,2.3,normal,1.0,-0.16,0.0162,default,default,default,BIG_WIN,,,,,,,
+9145,EUR_JPY,short,ny,False,8.4,10.1,-7.4,-0.088,0.494,0.502,6.0,normal,1.0,0.094,0.5458,continuation_strong,default,default,BIG_WIN,43.8,49.3,7.0,16.18,0.015,-28.1,-29.9
+9148,GBP_USD,short,ny,True,5.8,10.2,-5.4,0.096,0.538,0.411,9.1,normal,1.0,0.4036,0.8571,default,reversion,default,BIG_WIN,69.3,60.5,7.29,19.94,0.599,-22.4,10.3
+9159,GBP_USD,short,ny,True,7.45,11.3,-5.0,0.095,0.492,0.737,8.9,normal,1.0,0.3842,0.7835,default,reversion,default,BIG_WIN,42.7,60.5,6.94,19.94,0.319,-22.4,10.3
+9170,GBP_USD,short,ny,True,5.75,9.3,-2.3,0.193,0.583,0.828,8.3,normal,1.0,0.2361,0.8432,default,reversion,default,SMALL_WIN,43.4,62.6,8.19,20.84,0.415,23.4,25.2
+9176,GBP_USD,short,ny,True,12.95,13.8,-5.2,0.174,0.567,0.839,8.4,normal,1.0,0.2388,0.7902,default,reversion,default,BIG_WIN,42.7,62.6,7.84,20.84,0.492,23.4,25.2
+9186,GBP_USD,short,ny,True,6.05,8.4,-13.3,0.081,0.571,0.391,8.3,high,1.0,0.2388,0.803,default,reversion,default,SMALL_WIN,50.7,62.6,8.51,20.84,0.676,23.4,25.2
+9192,EUR_JPY,short,ny,False,19.95,20.7,-10.4,-0.062,0.339,0.7,4.0,high,1.0,-0.3889,0.2608,continuation_strong,default,default,BIG_WIN,58.4,32.9,7.28,20.84,0.561,3.9,-63.6
+9208,EUR_JPY,short,ny,False,-19.0,2.0,-19.2,-0.3,0.681,0.741,4.9,normal,1.0,-0.4311,0.0433,continuation_strong,default,default,LOSS,15.8,26.0,3.58,21.22,-0.027,-17.2,-22.7
+9213,AUD_JPY,long,asia,True,-20.4,-0.8,-21.0,-0.033,0.393,0.271,3.8,low,1.0,-0.1744,0.0779,default,continuation_strong,asia_volume_rev,LOSS,30.3,40.7,2.22,13.44,0.071,-7.0,-10.4
+9223,AUD_JPY,long,asia,True,5.1,8.1,-4.4,-0.397,0.717,0.908,4.2,normal,1.0,-0.3173,0.0453,default,continuation_strong,asia_volume_rev,SMALL_WIN,10.1,35.2,3.21,14.24,-0.1,-9.4,-21.4
+9230,AUD_JPY,long,asia,True,-18.65,7.9,-19.0,-0.138,0.626,0.397,4.2,normal,1.0,-0.3241,0.2735,default,continuation_strong,asia_volume_rev,FAILED_WIN,25.7,35.2,3.98,14.24,0.227,-9.4,-21.4

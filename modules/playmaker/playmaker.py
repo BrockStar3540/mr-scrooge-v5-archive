@@ -74,6 +74,10 @@ def _pm_load() -> dict:
         # is FLIPPED before execution (long signal → short trade, short signal → long).
         ilc_raw = raw.get("inverted_live_cells") or []
         ilc = frozenset(tuple(x) for x in ilc_raw if len(x) == 2)
+        # random_pick: when True, pick_best randomizes among actionable candidates
+        # instead of ranking by |composite_score|. Used to spread fire rate across
+        # cells while we collect per-cycle ticket data to evaluate alternative rankings.
+        random_pick = bool(raw.get("random_pick", False))
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
@@ -81,12 +85,14 @@ def _pm_load() -> dict:
             "disabled_cells":  dc,
             "inverted_shadow_cells": isc,
             "inverted_live_cells":   ilc,
+            "random_pick":     random_pick,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
                 "per_pair": {}, "disabled_cells": frozenset(),
                 "inverted_shadow_cells": frozenset(),
-                "inverted_live_cells":   frozenset()}
+                "inverted_live_cells":   frozenset(),
+                "random_pick":     False}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -110,6 +116,10 @@ def pm_inverted_shadow_cells() -> frozenset:
 def pm_inverted_live_cells() -> frozenset:
     """(pair, session) cells whose live trade direction is FLIPPED at execution."""
     return _pm_load().get("inverted_live_cells", frozenset())
+
+def pm_random_pick() -> bool:
+    """True when pick_best randomizes among actionable candidates."""
+    return bool(_pm_load().get("random_pick", False))
 
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
 MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
@@ -229,8 +239,14 @@ def pick_best(
     if not candidates:
         return None
 
-    # Step 3: best edge wins
-    best = max(candidates, key=_edge_rank)
+    # Step 3: pick winner — random.choice (if random_pick on) or max edge_rank
+    if pm.get("random_pick", False):
+        import random
+        best = random.choice(candidates)
+        pick_method = "random"
+    else:
+        best = max(candidates, key=_edge_rank)
+        pick_method = "edge_rank"
     # Step 4: per-cell live inversion — flip trade direction for inverted_live_cells
     signal_dir = best.direction.bias
     inverted = (best.pair, best.session) in pm.get("inverted_live_cells", frozenset())
@@ -249,6 +265,7 @@ def pick_best(
             "direction": best.direction.reads,
             "momentum":  best.momentum.reads,
             "signal_direction": signal_dir,  # what the engine SAW pre-inversion
+            "pick_method":      pick_method, # "random" or "edge_rank"
         },
         rivals=len(candidates) - 1,
         inverted_live=inverted,
