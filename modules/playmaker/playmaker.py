@@ -87,6 +87,15 @@ def _pm_load() -> dict:
         pcmm_raw = raw.get("per_cell_mom_cert_max") or {}
         per_cell_mom_cert_max = {tuple(k.split("/")): float(v) for k, v in pcmm_raw.items()
                                   if "/" in k and len(k.split("/")) == 2}
+        # per_cell_mom_cert_min: dict of "pair/session" -> float FLOOR on m_cert.
+        # Mirror of the ceiling. Used for cells where the OPPOSITE pattern holds:
+        # high m_cert → big MFE (the move is contained AND directional). Block
+        # trades below the floor so only high-conviction setups fire.
+        # First use: GBP_USD/ny floor 0.40 (Brock obs: 9186 m_cert 0.39 won only +6p;
+        # 9148/9159/9170/9176 m_cert 0.41-0.84 all bigger MFEs 9.3-13.8p).
+        pcmn_raw = raw.get("per_cell_mom_cert_min") or {}
+        per_cell_mom_cert_min = {tuple(k.split("/")): float(v) for k, v in pcmn_raw.items()
+                                  if "/" in k and len(k.split("/")) == 2}
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
@@ -96,6 +105,7 @@ def _pm_load() -> dict:
             "inverted_live_cells":   ilc,
             "random_pick":     random_pick,
             "per_cell_mom_cert_max": per_cell_mom_cert_max,
+            "per_cell_mom_cert_min": per_cell_mom_cert_min,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
@@ -103,7 +113,8 @@ def _pm_load() -> dict:
                 "inverted_shadow_cells": frozenset(),
                 "inverted_live_cells":   frozenset(),
                 "random_pick":     False,
-                "per_cell_mom_cert_max": {}}
+                "per_cell_mom_cert_max": {},
+                "per_cell_mom_cert_min": {}}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -243,6 +254,13 @@ def pick_best(
         _pcmm = pm.get("per_cell_mom_cert_max", {})
         _cell_max = _pcmm.get((t.pair, t.session))
         if _cell_max is not None and t.momentum.certainty > _cell_max:
+            continue
+        # 2026-06-23 per-cell m_cert FLOOR: mirror of above for cells where the pattern
+        # is opposite (high m_cert correlates with big MFE). Block low-cert trades so
+        # only high-conviction setups fire.
+        _pcmn = pm.get("per_cell_mom_cert_min", {})
+        _cell_min = _pcmn.get((t.pair, t.session))
+        if _cell_min is not None and t.momentum.certainty < _cell_min:
             continue
         cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
         if cd_min > 0 and now is not None and sl_history and t.pair in sl_history:
