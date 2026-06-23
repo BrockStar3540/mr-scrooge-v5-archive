@@ -49,6 +49,11 @@ V5_DEFAULT_FACTOR_DEFS: list[tuple[str, float]] = [
     ("ema50_dist_pct",     -0.39),
     ("close_pos_daily",    -0.30),
     ("ema_cross_pips",     -0.27),
+    # 2026-06-23: q_willr_m5 SOFT WIRE — matrix top-3 in 24/24 cells (gain 0.052).
+    # Negative weight = reversion form: willr extreme oversold (norm -1) → +score
+    # contribution toward long; willr extreme overbought (norm +1) → score toward short.
+    # Per-cell sign actually varies (matrix); 3 profiles handle it by amplification.
+    ("willr_m5",           -1.0),
 ]
 
 
@@ -80,6 +85,7 @@ def _profile_continuation_strong() -> list[tuple[str, float]]:
         ("ema50_dist_pct",     -0.39),
         ("close_pos_daily",    -1.5),
         ("ema_cross_pips",     -0.27),
+        ("willr_m5",           -3.0),
     ]
 
 
@@ -110,6 +116,7 @@ def _profile_reversion() -> list[tuple[str, float]]:
         ("ema50_dist_pct",     -2.0),
         ("close_pos_daily",    -2.5),
         ("ema_cross_pips",     -2.0),
+        ("willr_m5",           -5.0),
     ]
 
 

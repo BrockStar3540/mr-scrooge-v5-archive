@@ -48,6 +48,9 @@ _FALLBACK: dict[str, tuple[float, float]] = {
     "ret_30m":          ( -8.0,   8.0),  "ret_1h":            (-12.0, 12.0),
     "ema50_dist_pct":   ( -0.20,  0.20), "close_pos_daily":   (  0.1,  0.9),
     "ema_cross_pips":   ( -3.0,   3.0),
+    # 2026-06-23 soft wire: willr_m5 range -85..-15 maps to norm -1..+1.
+    # willr -85 (extreme oversold) → norm -1; willr -15 (extreme overbought) → norm +1.
+    "willr_m5":         (-85.0, -15.0),
 }
 
 
