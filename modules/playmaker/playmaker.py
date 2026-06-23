@@ -78,6 +78,15 @@ def _pm_load() -> dict:
         # instead of ranking by |composite_score|. Used to spread fire rate across
         # cells while we collect per-cycle ticket data to evaluate alternative rankings.
         random_pick = bool(raw.get("random_pick", False))
+        # per_cell_mom_cert_max: dict of "pair/session" -> float CEILING on m_cert.
+        # Brock reframe 2026-06-23: low m_cert predicts BIG directional moves; high
+        # m_cert predicts small contained moves. For cells whose edge IS the big-move
+        # tail, block trades where m_cert exceeds the ceiling (keep only big-move setups).
+        # First use: AUD_JPY/asia ceiling 0.50 (5 of 6 trades there had m_cert <= 0.50,
+        # and the inverted-mistake losses showed low m_cert + big move dynamic).
+        pcmm_raw = raw.get("per_cell_mom_cert_max") or {}
+        per_cell_mom_cert_max = {tuple(k.split("/")): float(v) for k, v in pcmm_raw.items()
+                                  if "/" in k and len(k.split("/")) == 2}
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
@@ -86,13 +95,15 @@ def _pm_load() -> dict:
             "inverted_shadow_cells": isc,
             "inverted_live_cells":   ilc,
             "random_pick":     random_pick,
+            "per_cell_mom_cert_max": per_cell_mom_cert_max,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
                 "per_pair": {}, "disabled_cells": frozenset(),
                 "inverted_shadow_cells": frozenset(),
                 "inverted_live_cells":   frozenset(),
-                "random_pick":     False}
+                "random_pick":     False,
+                "per_cell_mom_cert_max": {}}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -224,6 +235,14 @@ def pick_best(
             continue
         # 2026-06-21 Master Matrix: per-cell disable for cells with negative ML edge + no live evidence
         if (t.pair, t.session, t.direction.bias) in pm.get("disabled_cells", frozenset()):
+            continue
+        # 2026-06-23 per-cell m_cert CEILING (Brock reframe): block trades with m_cert
+        # above the cell's ceiling. Low m_cert = big-move setup; high m_cert = small
+        # contained move. For cells whose edge IS the big-move tail, filter out the
+        # small-move trades that would dilute the cell's average.
+        _pcmm = pm.get("per_cell_mom_cert_max", {})
+        _cell_max = _pcmm.get((t.pair, t.session))
+        if _cell_max is not None and t.momentum.certainty > _cell_max:
             continue
         cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
         if cd_min > 0 and now is not None and sl_history and t.pair in sl_history:
