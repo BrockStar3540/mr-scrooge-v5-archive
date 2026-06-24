@@ -234,6 +234,27 @@ button.secondary{padding:8px 16px;background:var(--bg2);color:var(--fg1);border:
 pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;
     font-family:"JetBrains Mono",monospace;font-size:11px;overflow:auto;white-space:pre-wrap}
 
+/* ── SPARKLINES ────────────────────────────────────────────────────────── */
+.spark{display:inline-block;vertical-align:middle}
+.spark-row{display:flex;align-items:center;gap:6px;font-size:10.5px}
+.spark-lbl{font-size:9.5px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;min-width:42px}
+
+/* ── CELLS filter bar ──────────────────────────────────────────────────── */
+.cells-filter{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.cell-fc{padding:5px 12px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);
+         color:var(--fg2);cursor:pointer;font-size:11.5px;font-weight:600;transition:.15s}
+.cell-fc:hover{color:var(--fg0);border-color:var(--border-2)}
+.cell-fc.active{background:var(--info);color:#fff;border-color:var(--info)}
+.cell-fire-badge{position:absolute;top:8px;right:8px;font-size:9.5px;padding:2px 6px;border-radius:8px;
+                 background:var(--bg3);color:var(--fg2);font-weight:600;font-family:'JetBrains Mono',monospace}
+.cell-fire-badge.pos{background:rgba(34,197,94,.15);color:var(--pass)}
+.cell-fire-badge.neg{background:rgba(239,68,68,.15);color:var(--fail)}
+.cell{position:relative}
+
+/* ── Trades table ──────────────────────────────────────────────────────── */
+.trade-row.win td{background:rgba(34,197,94,.04)}
+.trade-row.lose td{background:rgba(239,68,68,.04)}
+
 /* ── SCROLLBAR ─────────────────────────────────────────────────────────── */
 *::-webkit-scrollbar{width:8px;height:8px}
 *::-webkit-scrollbar-track{background:var(--bg1)}
@@ -301,6 +322,20 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
   </div>
 
   <div class="card">
+    <div class="card-title">Today's Trades
+      <span class="tag" id="trades-count">0 closed</span>
+    </div>
+    <table id="trades-tbl">
+      <thead><tr>
+        <th>Time UTC</th><th>Cell</th><th>Dir</th><th>Units</th>
+        <th>Price</th><th>$ P/L</th><th>$ Fin</th><th>Trade ID</th>
+      </tr></thead>
+      <tbody id="trades-body"></tbody>
+    </table>
+    <div id="no-trades" class="muted" style="padding:14px 12px;font-size:12px;display:none">No closed trades today</div>
+  </div>
+
+  <div class="card">
     <div class="card-title">Recent Events
       <span class="tag" id="last-trade-tag" style="display:none">last fired</span>
     </div>
@@ -316,13 +351,26 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
 <!-- ─── CELLS TAB ────────────────────────────────────────────────────────── -->
 <div id="tab-cells" class="pane">
   <div class="card" style="padding:12px 18px;margin-bottom:12px">
-    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11.5px">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11.5px;margin-bottom:10px">
       <div><span class="pill pill-pass">READY</span> all gates pass + in-session</div>
       <div><span class="pill pill-inverted">INVERTED</span> direction flipped at exec</div>
       <div><span class="pill pill-shadow">SHADOW</span> shadow-log only</div>
       <div><span class="pill pill-block">DISABLED</span> off entirely</div>
       <div class="muted">·</div>
-      <div class="muted">Cell = (pair × session × direction)</div>
+      <div class="muted">Cell = (pair × session × direction) · sorted READY first</div>
+    </div>
+    <div class="cells-filter">
+      <span class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Filter:</span>
+      <div class="cell-fc active" data-filter="all" onclick="setCellFilter('all',this)">ALL</div>
+      <div class="cell-fc" data-filter="ready" onclick="setCellFilter('ready',this)">READY</div>
+      <div class="cell-fc" data-filter="in-session" onclick="setCellFilter('in-session',this)">IN SESSION</div>
+      <div class="cell-fc" data-filter="inverted" onclick="setCellFilter('inverted',this)">INVERTED</div>
+      <div class="cell-fc" data-filter="shadow" onclick="setCellFilter('shadow',this)">SHADOW</div>
+      <div class="cell-fc" data-filter="disabled" onclick="setCellFilter('disabled',this)">DISABLED</div>
+      <div class="cell-fc" data-filter="with-rules" onclick="setCellFilter('with-rules',this)">HAS RULES</div>
+      <div class="cell-fc" data-filter="fired-today" onclick="setCellFilter('fired-today',this)">FIRED TODAY</div>
+      <div style="flex:1"></div>
+      <div class="muted" id="cells-counts" style="font-size:11px">—</div>
     </div>
   </div>
   <div id="cells-grid" class="cells-grid"></div>
@@ -508,10 +556,60 @@ function volPill(r){
 function sessionOfHour(h){if(h>=7&&h<13)return'london';if(h>=13&&h<22)return'ny';return'asia';}
 function currentSession(){return sessionOfHour(new Date().getUTCHours());}
 
+/* ── Sparkline ring buffer (client-side history per pair) ──────────────── */
+const SPARK_LEN = 30;
+const HIST = {};   // {pair: [{ts, dscore, mcert, dcert, willr, kc_up, vortex, close_pos}, ...]}
+function pushHist(view, ticket){
+  if(!ticket) return;
+  const k = ticket.pair;
+  HIST[k] = HIST[k] || [];
+  HIST[k].push({
+    ts:     Date.now(),
+    dscore: ticket.dir_score,
+    dcert:  ticket.dir_certainty,
+    mcert:  ticket.mom_certainty,
+    willr:  view?.willr_m5,
+    kc_up:  view?.kc_up_dist_pips,
+    vortex: view?.vortex_diff_h1,
+    cpos:   view?.close_pos_daily,
+    rsi:    view?.rsi14,
+  });
+  if(HIST[k].length > SPARK_LEN) HIST[k].shift();
+}
+function spark(values, opts={}){
+  const arr = (values || []).filter(v => v != null && !isNaN(v));
+  if(arr.length < 2) return `<span class="muted" style="font-size:10px">—</span>`;
+  const w = opts.w || 56, h = opts.h || 14, p = 1.5;
+  const min = opts.min != null ? opts.min : Math.min(...arr);
+  const max = opts.max != null ? opts.max : Math.max(...arr);
+  const range = max - min || 1;
+  const pts = arr.map((v, i) => {
+    const x = p + (w - 2*p) * i / (arr.length - 1);
+    const y = (h - p) - (h - 2*p) * (v - min) / range;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = arr[arr.length - 1];
+  const color = opts.color || (last > 0 ? 'var(--pass)' : last < 0 ? 'var(--fail)' : 'var(--info)');
+  // zero line if range crosses zero
+  const zeroLine = (opts.zero && min < 0 && max > 0)
+    ? `<line x1="${p}" x2="${w-p}" y1="${((h-p) - (h-2*p)*(0-min)/range).toFixed(1)}" y2="${((h-p) - (h-2*p)*(0-min)/range).toFixed(1)}" stroke="var(--border-2)" stroke-width="0.5" stroke-dasharray="2 2"/>` : '';
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    ${zeroLine}
+    <polyline fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>
+  </svg>`;
+}
+
 /* ═════════════════════════════════════════════════════════════════════════
  * Polling: /api/state, /api/sysinfo, /api/daily_pl
  * ═════════════════════════════════════════════════════════════════════════ */
 let STATE=null, SYSINFO=null, DAILY_PL=null;
+let CELL_FILTER='all';
+function setCellFilter(f, btn){
+  CELL_FILTER = f;
+  document.querySelectorAll('.cell-fc').forEach(x => x.classList.remove('active'));
+  btn.classList.add('active');
+  renderCells();
+}
 
 async function fetchState(){
   try{
@@ -531,10 +629,14 @@ async function fetchDailyPL(){
 
 function renderAll(){
   if(!STATE)return;
+  // Push per-pair history for sparklines (client-side ring buffer)
+  const viewMap={};(STATE.last_views||[]).forEach(v=>viewMap[v.pair]=v);
+  (STATE.last_tickets||[]).forEach(t=>pushHist(viewMap[t.pair], t));
   renderBanner();
   renderAcctBar();
   renderGauges();
   renderPositions();
+  renderTrades();
   renderEvents();
   renderPairs();
   renderCells();
@@ -668,6 +770,32 @@ function renderPositions(){
   }).join('');
 }
 
+/* ── Today's Trades table ──────────────────────────────────────────────── */
+function renderTrades(){
+  const body=document.getElementById('trades-body');
+  const noT=document.getElementById('no-trades');
+  const cnt=document.getElementById('trades-count');
+  const trades=DAILY_PL?.trades||[];
+  cnt.textContent=`${trades.length} closed`;
+  if(!trades.length){body.innerHTML='';noT.style.display='block';return}
+  noT.style.display='none';
+  body.innerHTML=trades.map(t=>{
+    const cls=t.pl_usd>0?'win':t.pl_usd<0?'lose':'';
+    const dcls=t.pl_usd>=0?'pos':'neg';
+    const tm=(t.time||'').slice(11,19);
+    return `<tr class="trade-row ${cls}">
+      <td class="mono muted" style="font-size:11px">${tm}</td>
+      <td><b>${t.pair.replace('_','/')}</b><span class="muted" style="font-size:10.5px"> / ${t.session}</span></td>
+      <td>${dirPill(t.dir)}</td>
+      <td class="mono">${Math.abs(t.units).toLocaleString()}</td>
+      <td class="mono">${t.price}</td>
+      <td class="mono ${dcls}"><b>${fmtDollar(t.pl_usd)}</b></td>
+      <td class="mono muted" style="font-size:11px">${t.fin_usd!==0?fmtDollar(t.fin_usd):'—'}</td>
+      <td class="mono muted" style="font-size:11px">${t.trade_id}</td>
+    </tr>`;
+  }).join('');
+}
+
 /* ── Events feed ───────────────────────────────────────────────────────── */
 function renderEvents(){
   const el=document.getElementById('events-feed');
@@ -754,9 +882,13 @@ function renderPairs(){
         <div class="pc-sess">${t.session.toUpperCase()}</div>
         <div class="pc-actpill">${actPill}</div>
       </div>
-      <div class="pc-row"><span class="pc-lbl">Dir</span>${dirPill(t.dir_bias)}<span class="muted mono" style="font-size:11px">${(t.dir_score>=0?'+':'')+fmt(t.dir_score,3)}</span></div>
+      <div class="pc-row"><span class="pc-lbl">Dir</span>${dirPill(t.dir_bias)}<span class="muted mono" style="font-size:11px">${(t.dir_score>=0?'+':'')+fmt(t.dir_score,3)}</span>
+        <span style="margin-left:auto">${spark((HIST[t.pair]||[]).map(h=>h.dscore),{w:70,h:14,min:-1,max:1,zero:true,color:'var(--info)'})}</span>
+      </div>
       <div class="pc-score-bar"><div class="pc-score-fill" style="width:${scoreW}%;background:${scoreColor}"></div></div>
-      <div class="pc-row"><span class="pc-lbl">Cert</span><span class="mono">${Math.round(t.dir_certainty*100)}% dir · ${Math.round(t.mom_certainty*100)}% mom</span></div>
+      <div class="pc-row"><span class="pc-lbl">Cert</span><span class="mono">${Math.round(t.dir_certainty*100)}% dir · ${Math.round(t.mom_certainty*100)}% mom</span>
+        <span style="margin-left:auto">${spark((HIST[t.pair]||[]).map(h=>h.mcert),{w:70,h:14,min:0,max:1,color:'var(--pass)'})}</span>
+      </div>
       <div class="pc-row"><span class="pc-lbl">Vol</span>${volPill(t.vol_regime)}<span class="muted mono" style="font-size:11px">~${fmt(t.expected_pips,1)}p exp</span></div>
       <div class="pc-profiles">
         L:<b>${t.long_profile||'?'}</b> · S:<b>${t.short_profile||'?'}</b> · M:<b>${t.mom_profile||'?'}</b>
@@ -778,6 +910,7 @@ function renderCells(){
   const disabled=new Set((gov.disabled_cells||[]).map(c=>c.join('/')));
   const tickets={};(STATE.last_tickets||[]).forEach(t=>tickets[t.pair+'/'+t.session]=t);
   const views={};(STATE.last_views||[]).forEach(v=>views[v.pair]=v);
+  const fires=DAILY_PL?.per_cell||{};
   const cur=currentSession();
   const all=[];
   for(const p of PAIRS_ALL){
@@ -787,69 +920,117 @@ function renderCells(){
       }
     }
   }
-  g.innerHTML=all.map(c=>{
+  // First pass: classify each cell so we can sort + filter
+  const classified=all.map(c=>{
     const k3=c.pair+'/'+c.session+'/'+c.dir;
     const k2=c.pair+'/'+c.session;
     const isDisabled=disabled.has(k3);
     const isInvLive=inv_live.has(k2);
     const isInvShadow=inv_shadow.has(k2)&&!isInvLive;
     const inSession=c.session===cur;
-    const t=tickets[k2]; // ticket for this pair+session (whichever direction won that cycle)
+    const t=tickets[k2];
     const v=views[c.pair];
-    // Rules
-    const rules=[];
+    // Rules pass
     const mcmax=gov.per_cell_mom_cert_max?.[k2];
     const mcmin=gov.per_cell_mom_cert_min?.[k2];
     const wrng=gov.per_cell_willr_range?.[k3];
     const krng=gov.per_cell_kc_up_range?.[k3];
+    const hasRules=mcmax!=null||mcmin!=null||wrng!=null||krng!=null;
     let allPass=true;
+    if(mcmax!=null&&!(t?.mom_certainty!=null&&t.mom_certainty<=mcmax))allPass=false;
+    if(mcmin!=null&&!(t?.mom_certainty!=null&&t.mom_certainty>=mcmin))allPass=false;
+    if(wrng&&!(v?.willr_m5!=null&&v.willr_m5>=wrng[0]&&v.willr_m5<=wrng[1]))allPass=false;
+    if(krng&&!(v?.kc_up_dist_pips!=null&&v.kc_up_dist_pips>=krng[0]&&v.kc_up_dist_pips<=krng[1]))allPass=false;
+    const tickerOk=t&&t.actionable&&t.dir_bias===c.dir;
+    const ready=tickerOk&&inSession&&!isDisabled&&allPass;
+    return {c,k2,k3,isDisabled,isInvLive,isInvShadow,inSession,t,v,
+            hasRules,mcmax,mcmin,wrng,krng,allPass,ready,
+            fire:fires[k3]};
+  });
+  // Filter
+  const filt=classified.filter(x=>{
+    switch(CELL_FILTER){
+      case 'ready':       return x.ready;
+      case 'in-session':  return x.inSession && !x.isDisabled;
+      case 'inverted':    return x.isInvLive;
+      case 'shadow':      return x.isInvShadow;
+      case 'disabled':    return x.isDisabled;
+      case 'with-rules':  return x.hasRules;
+      case 'fired-today': return !!x.fire;
+      default:            return true;
+    }
+  });
+  // Sort: READY first, then in-session active, then inverted, then shadow, then disabled
+  const rank=x=>{
+    if(x.ready)return 0;
+    if(x.fire)return 1;
+    if(x.inSession && !x.isDisabled)return 2;
+    if(x.isInvLive)return 3;
+    if(x.isInvShadow)return 4;
+    if(x.isDisabled)return 6;
+    return 5;
+  };
+  filt.sort((a,b)=>{
+    const ra=rank(a), rb=rank(b);
+    if(ra!==rb)return ra-rb;
+    return (a.c.pair+a.c.session+a.c.dir).localeCompare(b.c.pair+b.c.session+b.c.dir);
+  });
+  // Update counts label
+  const cnt=document.getElementById('cells-counts');
+  cnt.innerHTML=`${filt.length} / ${classified.length} shown · `+
+    `<span class="pos">${classified.filter(x=>x.ready).length} ready</span> · `+
+    `<span class="warn">${classified.filter(x=>x.isInvLive).length} inverted</span> · `+
+    `<span class="muted">${classified.filter(x=>x.isDisabled).length} disabled</span> · `+
+    `${classified.filter(x=>!!x.fire).length} fired today`;
+  if(!filt.length){g.innerHTML='<div class="muted" style="padding:14px;text-align:center">No cells match filter</div>';return}
+  g.innerHTML=filt.map(x=>{
+    const c=x.c, t=x.t, v=x.v;
+    const mcmax=x.mcmax, mcmin=x.mcmin, wrng=x.wrng, krng=x.krng;
+    const isDisabled=x.isDisabled, isInvLive=x.isInvLive, isInvShadow=x.isInvShadow;
+    const inSession=x.inSession, allPass=x.allPass, ready=x.ready;
+    // Rules with current value + pass/fail
+    const rules=[];
     if(mcmax!=null){
-      const cur=t?.mom_certainty;
-      const ok=cur!=null&&cur<=mcmax;
-      if(!ok)allPass=false;
-      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">mcert ≤ ${mcmax}</span><span>${cur!=null?cur.toFixed(2):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+      const m=t?.mom_certainty, ok=m!=null&&m<=mcmax;
+      rules.push(`<div class="cr ${m==null?'':ok?'pass':'fail'}"><span class="cr-name">mcert ≤ ${mcmax}</span><span>${m!=null?m.toFixed(2):'—'} ${m==null?'':ok?'✓':'✗'}</span></div>`);
     }
     if(mcmin!=null){
-      const cur=t?.mom_certainty;
-      const ok=cur!=null&&cur>=mcmin;
-      if(!ok)allPass=false;
-      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">mcert ≥ ${mcmin}</span><span>${cur!=null?cur.toFixed(2):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+      const m=t?.mom_certainty, ok=m!=null&&m>=mcmin;
+      rules.push(`<div class="cr ${m==null?'':ok?'pass':'fail'}"><span class="cr-name">mcert ≥ ${mcmin}</span><span>${m!=null?m.toFixed(2):'—'} ${m==null?'':ok?'✓':'✗'}</span></div>`);
     }
     if(wrng){
-      const cur=v?.willr_m5;
-      const ok=cur!=null&&cur>=wrng[0]&&cur<=wrng[1];
-      if(!ok)allPass=false;
-      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">willr ∈ [${wrng[0]}, ${wrng[1]}]</span><span>${cur!=null?cur.toFixed(1):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+      const w=v?.willr_m5, ok=w!=null&&w>=wrng[0]&&w<=wrng[1];
+      rules.push(`<div class="cr ${w==null?'':ok?'pass':'fail'}"><span class="cr-name">willr ∈ [${wrng[0]}, ${wrng[1]}]</span><span>${w!=null?w.toFixed(1):'—'} ${w==null?'':ok?'✓':'✗'}</span></div>`);
     }
     if(krng){
-      const cur=v?.kc_up_dist_pips;
-      const ok=cur!=null&&cur>=krng[0]&&cur<=krng[1];
-      if(!ok)allPass=false;
-      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">kc_up ∈ [${krng[0]}, ${krng[1]}]</span><span>${cur!=null?cur.toFixed(2):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+      const k=v?.kc_up_dist_pips, ok=k!=null&&k>=krng[0]&&k<=krng[1];
+      rules.push(`<div class="cr ${k==null?'':ok?'pass':'fail'}"><span class="cr-name">kc_up ∈ [${krng[0]}, ${krng[1]}]</span><span>${k!=null?k.toFixed(2):'—'} ${k==null?'':ok?'✓':'✗'}</span></div>`);
     }
     // Status badge
-    let badge='';
-    let cellCls='';
+    let badge='', cellCls='';
     if(isDisabled){badge='<span class="pill pill-block">DISABLED</span>';cellCls='disabled'}
     else if(isInvLive){badge='<span class="pill pill-inverted">INVERTED</span>'}
     else if(isInvShadow){badge='<span class="pill pill-shadow">SHADOW</span>'}
     else badge='<span class="pill pill-info" style="opacity:.6">active</span>';
     if(!isDisabled&&!inSession)cellCls+=' inactive-session';
-    // Ready indicator: in-session, not disabled, ticket actionable, dir matches, all rules pass
-    const tickerOk=t&&t.actionable&&t.dir_bias===c.dir;
-    if(tickerOk&&inSession&&!isDisabled&&allPass){
-      cellCls+=' ready';
-      badge=`<span class="pill pill-pass">READY ${isInvLive?'(inv)':''}</span>`;
-    }
+    if(ready){cellCls+=' ready'; badge=`<span class="pill pill-pass">READY ${isInvLive?'(inv)':''}</span>`;}
+    // Today's fires badge (top-right corner)
+    const fire=x.fire;
+    const fireBadge=fire ? `<div class="cell-fire-badge ${fire.pl>=0?'pos':'neg'}">${fire.n}× ${fmtDollar(fire.pl)}</div>` : '';
+    // Tiny dir_score sparkline (last 30 cycles for this pair, regardless of direction)
+    const hist=HIST[c.pair]||[];
+    const sparkSvg = hist.length>=2 ? spark(hist.map(h=>h.dscore), {w:80,h:18,min:-1,max:1,zero:true,color:'var(--info)'}) : '';
     return `<div class="cell ${cellCls}">
+      ${fireBadge}
       <div class="cell-head">
         <div class="cell-name">${c.pair.replace('_','/')}</div>
         <div class="cell-dir ${c.dir}">${c.session}/${c.dir}</div>
         <div class="cell-status">${badge}</div>
       </div>
       ${rules.length?`<div class="cell-rules">${rules.join('')}</div>`:`<div class="cell-meta" style="font-size:10.5px"><span class="muted">no per-cell rules</span></div>`}
-      <div class="cell-meta">
-        ${t?`${t.dir_bias.toUpperCase()} score ${(t.dir_score>=0?'+':'')+t.dir_score.toFixed(3)} · dcert ${Math.round(t.dir_certainty*100)}% · mcert ${Math.round(t.mom_certainty*100)}%`:'<span class="muted">no ticket this cycle</span>'}
+      <div class="cell-meta" style="justify-content:space-between;align-items:center">
+        <span>${t?`${t.dir_bias.toUpperCase()} ${(t.dir_score>=0?'+':'')+t.dir_score.toFixed(3)} · dc ${Math.round(t.dir_certainty*100)} · mc ${Math.round(t.mom_certainty*100)}`:'<span class="muted">no ticket</span>'}</span>
+        ${sparkSvg}
       </div>
     </div>`;
   }).join('');
@@ -892,6 +1073,14 @@ function renderIndicators(){
         ${indRow('atr_conc',v.atr_conc!=null?v.atr_conc.toFixed(2):'—')}
         ${indRow('rvol_5bar',v.rvol_5bar!=null?v.rvol_5bar.toFixed(2):'—')}
         ${indRow('trend_4h',v.trend_4h!=null?(v.trend_4h>0?'↑':v.trend_4h<0?'↓':'—'):'—')}
+      </div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border-2);display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+        <div class="spark-row"><span class="spark-lbl">dir.sc</span>${spark((HIST[v.pair]||[]).map(h=>h.dscore),{w:90,h:18,min:-1,max:1,zero:true,color:'var(--info)'})}</div>
+        <div class="spark-row"><span class="spark-lbl">m_cert</span>${spark((HIST[v.pair]||[]).map(h=>h.mcert),{w:90,h:18,min:0,max:1,color:'var(--pass)'})}</div>
+        <div class="spark-row"><span class="spark-lbl">willr</span>${spark((HIST[v.pair]||[]).map(h=>h.willr),{w:90,h:18,min:-100,max:0,color:'var(--warn)'})}</div>
+        <div class="spark-row"><span class="spark-lbl">vortex</span>${spark((HIST[v.pair]||[]).map(h=>h.vortex),{w:90,h:18,min:-1,max:1,zero:true,color:'var(--inverted)'})}</div>
+        <div class="spark-row"><span class="spark-lbl">kc_up</span>${spark((HIST[v.pair]||[]).map(h=>h.kc_up),{w:90,h:18,color:'var(--long)'})}</div>
+        <div class="spark-row"><span class="spark-lbl">cpos</span>${spark((HIST[v.pair]||[]).map(h=>h.cpos),{w:90,h:18,min:0,max:1,color:'var(--short)'})}</div>
       </div>
     </div>`;
   }).join('');

@@ -405,7 +405,13 @@ def _daily_pl(engine: "Engine") -> dict:
             all_tx = page["transactions"]
         realized = 0.0; n_wins = 0; n_losses = 0; n_trades = 0
         per_pair = {}
+        per_cell = {}     # NEW: keyed by "PAIR/session/dir"
         finance = 0.0
+        trades = []       # NEW: detailed list for the Today's Trades table
+        def _sess_of(h):
+            if 7 <= h < 13: return "london"
+            if 13 <= h < 22: return "ny"
+            return "asia"
         for tx in all_tx:
             if tx.get("type") != "ORDER_FILL":  continue
             pl = float(tx.get("pl", 0) or 0)
@@ -420,6 +426,42 @@ def _daily_pl(engine: "Engine") -> dict:
             per_pair[instr]["pl"] += pl
             per_pair[instr]["n"]  += 1
             if pl > 0: per_pair[instr]["wins"] += 1
+            # Per-cell aggregation: derive (session, direction) from transaction
+            ts_raw = tx.get("time", "")
+            try:
+                _t = datetime.fromisoformat(ts_raw.replace("Z","+00:00"))
+                _sess = _sess_of(_t.hour)
+            except Exception:
+                _t = None; _sess = "?"
+            units = float(tx.get("units", 0) or 0)
+            _dir = "short" if units < 0 else "long"   # close transaction has opposite-signed units of the trade direction... but ORDER_FILL with pl > 0 is the close. We need open units.
+            # OANDA: ORDER_FILL with tradesClosed has the close. tradeOpened is the open.
+            # Heuristic: use the sign of 'units' field on the fill. For market-order trades, the close-fill 'units' sign is OPPOSITE to the open. We want the OPEN direction.
+            # Simpler: check tradesClosed[].units (the trade's original units sign) if present.
+            tc = tx.get("tradesClosed", [])
+            if tc and isinstance(tc, list):
+                try:
+                    open_units = float(tc[0].get("units", 0) or 0)
+                    # tradesClosed units is the units BEING closed (signed same as original trade direction)
+                    _dir = "long" if open_units > 0 else "short"
+                except Exception:
+                    pass
+            cell_key = f"{instr}/{_sess}/{_dir}"
+            per_cell.setdefault(cell_key, {"pl": 0.0, "n": 0, "wins": 0})
+            per_cell[cell_key]["pl"] += pl
+            per_cell[cell_key]["n"]  += 1
+            if pl > 0: per_cell[cell_key]["wins"] += 1
+            trades.append({
+                "time":     ts_raw,
+                "pair":     instr,
+                "session":  _sess,
+                "dir":      _dir,
+                "units":    int(units),
+                "price":    float(tx.get("price", 0) or 0),
+                "pl_usd":   round(pl, 2),
+                "fin_usd":  round(fin, 4),
+                "trade_id": tx.get("orderID") or tx.get("tradeID") or "?",
+            })
         result = {
             "realized_usd":   round(realized, 2),
             "financing_usd":  round(finance, 4),
@@ -429,6 +471,8 @@ def _daily_pl(engine: "Engine") -> dict:
             "n_losses":       n_losses,
             "wr_pct":         round(100 * n_wins / n_trades, 1) if n_trades else None,
             "per_pair":       {k: {"pl": round(v["pl"], 2), "n": v["n"], "wins": v["wins"]} for k, v in per_pair.items()},
+            "per_cell":       {k: {"pl": round(v["pl"], 2), "n": v["n"], "wins": v["wins"]} for k, v in per_cell.items()},
+            "trades":         sorted(trades, key=lambda t: t["time"], reverse=True),
             "since":          from_ts,
             "fetched_at":     datetime.now(timezone.utc).isoformat(),
         }
