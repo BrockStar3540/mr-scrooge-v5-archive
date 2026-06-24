@@ -56,4 +56,5 @@ def stamp_pair(
         willr_m5=getattr(view, "willr_m5", 0.0),
         close_pos_daily=getattr(view, "close_pos_daily", 0.0),
         vortex_diff_h1=getattr(view, "vortex_diff_h1", 0.0),
+        kc_up_dist_pips=getattr(view, "kc_up_dist_pips", 0.0),
     )

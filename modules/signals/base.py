@@ -122,6 +122,7 @@ class PairTicket:
     willr_m5:        float = 0.0
     close_pos_daily: float = 0.0
     vortex_diff_h1:  float = 0.0
+    kc_up_dist_pips: float = 0.0
 
     @property
     def composite_score(self) -> float:

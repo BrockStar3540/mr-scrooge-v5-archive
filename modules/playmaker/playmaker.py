@@ -106,6 +106,16 @@ def _pm_load() -> dict:
             parts = k.split("/")
             if len(parts) == 3 and isinstance(v, (list, tuple)) and len(v) == 2:
                 per_cell_willr_range[tuple(parts)] = (float(v[0]), float(v[1]))
+        # per_cell_kc_up_range: dict of "pair/session/direction" -> [min, max] on kc_up_dist_pips.
+        # 2026-06-23 backtest finding (AUD_USD/london/short): kc_up in [-15, 0] gives
+        # +4.22p/69% WR vs baseline +2.86p/65% on 1120 V5-actionable bars. Deep-below
+        # bucket kc_up < -20 was a LOSING zone (-4.02p mean, 54% WR).
+        pckur_raw = raw.get("per_cell_kc_up_range") or {}
+        per_cell_kc_up_range = {}
+        for k, v in pckur_raw.items():
+            parts = k.split("/")
+            if len(parts) == 3 and isinstance(v, (list, tuple)) and len(v) == 2:
+                per_cell_kc_up_range[tuple(parts)] = (float(v[0]), float(v[1]))
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
@@ -117,6 +127,7 @@ def _pm_load() -> dict:
             "per_cell_mom_cert_max": per_cell_mom_cert_max,
             "per_cell_mom_cert_min": per_cell_mom_cert_min,
             "per_cell_willr_range":  per_cell_willr_range,
+            "per_cell_kc_up_range":  per_cell_kc_up_range,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
@@ -126,7 +137,8 @@ def _pm_load() -> dict:
                 "random_pick":     False,
                 "per_cell_mom_cert_max": {},
                 "per_cell_mom_cert_min": {},
-                "per_cell_willr_range":  {}}
+                "per_cell_willr_range":  {},
+                "per_cell_kc_up_range":  {}}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -282,6 +294,15 @@ def pick_best(
         if _willr_rng is not None:
             _willr = getattr(t, "willr_m5", 0.0)
             if _willr < _willr_rng[0] or _willr > _willr_rng[1]:
+                continue
+        # 2026-06-23 per-cell kc_up_dist_pips range gate (mirror of willr_range).
+        # AUD_USD/london/short backtest: kc_up in [-15, 0] = +4.22p/69% WR vs baseline
+        # +2.86p/65% on 1120 V5-actionable bars. Deep-below (<-20) is a LOSING zone.
+        _pckur = pm.get("per_cell_kc_up_range", {})
+        _kc_rng = _pckur.get((t.pair, t.session, t.direction.bias))
+        if _kc_rng is not None:
+            _kc = getattr(t, "kc_up_dist_pips", 0.0)
+            if _kc < _kc_rng[0] or _kc > _kc_rng[1]:
                 continue
         cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
         if cd_min > 0 and now is not None and sl_history and t.pair in sl_history:
