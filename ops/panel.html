@@ -255,6 +255,40 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
 .trade-row.win td{background:rgba(34,197,94,.04)}
 .trade-row.lose td{background:rgba(239,68,68,.04)}
 
+/* ── Per-pair today P/L badge ──────────────────────────────────────────── */
+.pc-today{position:absolute;top:10px;right:12px;font-size:10px;font-weight:700;padding:2px 7px;
+          border-radius:5px;background:var(--bg3);color:var(--fg3);font-family:'JetBrains Mono',monospace;
+          letter-spacing:.02em}
+.pc-today.pos{background:rgba(34,197,94,.12);color:var(--pass)}
+.pc-today.neg{background:rgba(239,68,68,.12);color:var(--fail)}
+
+/* ── INDICATORS gauge bars ─────────────────────────────────────────────── */
+.ind-gauge{display:grid;grid-template-columns:80px 1fr;gap:8px;align-items:center;font-size:10.5px;
+           padding:3px 0;font-family:'JetBrains Mono',monospace}
+.ind-gauge .ik{color:var(--fg3);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.ind-gauge-bar{position:relative;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.ind-gauge-marker{position:absolute;top:-2px;width:2px;height:9px;background:var(--fg1);border-radius:1px;
+                  box-shadow:0 0 4px rgba(255,255,255,.3)}
+.ind-gauge-rng{position:absolute;height:100%;background:var(--info);opacity:.25;border-radius:3px}
+.ind-gauge-zero{position:absolute;top:0;height:100%;width:1px;background:var(--border-2)}
+
+/* ── CELLS detail expansion ────────────────────────────────────────────── */
+.cell.expanded{grid-column:span 2}
+.cell-expand{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.cell.expanded .cell-expand{display:block}
+.cell-expand-section{margin-top:10px;font-size:11px}
+.cell-expand-section h5{font-size:10.5px;font-weight:700;color:var(--fg3);text-transform:uppercase;
+                        letter-spacing:.06em;margin-bottom:6px}
+.cell-mini-trade{padding:4px 8px;background:var(--bg3);border-radius:4px;margin-bottom:3px;font-family:'JetBrains Mono',monospace;
+                 font-size:10.5px;display:flex;justify-content:space-between;gap:6px}
+.cell-mini-trade.win{background:rgba(34,197,94,.08)}.cell-mini-trade.lose{background:rgba(239,68,68,.08)}
+.cell-expand-toggle{cursor:pointer;font-size:10px;color:var(--fg3);margin-left:8px;user-select:none}
+.cell-expand-toggle:hover{color:var(--fg1)}
+
+/* ── Session next-opens countdown ──────────────────────────────────────── */
+.sess-next{font-size:10.5px;color:var(--fg3);font-family:'JetBrains Mono',monospace;
+           padding:2px 8px;background:var(--bg2);border-radius:5px;border:1px solid var(--border)}
+
 /* ── SCROLLBAR ─────────────────────────────────────────────────────────── */
 *::-webkit-scrollbar{width:8px;height:8px}
 *::-webkit-scrollbar-track{background:var(--bg1)}
@@ -281,6 +315,7 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
       <span class="sess-dot" id="sd-lon">LON</span>
       <span class="sess-dot" id="sd-ny">NY</span>
     </div>
+    <span class="sess-next" id="sess-next" title="Next session open">next: —</span>
     <span id="utc-clock">--:--:-- UTC</span>
     <span style="color:var(--border-2)">·</span>
     <span id="ts" style="font-size:11px;color:var(--fg3)">—</span>
@@ -555,6 +590,20 @@ function volPill(r){
 }
 function sessionOfHour(h){if(h>=7&&h<13)return'london';if(h>=13&&h<22)return'ny';return'asia';}
 function currentSession(){return sessionOfHour(new Date().getUTCHours());}
+
+/* ── Session next-opens countdown helper ───────────────────────────────── */
+function nextSessionOpen(){
+  // sessions: asia 22-7, london 7-13, ny 13-22 (UTC)
+  const now=new Date();
+  const h=now.getUTCHours(), m=now.getUTCMinutes(), s=now.getUTCSeconds();
+  const minsNow=h*60+m;
+  const opens=[{n:'london',m:7*60},{n:'ny',m:13*60},{n:'asia',m:22*60}];
+  // Find next open ≥ now+1m, wrap to next day
+  let next=opens.find(o=>o.m>minsNow)||{n:'london',m:7*60+24*60};
+  const diff=next.m-minsNow;
+  const dh=Math.floor(diff/60), dm=diff%60;
+  return {name:next.n, in:`${dh}h ${dm}m`};
+}
 
 /* ── Sparkline ring buffer (client-side history per pair) ──────────────── */
 const SPARK_LEN = 30;
@@ -831,10 +880,13 @@ function renderPairs(){
   const inv_live=new Set((gov.inverted_live_cells||[]).map(c=>c[0]+'/'+c[1]));
   const inv_shadow=new Set((gov.inverted_shadow_cells||[]).map(c=>c[0]+'/'+c[1]));
   const disabled=new Set((gov.disabled_cells||[]).map(c=>c[0]+'/'+c[1]+'/'+c[2]));
+  const perPair=DAILY_PL?.per_pair||{};
   g.innerHTML=tickets.map(t=>{
     const v=viewMap[t.pair]||{};
     const biasCls=t.dir_bias==='long'?'bias-long':t.dir_bias==='short'?'bias-short':'bias-block';
     const actCls=t.actionable?'actionable':'';
+    const pp=perPair[t.pair];
+    const todayBadge=pp?`<div class="pc-today ${pp.pl>=0?'pos':'neg'}" title="Today: ${pp.n} trade${pp.n>1?'s':''} · ${pp.wins} won">${fmtDollar(pp.pl)} · ${pp.n}t</div>`:'';
     const scoreW=Math.min(Math.abs(t.dir_score||0)*100,100);
     const scoreColor=t.dir_bias==='long'?'var(--long)':t.dir_bias==='short'?'var(--short)':'var(--block)';
     const isInvLive=inv_live.has(t.pair+'/'+t.session);
@@ -876,11 +928,12 @@ function renderPairs(){
     const actPill = t.actionable
       ? '<span class="pill pill-pass">ACTIONABLE</span>'
       : '<span class="pill pill-block">blocked</span>';
-    return `<div class="pair-card ${biasCls} ${actCls}">
+    return `<div class="pair-card ${biasCls} ${actCls}" style="position:relative">
+      ${todayBadge}
       <div class="pc-head">
         <div class="pc-name">${t.pair.replace('_','/')}</div>
         <div class="pc-sess">${t.session.toUpperCase()}</div>
-        <div class="pc-actpill">${actPill}</div>
+        <div class="pc-actpill" style="margin-left:0">${actPill}</div>
       </div>
       <div class="pc-row"><span class="pc-lbl">Dir</span>${dirPill(t.dir_bias)}<span class="muted mono" style="font-size:11px">${(t.dir_score>=0?'+':'')+fmt(t.dir_score,3)}</span>
         <span style="margin-left:auto">${spark((HIST[t.pair]||[]).map(h=>h.dscore),{w:70,h:14,min:-1,max:1,zero:true,color:'var(--info)'})}</span>
@@ -1020,17 +1073,46 @@ function renderCells(){
     // Tiny dir_score sparkline (last 30 cycles for this pair, regardless of direction)
     const hist=HIST[c.pair]||[];
     const sparkSvg = hist.length>=2 ? spark(hist.map(h=>h.dscore), {w:80,h:18,min:-1,max:1,zero:true,color:'var(--info)'}) : '';
-    return `<div class="cell ${cellCls}">
+    // Today's trades for this cell (from DAILY_PL.trades)
+    const cellTrades = (DAILY_PL?.trades||[]).filter(tr=>tr.pair===c.pair && tr.session===c.session && tr.dir===c.dir);
+    const tradesHtml = cellTrades.length ? cellTrades.map(tr=>{
+      const cls=tr.pl_usd>0?'win':'lose';
+      const tm=(tr.time||'').slice(11,19);
+      return `<div class="cell-mini-trade ${cls}">
+        <span>${tm} · ${tr.dir} · ${Math.abs(tr.units).toLocaleString()}u @ ${tr.price}</span>
+        <span class="${tr.pl_usd>=0?'pos':'neg'}"><b>${fmtDollar(tr.pl_usd)}</b></span>
+      </div>`;
+    }).join('') : '<span class="muted" style="font-size:10.5px">no fires today</span>';
+    return `<div class="cell ${cellCls}" onclick="this.classList.toggle('expanded')">
       ${fireBadge}
       <div class="cell-head">
         <div class="cell-name">${c.pair.replace('_','/')}</div>
         <div class="cell-dir ${c.dir}">${c.session}/${c.dir}</div>
         <div class="cell-status">${badge}</div>
+        <span class="cell-expand-toggle">▾</span>
       </div>
       ${rules.length?`<div class="cell-rules">${rules.join('')}</div>`:`<div class="cell-meta" style="font-size:10.5px"><span class="muted">no per-cell rules</span></div>`}
       <div class="cell-meta" style="justify-content:space-between;align-items:center">
         <span>${t?`${t.dir_bias.toUpperCase()} ${(t.dir_score>=0?'+':'')+t.dir_score.toFixed(3)} · dc ${Math.round(t.dir_certainty*100)} · mc ${Math.round(t.mom_certainty*100)}`:'<span class="muted">no ticket</span>'}</span>
         ${sparkSvg}
+      </div>
+      <div class="cell-expand">
+        <div class="cell-expand-section">
+          <h5>Today's fires (${cellTrades.length})</h5>
+          ${tradesHtml}
+        </div>
+        <div class="cell-expand-section">
+          <h5>Profile + session</h5>
+          <div class="muted" style="font-size:10.5px;font-family:'JetBrains Mono',monospace">
+            ${t?`profile L:${t.long_profile||'?'} S:${t.short_profile||'?'} M:${t.mom_profile||'?'}<br>active: ${t.active_side||'?'} · gates ${t.gates_passed===true?'<span class="pos">✓</span>':t.gates_passed===false?'<span class="neg">✗</span>':'—'} · boost ${t.cert_boost||'—'}×<br>session window: ${c.session==='asia'?'22-7 UTC':c.session==='london'?'7-13 UTC':'13-22 UTC'}`:'no ticket data'}
+          </div>
+        </div>
+        <div class="cell-expand-section">
+          <h5>Indicator snapshot</h5>
+          <div class="muted" style="font-size:10.5px;font-family:'JetBrains Mono',monospace">
+            ${v?`willr ${v.willr_m5!=null?v.willr_m5.toFixed(1):'—'} · aroon ${v.aroonosc_h1!=null?v.aroonosc_h1.toFixed(0):'—'} · kc_up ${v.kc_up_dist_pips!=null?v.kc_up_dist_pips.toFixed(2):'—'} · cpos ${v.close_pos_daily!=null?v.close_pos_daily.toFixed(3):'—'} · vortex ${v.vortex_diff_h1!=null?(v.vortex_diff_h1>=0?'+':'')+v.vortex_diff_h1.toFixed(3):'—'}`:'no view data'}
+          </div>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1038,13 +1120,47 @@ function renderCells(){
 
 /* ── INDICATORS tab ────────────────────────────────────────────────────── */
 function indRow(k,v){return `<div class="ind-row"><span class="ik">${k}</span><span class="iv">${v}</span></div>`}
+// Gauge bar: shows current value position within a min..max range, with optional zero line + per-cell rule range overlay
+function gaugeBar(label, val, opts={}){
+  if(val==null) return `<div class="ind-gauge"><span class="ik">${label}</span><span class="muted">—</span></div>`;
+  const min=opts.min!=null?opts.min:val-1, max=opts.max!=null?opts.max:val+1;
+  const range=max-min||1;
+  const pct=Math.max(0,Math.min(100, 100*(val-min)/range));
+  const zeroPct = (min<0 && max>0) ? 100*(0-min)/range : null;
+  const rngOverlay = opts.rng ? (()=>{
+    const a=Math.max(0,Math.min(100, 100*(opts.rng[0]-min)/range));
+    const b=Math.max(0,Math.min(100, 100*(opts.rng[1]-min)/range));
+    return `<div class="ind-gauge-rng" style="left:${Math.min(a,b)}%;width:${Math.abs(b-a)}%"></div>`;
+  })() : '';
+  const valStr = opts.fmt ? opts.fmt(val) : (Math.abs(val)<10?val.toFixed(2):val.toFixed(1));
+  return `<div class="ind-gauge">
+    <span class="ik">${label}</span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <div class="ind-gauge-bar" style="flex:1">
+        ${rngOverlay}
+        ${zeroPct!=null?`<div class="ind-gauge-zero" style="left:${zeroPct}%"></div>`:''}
+        <div class="ind-gauge-marker" style="left:calc(${pct}% - 1px)"></div>
+      </div>
+      <span style="min-width:42px;text-align:right;color:var(--fg0)">${valStr}</span>
+    </div>
+  </div>`;
+}
 function renderIndicators(){
   const el=document.getElementById('ind-grid');
   const tickets={};(STATE.last_tickets||[]).forEach(t=>tickets[t.pair]=t);
   const views=STATE.last_views||[];
+  const gov=STATE.governance||{};
   if(!views.length){el.innerHTML='<div class="muted" style="padding:14px">No view data</div>';return}
   el.innerHTML=views.map(v=>{
     const t=tickets[v.pair]||{};
+    // Look up per-cell rules for this pair to overlay on gauges
+    const k2=v.pair+'/'+v.session;
+    const wrng_long=gov.per_cell_willr_range?.[`${k2}/long`];
+    const wrng_short=gov.per_cell_willr_range?.[`${k2}/short`];
+    const wrng=wrng_long||wrng_short;
+    const krng_long=gov.per_cell_kc_up_range?.[`${k2}/long`];
+    const krng_short=gov.per_cell_kc_up_range?.[`${k2}/short`];
+    const krng=krng_long||krng_short;
     return `<div class="ind-card">
       <div class="ind-card-head">
         <div class="ind-pair">${v.pair.replace('_','/')} <span class="muted" style="font-size:11px;font-weight:500">${v.session}</span></div>
@@ -1053,24 +1169,27 @@ function renderIndicators(){
           ${t.vol_regime?volPill(t.vol_regime):''}
         </div>
       </div>
-      <div class="ind-rows">
+      <div style="margin-bottom:8px">
+        ${gaugeBar('rsi14_h1', v.rsi14, {min:0,max:100,fmt:x=>x.toFixed(1)})}
+        ${gaugeBar('willr_m5', v.willr_m5, {min:-100,max:0,fmt:x=>x.toFixed(1), rng:wrng})}
+        ${gaugeBar('aroon_h1', v.aroonosc_h1, {min:-100,max:100,fmt:x=>x.toFixed(0)})}
+        ${gaugeBar('kc_up p',  v.kc_up_dist_pips, {min:-30,max:5,fmt:x=>x.toFixed(2), rng:krng})}
+        ${gaugeBar('vortex',   v.vortex_diff_h1, {min:-1,max:1,fmt:x=>(x>=0?'+':'')+x.toFixed(3)})}
+        ${gaugeBar('cpos d',   v.close_pos_daily, {min:0,max:1,fmt:x=>x.toFixed(3)})}
+        ${gaugeBar('adr cons', v.adr_consumed, {min:0,max:1.5,fmt:x=>Math.round(x*100)+'%'})}
+        ${gaugeBar('mcert',    t.mom_certainty, {min:0,max:1,fmt:x=>x.toFixed(2)})}
+        ${gaugeBar('dcert',    t.dir_certainty, {min:0,max:1,fmt:x=>x.toFixed(2)})}
+        ${gaugeBar('dir.sc',   t.dir_score, {min:-1,max:1,fmt:x=>(x>=0?'+':'')+x.toFixed(3)})}
+      </div>
+      <div class="ind-rows" style="border-top:1px dashed var(--border-2);padding-top:8px">
         ${indRow('bid/ask',(v.bid||'—')+' / '+(v.ask||'—'))}
         ${indRow('spread',v.spread_pips!=null?v.spread_pips.toFixed(1)+'p':'—')}
-        ${indRow('rsi14_h1',v.rsi14!=null?v.rsi14.toFixed(1):'—')}
-        ${indRow('rsi_slope',v.rsi_slope!=null?v.rsi_slope.toFixed(2):'—')}
         ${indRow('h1_ret_1bar',v.h1_ret_1bar!=null?fmtPips(v.h1_ret_1bar):'—')}
         ${indRow('h1_ret_4bar',v.h1_ret_4bar!=null?fmtPips(v.h1_ret_4bar):'—')}
-        ${indRow('close_pos_d',v.close_pos_daily!=null?v.close_pos_daily.toFixed(3):'—')}
-        ${indRow('adr_consumed',v.adr_consumed!=null?Math.round(v.adr_consumed*100)+'%':'—')}
-        ${indRow('willr_m5',v.willr_m5!=null?v.willr_m5.toFixed(1):'—')}
-        ${indRow('aroonosc_h1',v.aroonosc_h1!=null?v.aroonosc_h1.toFixed(1):'—')}
-        ${indRow('kc_up_dist',v.kc_up_dist_pips!=null?v.kc_up_dist_pips.toFixed(2)+'p':'—')}
         ${indRow('efi',v.efi!=null?v.efi.toFixed(3):'—')}
-        ${indRow('vortex_diff',v.vortex_diff_h1!=null?(v.vortex_diff_h1>=0?'+':'')+v.vortex_diff_h1.toFixed(3):'—')}
         ${indRow('atr_5m',v.atr_5m!=null?v.atr_5m.toFixed(2)+'p':'—')}
         ${indRow('atr_1h',v.atr_1h!=null?v.atr_1h.toFixed(1)+'p':'—')}
         ${indRow('atr_h1_rel',v.atr_h1_relative!=null?v.atr_h1_relative.toFixed(2):'—')}
-        ${indRow('atr_conc',v.atr_conc!=null?v.atr_conc.toFixed(2):'—')}
         ${indRow('rvol_5bar',v.rvol_5bar!=null?v.rvol_5bar.toFixed(2):'—')}
         ${indRow('trend_4h',v.trend_4h!=null?(v.trend_4h>0?'↑':v.trend_4h<0?'↓':'—'):'—')}
       </div>
@@ -1365,6 +1484,8 @@ function tickClock(){
   const d=new Date();
   document.getElementById('utc-clock').textContent=
     d.toISOString().slice(11,19)+' UTC';
+  const n=nextSessionOpen();
+  document.getElementById('sess-next').textContent=`next: ${n.name.toUpperCase()} in ${n.in}`;
 }
 setInterval(tickClock,1000);tickClock();
 
