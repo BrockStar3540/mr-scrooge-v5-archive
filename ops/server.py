@@ -1,9 +1,14 @@
 """ops/server.py — V5 control panel HTTP server.
 
 Routes:
-  GET /            → ops/panel.html
-  GET /api/state   → live engine state JSON  (positions, tickets, events, account)
-  GET /api/sysinfo → system metrics JSON     (CPU, RAM, services, logs)
+  GET /                    → ops/panel.html
+  GET /api/state           → live engine state JSON (positions, tickets, views, governance, last_trade_ticket, engine_info)
+  GET /api/sysinfo         → system metrics JSON (CPU, RAM, services, logs)
+  GET /api/daily_pl        → today's realized P/L from OANDA (cached 30s)
+  GET /api/config/exit     → exit-tuning config + field schema
+  GET /api/config/playmaker→ playmaker config + field schema
+  POST /api/config/exit    → live edit exit_config.json (validated)
+  POST /api/config/playmaker→ live edit playmaker_config.json (validated)
 
 Start via start_dashboard(engine, port=8084) from main.py — runs in daemon thread.
 """
@@ -291,19 +296,147 @@ def _state(engine: "Engine") -> dict:
             "trend_4h":    int(v.trend_4h) if hasattr(v, "trend_4h") else None,
             "vortex_diff_h1": round(v.vortex_diff_h1, 4) if hasattr(v, "vortex_diff_h1") else None,
             "atr_conc":    round(v.atr_conc, 3) if hasattr(v, "atr_conc") else None,
+            # 2026-06-23: 4 matrix shadow features + close_pos_daily
+            "close_pos_daily": round(v.close_pos_daily, 3) if hasattr(v, "close_pos_daily") else None,
+            "willr_m5":        round(v.willr_m5, 1) if hasattr(v, "willr_m5") else None,
+            "aroonosc_h1":     round(v.aroonosc_h1, 1) if hasattr(v, "aroonosc_h1") else None,
+            "kc_up_dist_pips": round(v.kc_up_dist_pips, 2) if hasattr(v, "kc_up_dist_pips") else None,
+            "efi":             round(v.efi, 4) if hasattr(v, "efi") else None,
+            "atr_5m":          round(v.atr_5m, 2) if hasattr(v, "atr_5m") else None,
+            "atr_1h":          round(v.atr_1h, 1) if hasattr(v, "atr_1h") else None,
+            "rvol_5bar":       round(v.rvol_5bar, 2) if hasattr(v, "rvol_5bar") else None,
         })
+
+    # ── Per-cell governance (NEW 2026-06-23: visibility for disabled/inverted/per-cell rules) ──
+    governance = {}
+    try:
+        from modules.playmaker.playmaker import _pm_load
+        _pm = _pm_load()
+        governance = {
+            "disabled_cells":          sorted([list(x) for x in _pm.get("disabled_cells", set())]),
+            "inverted_live_cells":     sorted([list(x) for x in _pm.get("inverted_live_cells", set())]),
+            "inverted_shadow_cells":   sorted([list(x) for x in _pm.get("inverted_shadow_cells", set())]),
+            "per_cell_mom_cert_max":   {"/".join(k): v for k, v in _pm.get("per_cell_mom_cert_max", {}).items()},
+            "per_cell_mom_cert_min":   {"/".join(k): v for k, v in _pm.get("per_cell_mom_cert_min", {}).items()},
+            "per_cell_willr_range":    {"/".join(k): list(v) for k, v in _pm.get("per_cell_willr_range", {}).items()},
+            "per_cell_kc_up_range":    {"/".join(k): list(v) for k, v in _pm.get("per_cell_kc_up_range", {}).items()},
+            "random_pick":             bool(_pm.get("random_pick", False)),
+            "defaults":                _pm.get("defaults", {}),
+            "account":                 _pm.get("account", {}),
+        }
+    except Exception as exc:
+        governance = {"error": str(exc)}
+
+    # ── Last trade ticket (with new fields) ──
+    last_trade_ticket = None
+    if engine.last_trade_ticket is not None:
+        ltt = engine.last_trade_ticket
+        _ltt_reads = ltt.reads if isinstance(ltt.reads, dict) else {}
+        last_trade_ticket = {
+            "pair":           ltt.pair,
+            "session":        ltt.session,
+            "direction":      ltt.direction,
+            "score":          ltt.score,
+            "expected_pips":  ltt.expected_pips,
+            "timestamp":      ltt.timestamp.isoformat() if hasattr(ltt.timestamp, "isoformat") else str(ltt.timestamp),
+            "inverted_live":  getattr(ltt, "inverted_live", False),
+            "pick_method":    _ltt_reads.get("pick_method", "edge_rank"),
+            "signal_direction": _ltt_reads.get("signal_direction", ltt.direction),
+        }
+
+    # ── Engine cycle intervals (V5 main.py: scan=300s, manage=5s as of 2026-06-23) ──
+    # NOTE: engine doesn't store these as attributes; reading from main.py would
+    # be brittle. Surfaced as info-only; if changed in main.py, update here.
+    engine_info = {
+        "scan_interval_seconds":   300,
+        "manage_interval_seconds": 5,
+    }
 
     return {
         "account":         account,
         "open_positions":  open_positions,
         "last_tickets":    last_tickets,
         "last_views":      last_views,
+        "last_trade_ticket": last_trade_ticket,
         "recent_events":   list(engine.recent_events),
         "cycle_count":     engine.cycle_count,
         "last_cycle_time": engine.last_cycle_time.isoformat() if engine.last_cycle_time else None,
         "dry_run":         engine.dry_run,
         "server_time":     now.isoformat(),
+        "governance":      governance,
+        "engine":          engine_info,
     }
+
+
+# ── Daily P/L (NEW 2026-06-23) ────────────────────────────────────────────────
+_DAILY_PL_CACHE = {"ts": 0, "data": None}
+
+def _daily_pl(engine: "Engine") -> dict:
+    """Query OANDA for today's closed-trade realized P/L (UTC day boundary).
+    Cached for 30s to avoid hammering the API on dashboard polls."""
+    import time, urllib.parse
+    if time.time() - _DAILY_PL_CACHE["ts"] < 30 and _DAILY_PL_CACHE["data"]:
+        return _DAILY_PL_CACHE["data"]
+    try:
+        broker = engine.broker
+        token = getattr(broker, "_token", None) or getattr(broker, "token", None)
+        base  = getattr(broker, "_base", None) or getattr(broker, "base", None)
+        acct  = (getattr(broker, "_acct", None) or getattr(broker, "_account_id", None)
+                 or getattr(broker, "account_id", None))
+        if not (token and base and acct):
+            return {"error": "broker creds not exposed (looked for _token/_base/_acct)"}
+        import urllib.request
+        from_ts = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat().replace("+00:00","Z")
+        url = (f"{base}/v3/accounts/{acct}/transactions?"
+               + urllib.parse.urlencode({"from": from_ts, "type": "ORDER_FILL"}))
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            page = _j.loads(r.read())
+        pages = page.get("pages", [])
+        # Walk pages; each page is a URL we GET to fetch transactions
+        all_tx = []
+        for p_url in pages:
+            req = urllib.request.Request(p_url, headers={"Authorization": f"Bearer {token}"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                d = _j.loads(r.read())
+            all_tx.extend(d.get("transactions", []))
+        # If pages empty, transactions may be in page['lastTransactionID'] flow — fallback: sinceID
+        if not all_tx and page.get("transactions"):
+            all_tx = page["transactions"]
+        realized = 0.0; n_wins = 0; n_losses = 0; n_trades = 0
+        per_pair = {}
+        finance = 0.0
+        for tx in all_tx:
+            if tx.get("type") != "ORDER_FILL":  continue
+            pl = float(tx.get("pl", 0) or 0)
+            fin = float(tx.get("financing", 0) or 0)
+            instr = tx.get("instrument", "?")
+            if pl == 0 and fin == 0:  continue
+            realized += pl; finance += fin
+            if pl > 0:   n_wins += 1
+            elif pl < 0: n_losses += 1
+            if pl != 0: n_trades += 1
+            per_pair.setdefault(instr, {"pl": 0.0, "n": 0, "wins": 0})
+            per_pair[instr]["pl"] += pl
+            per_pair[instr]["n"]  += 1
+            if pl > 0: per_pair[instr]["wins"] += 1
+        result = {
+            "realized_usd":   round(realized, 2),
+            "financing_usd":  round(finance, 4),
+            "net_usd":        round(realized + finance, 2),
+            "n_trades":       n_trades,
+            "n_wins":         n_wins,
+            "n_losses":       n_losses,
+            "wr_pct":         round(100 * n_wins / n_trades, 1) if n_trades else None,
+            "per_pair":       {k: {"pl": round(v["pl"], 2), "n": v["n"], "wins": v["wins"]} for k, v in per_pair.items()},
+            "since":          from_ts,
+            "fetched_at":     datetime.now(timezone.utc).isoformat(),
+        }
+        _DAILY_PL_CACHE["ts"] = time.time()
+        _DAILY_PL_CACHE["data"] = result
+        return result
+    except Exception as exc:
+        return {"error": str(exc)}
 
 
 def _sysinfo() -> dict:
@@ -420,6 +553,10 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 code = 200
             elif self.path.startswith("/api/sysinfo"):
                 body = _j.dumps(_sysinfo(), default=str).encode()
+                ctype = "application/json"
+                code = 200
+            elif self.path.startswith("/api/daily_pl"):
+                body = _j.dumps(_daily_pl(self._engine), default=str).encode()
                 ctype = "application/json"
                 code = 200
             elif self.path.startswith("/api/config/exit"):

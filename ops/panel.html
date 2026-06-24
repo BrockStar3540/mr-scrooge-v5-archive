@@ -1,141 +1,294 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
-<title>Mr. Scrooge V5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mr. Scrooge V5 · Control Panel</title>
 <style>
-:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--fg:#e6edf3;--fg2:#8b949e;
-  --green:#3fb950;--red:#f85149;--amber:#d29922;--blue:#58a6ff;--cyan:#39d353;
-  --border:#21262d;--pill-r:6px;}
+/* ── Design tokens ──────────────────────────────────────────────────────── */
+:root{
+  --bg0:#070a0f; --bg1:#0d1117; --bg2:#161b22; --bg3:#21262d; --bg4:#2d333b;
+  --fg0:#f0f6fc; --fg1:#e6edf3; --fg2:#8b949e; --fg3:#6e7681;
+  --border:#21262d; --border-2:#30363d;
+  /* Semantic */
+  --long:#22d3ee;       /* cyan — long */
+  --short:#f472b6;      /* magenta-pink — short */
+  --block:#6b7280;      /* gray — block/disabled */
+  --pass:#22c55e;       /* green — passing gate */
+  --fail:#ef4444;       /* red — failing gate */
+  --warn:#f59e0b;       /* amber — warning */
+  --info:#3b82f6;       /* blue — info */
+  /* Cell state */
+  --inverted:#a855f7;   /* purple — inverted_live */
+  --shadow:#64748b;     /* slate — shadow only */
+  /* Glow */
+  --glow-cyan:0 0 0 1px rgba(34,211,238,.4),0 0 12px -2px rgba(34,211,238,.3);
+  --glow-pink:0 0 0 1px rgba(244,114,182,.4),0 0 12px -2px rgba(244,114,182,.3);
+  --glow-green:0 0 0 1px rgba(34,197,94,.3),0 0 10px -2px rgba(34,197,94,.2);
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font:13px/1.5 -apple-system,Segoe UI,sans-serif;min-height:100vh}
+html,body{background:var(--bg0);color:var(--fg1);min-height:100vh}
+body{font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+     background:radial-gradient(ellipse at top,#0e1620 0%,var(--bg0) 50%) fixed;}
+.mono{font-family:"JetBrains Mono","SF Mono",Menlo,Monaco,Consolas,monospace}
+.muted{color:var(--fg2)} .dim{color:var(--fg3)}
+.pos{color:var(--pass)} .neg{color:var(--fail)} .warn{color:var(--warn)}
 
-/* NAV */
-.nav{display:flex;align-items:center;gap:0;padding:0 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;flex-wrap:wrap;min-height:42px}
-.nav-title{font-weight:700;font-size:14px;padding-right:20px;border-right:1px solid var(--border);margin-right:10px;white-space:nowrap}
-.nav-title span{color:var(--green)}
-.tab{padding:10px 14px;background:none;border:none;color:var(--fg2);cursor:pointer;font:13px -apple-system,Segoe UI,sans-serif;border-bottom:2px solid transparent;transition:.15s}
-.tab:hover{color:var(--fg)}
-.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--fg2)}
+/* ── NAV ───────────────────────────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:0;
+     padding:0 18px;background:rgba(13,17,23,.85);backdrop-filter:blur(12px);
+     border-bottom:1px solid var(--border);min-height:46px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;padding-right:18px;margin-right:8px;
+       border-right:1px solid var(--border);white-space:nowrap}
+.brand-mark{width:10px;height:10px;border-radius:50%;background:var(--pass);
+            box-shadow:0 0 0 3px rgba(34,197,94,.15),0 0 12px rgba(34,197,94,.4);
+            animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.brand-name{font-weight:700;font-size:14px;letter-spacing:.02em}
+.brand-v{color:var(--pass);font-weight:800;font-size:14px;letter-spacing:.03em}
+.tab{padding:13px 14px;background:none;border:none;color:var(--fg2);cursor:pointer;
+     font:13px -apple-system,Segoe UI,sans-serif;border-bottom:2px solid transparent;
+     transition:.18s;font-weight:500;letter-spacing:.01em}
+.tab:hover{color:var(--fg0)}
+.tab.active{color:var(--long);border-bottom-color:var(--long);text-shadow:0 0 8px rgba(34,211,238,.4)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:11.5px;color:var(--fg2)}
 .sess-dots{display:flex;gap:5px;align-items:center}
-.sess-dot{font-size:10px;padding:2px 6px;border-radius:10px;border:1px solid var(--border);color:var(--fg2);background:var(--bg3)}
-.sess-dot.on{border-color:var(--green);color:var(--green);background:#0f2e1a}
+.sess-dot{font-size:9.5px;font-weight:600;padding:3px 7px;border-radius:10px;
+          border:1px solid var(--border);color:var(--fg3);background:var(--bg2);
+          letter-spacing:.05em;transition:.2s}
+.sess-dot.on{border-color:var(--pass);color:var(--pass);background:rgba(34,197,94,.08);
+             box-shadow:0 0 8px -2px rgba(34,197,94,.4)}
+#utc-clock{font-family:"JetBrains Mono",Menlo,monospace;font-size:12px;color:var(--fg1);
+           letter-spacing:.05em;font-weight:600}
+#spin{font-size:10px;color:var(--fg3);transition:.2s}
+.spin-active{color:var(--long) !important;text-shadow:0 0 6px rgba(34,211,238,.6)}
 
-/* PANES */
-.pane{display:none;padding:16px 20px;max-width:1500px;margin:0 auto}
-.pane.active{display:block}
+/* ── PANES ─────────────────────────────────────────────────────────────── */
+.pane{display:none;padding:18px 24px;max-width:1700px;margin:0 auto}
+.pane.active{display:block;animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-/* ACCOUNT BAR */
-.acct-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
-.acct-m{display:flex;flex-direction:column;min-width:90px}
-.acct-m .lbl{font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.05em}
-.acct-m .val{font-size:18px;font-weight:700;line-height:1.2}
-.acct-m .val.pos{color:var(--green)}.acct-m .val.neg{color:var(--red)}
-.acct-sep{width:1px;background:var(--border);align-self:stretch;margin:0 4px}
+/* ── HERO BAR ──────────────────────────────────────────────────────────── */
+.hero{display:grid;grid-template-columns:1fr auto;gap:14px;margin-bottom:16px}
+.hero-acct{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;
+           background:var(--border);border:1px solid var(--border);border-radius:12px;
+           overflow:hidden}
+.hm{padding:14px 16px;background:var(--bg2)}
+.hm .lbl{font-size:10px;font-weight:600;color:var(--fg2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.hm .val{font-size:22px;font-weight:700;line-height:1.1;font-family:"JetBrains Mono",monospace}
+.hm .val.pos{color:var(--pass)}.hm .val.neg{color:var(--fail)}.hm .val.warn{color:var(--warn)}
+.hm .sub{font-size:11px;color:var(--fg2);margin-top:3px;font-weight:500}
+.hero-side{display:flex;flex-direction:column;gap:14px;min-width:200px}
 
-/* CARDS */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px}
-.card-title{font-size:11px;font-weight:600;color:var(--fg2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+/* ── GAUGES (market state strip) ───────────────────────────────────────── */
+.gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.gauge{padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:12px}
+.gauge-ring{position:relative;width:48px;height:48px;flex-shrink:0}
+.gauge-ring svg{transform:rotate(-90deg)}
+.gauge-ring .gauge-bg{fill:none;stroke:var(--bg3);stroke-width:5}
+.gauge-ring .gauge-fg{fill:none;stroke:var(--info);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+.gauge-ring .gauge-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--fg0);font-family:"JetBrains Mono",monospace}
+.gauge-text{display:flex;flex-direction:column;min-width:0;flex:1}
+.gauge-lbl{font-size:10px;font-weight:600;color:var(--fg2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.gauge-val{font-size:13px;color:var(--fg0);font-weight:600}
+.gauge-sub{font-size:10.5px;color:var(--fg3);margin-top:1px}
+.gauge.ok .gauge-fg{stroke:var(--pass)}.gauge.warn .gauge-fg{stroke:var(--warn)}
+.gauge.fail .gauge-fg{stroke:var(--fail)}.gauge.info .gauge-fg{stroke:var(--info)}
 
-/* TABLES */
+/* ── CARDS ─────────────────────────────────────────────────────────────── */
+.card{background:linear-gradient(180deg,var(--bg2) 0%,#141a22 100%);
+      border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:14px;
+      box-shadow:0 1px 0 rgba(255,255,255,.02)}
+.card-title{font-size:11px;font-weight:700;color:var(--fg2);text-transform:uppercase;
+            letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-title .tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;
+                 background:var(--bg3);color:var(--fg2);text-transform:none;letter-spacing:0}
+
+/* ── TABLES ────────────────────────────────────────────────────────────── */
 table{border-collapse:collapse;width:100%;font-size:12px}
-th{color:var(--fg2);font-weight:600;text-align:left;padding:5px 10px;border-bottom:2px solid var(--border)}
-td{padding:5px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{color:var(--fg3);font-weight:700;text-align:left;padding:6px 12px;
+   border-bottom:1px solid var(--border-2);text-transform:uppercase;font-size:10.5px;letter-spacing:.06em}
+td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.03)}
+tr:hover td{background:rgba(255,255,255,.025)}
 
-/* PILLS */
-.pill{display:inline-block;padding:2px 8px;border-radius:var(--pill-r);font-size:11px;font-weight:600;white-space:nowrap}
-.pill-green{background:#0f2e1a;color:var(--green)}.pill-red{background:#2e0f12;color:var(--red)}
-.pill-amber{background:#2e260f;color:var(--amber)}.pill-blue{background:#0d1a2e;color:var(--blue)}
-.pill-gray{background:#1c2128;color:var(--fg2)}
+/* ── PILLS / CHIPS ─────────────────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:5px;
+      font-size:10.5px;font-weight:700;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+.pill-long{background:rgba(34,211,238,.12);color:var(--long);box-shadow:inset 0 0 0 1px rgba(34,211,238,.2)}
+.pill-short{background:rgba(244,114,182,.12);color:var(--short);box-shadow:inset 0 0 0 1px rgba(244,114,182,.2)}
+.pill-block{background:rgba(107,114,128,.15);color:var(--fg3);box-shadow:inset 0 0 0 1px rgba(107,114,128,.25)}
+.pill-pass{background:rgba(34,197,94,.12);color:var(--pass);box-shadow:inset 0 0 0 1px rgba(34,197,94,.25)}
+.pill-fail{background:rgba(239,68,68,.12);color:var(--fail);box-shadow:inset 0 0 0 1px rgba(239,68,68,.25)}
+.pill-warn{background:rgba(245,158,11,.12);color:var(--warn);box-shadow:inset 0 0 0 1px rgba(245,158,11,.25)}
+.pill-info{background:rgba(59,130,246,.12);color:var(--info);box-shadow:inset 0 0 0 1px rgba(59,130,246,.25)}
+.pill-inverted{background:rgba(168,85,247,.12);color:var(--inverted);box-shadow:inset 0 0 0 1px rgba(168,85,247,.25)}
+.pill-shadow{background:rgba(100,116,139,.15);color:var(--shadow);box-shadow:inset 0 0 0 1px rgba(100,116,139,.25)}
 
-/* DOTS */
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:5px}
-.dot-green{background:var(--green)}.dot-red{background:var(--red)}.dot-amber{background:var(--amber)}.dot-gray{background:#6e7681}
+/* ── PAIR CARDS ────────────────────────────────────────────────────────── */
+.pairs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.pair-card{background:linear-gradient(180deg,var(--bg2) 0%,#141921 100%);
+           border:1px solid var(--border);border-radius:10px;padding:14px 16px;
+           position:relative;transition:.2s}
+.pair-card.bias-long{border-color:rgba(34,211,238,.28)}
+.pair-card.bias-short{border-color:rgba(244,114,182,.28)}
+.pair-card.bias-block{border-color:var(--border)}
+.pair-card.actionable{box-shadow:var(--glow-green)}
+.pair-card.actionable.bias-long{box-shadow:var(--glow-cyan)}
+.pair-card.actionable.bias-short{box-shadow:var(--glow-pink)}
+.pc-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.pc-name{font-size:16px;font-weight:700;letter-spacing:.02em}
+.pc-sess{font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.08em}
+.pc-actpill{margin-left:auto}
+.pc-row{display:flex;gap:8px;align-items:center;font-size:12px;margin-top:6px}
+.pc-lbl{color:var(--fg3);font-size:10.5px;width:62px;flex-shrink:0;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.pc-score-bar{margin:6px 0 4px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;position:relative}
+.pc-score-fill{height:100%;border-radius:2px;transition:width .4s ease}
+.pc-profiles{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-2);font-size:11px;color:var(--fg2);line-height:1.6}
+.pc-profiles b{color:var(--fg0)}
+.pc-rules{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-2);display:flex;flex-wrap:wrap;gap:5px}
+.pc-rule{font-size:10.5px;padding:3px 7px;border-radius:5px;background:var(--bg3);color:var(--fg2);
+         font-family:"JetBrains Mono",monospace;border:1px solid var(--border-2)}
+.pc-rule.pass{background:rgba(34,197,94,.08);color:var(--pass);border-color:rgba(34,197,94,.2)}
+.pc-rule.fail{background:rgba(239,68,68,.08);color:var(--fail);border-color:rgba(239,68,68,.2)}
+.pc-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-2)}
+.fc{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;background:var(--bg3);
+    border-radius:4px;font-size:10.5px;white-space:nowrap;font-family:"JetBrains Mono",monospace}
+.fc .fk{color:var(--fg3);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em}
+.fc .fv{color:var(--fg0);font-weight:600}
+.fc.hot .fv{color:var(--warn)}.fc.cool .fv{color:var(--long)}.fc.pos .fv{color:var(--pass)}.fc.neg .fv{color:var(--fail)}
 
-/* BANNER */
-.banner{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:10px}
-.banner-green{background:#0f2e1a;color:var(--green);border:1px solid #1a4a2a}
-.banner-gray{background:#1c2128;color:var(--fg2);border:1px solid var(--border)}
+/* ── CELLS GRID (per-cell governance) ──────────────────────────────────── */
+.cells-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.cell{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;position:relative;transition:.2s}
+.cell.disabled{opacity:.45}
+.cell.inactive-session{opacity:.55}
+.cell.ready{box-shadow:0 0 0 1px rgba(34,197,94,.4);background:linear-gradient(180deg,rgba(34,197,94,.04) 0%,var(--bg2) 50%)}
+.cell-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.cell-name{font-size:13.5px;font-weight:700;letter-spacing:.01em}
+.cell-dir{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase}
+.cell-dir.long{color:var(--long);background:rgba(34,211,238,.1)}
+.cell-dir.short{color:var(--short);background:rgba(244,114,182,.1)}
+.cell-status{margin-left:auto}
+.cell-rules{margin-top:7px;display:flex;flex-direction:column;gap:3px;font-size:11px;font-family:"JetBrains Mono",monospace}
+.cr{display:flex;justify-content:space-between;gap:6px;padding:3px 7px;border-radius:4px;background:var(--bg3);color:var(--fg2)}
+.cr.pass{background:rgba(34,197,94,.06);color:var(--pass)}
+.cr.fail{background:rgba(239,68,68,.06);color:var(--fail)}
+.cr-name{color:var(--fg3);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.cell-meta{margin-top:6px;font-size:10.5px;color:var(--fg3);display:flex;gap:8px;flex-wrap:wrap}
 
-/* PAIR CARDS */
-.pairs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
-.pair-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
-.pair-card.bias-long{border-color:#1a4a2a}.pair-card.bias-short{border-color:#4a1a1a}.pair-card.bias-block{border-color:#4a3a10}
-.pair-name{font-size:16px;font-weight:700;margin-bottom:2px}
-.pair-sub{font-size:11px;color:var(--fg2);margin-bottom:8px}
-.pair-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;align-items:center;font-size:12px}
-.pair-lbl{color:var(--fg2);width:50px;flex-shrink:0;font-size:11px}
+/* ── INDICATORS tab ────────────────────────────────────────────────────── */
+.ind-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+.ind-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.ind-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.ind-pair{font-size:14px;font-weight:700;letter-spacing:.02em}
+.ind-vols{display:flex;gap:6px;align-items:center}
+.ind-rows{display:grid;grid-template-columns:repeat(2,1fr);gap:5px 12px;font-size:11.5px}
+.ind-row{display:flex;justify-content:space-between;padding:2px 0;font-family:"JetBrains Mono",monospace}
+.ind-row .ik{color:var(--fg3);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}
+.ind-row .iv{color:var(--fg0);font-weight:600}
 
-/* Feature chips */
-.feat-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;padding-top:7px;border-top:1px solid var(--border)}
-.fc{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:var(--bg3);border-radius:4px;font-size:11px;white-space:nowrap}
-.fc .fk{color:var(--fg2)}.fc .fv{color:var(--fg);font-weight:600}
-.fc.rsi-ob .fv{color:var(--red)}.fc.rsi-os .fv{color:var(--green)}.fc.spread-hi .fv{color:var(--amber)}
+/* ── EVENTS FEED ───────────────────────────────────────────────────────── */
+.events{max-height:380px;overflow-y:auto}
+.ev{padding:6px 12px;border-bottom:1px solid var(--border);font-size:11.5px;
+    font-family:"JetBrains Mono",monospace;color:var(--fg2);display:flex;gap:10px;align-items:baseline}
+.ev:last-child{border-bottom:none}
+.ev .ev-time{color:var(--fg3);font-size:10.5px;min-width:75px}
+.ev.ev-entry{color:var(--pass)}.ev.ev-exit{color:var(--fg2)}.ev.ev-ratchet{color:var(--info)}
+.ev.ev-exit.lose{color:var(--fail)}.ev.ev-exit.win{color:var(--pass)}
 
-/* EVENTS FEED */
-.event-row{padding:5px 10px;border-bottom:1px solid var(--border);font-size:11.5px;font-family:Menlo,Monaco,monospace;color:var(--fg2)}
-.event-row.ev-entry{color:var(--green)}.event-row.ev-exit{color:var(--red)}.event-row.ev-ratchet{color:var(--blue)}
-.event-row:last-child{border-bottom:none}
-
-/* RATCHET STATE */
-.ratchet-bar{display:flex;align-items:center;gap:8px;margin-top:4px}
-.ratchet-track{flex:1;background:var(--bg3);border-radius:3px;height:6px;position:relative;overflow:visible}
-.ratchet-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--amber),var(--green));transition:width .4s}
-.ratchet-peak-marker{position:absolute;top:-2px;width:2px;height:10px;background:var(--cyan);border-radius:1px}
-.ratchet-sl-marker{position:absolute;top:-3px;width:3px;height:12px;background:var(--red);border-radius:1px}
-
-/* HEALTH */
+/* ── HEALTH ────────────────────────────────────────────────────────────── */
 .health-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
-.health-card{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:9px 12px}
-.health-name{font-weight:600;font-size:12px}.health-det{color:var(--fg2);font-size:11px;margin-top:2px}
+.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.hcard-name{font-size:12px;font-weight:700}
+.hcard-det{color:var(--fg2);font-size:11px;margin-top:3px;font-family:"JetBrains Mono",monospace}
 
-/* SYSTEM */
-.sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px}
-.sys-m{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 14px}
-.sys-m .lbl{font-size:10px;color:var(--fg2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
-.sys-m .val{font-size:1.35rem;font-weight:700}
-.sys-m .sub{font-size:11px;color:var(--fg2);margin-top:3px}
-.bar-bg{background:var(--bg3);border-radius:3px;height:5px;margin-top:6px;overflow:hidden}
+/* ── SYSTEM ────────────────────────────────────────────────────────────── */
+.sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.sys-m{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.sys-m .lbl{font-size:10px;color:var(--fg3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-weight:600}
+.sys-m .val{font-size:1.4rem;font-weight:700;font-family:"JetBrains Mono",monospace}
+.sys-m .sub{font-size:10.5px;color:var(--fg3);margin-top:3px}
+.bar-bg{background:var(--bg3);border-radius:3px;height:5px;margin-top:7px;overflow:hidden}
 .bar-fill{height:100%;border-radius:3px;transition:width .3s}
-.bar-green{background:var(--green)}.bar-amber{background:var(--amber)}.bar-red{background:var(--red)}
-.log-box{background:#111827;border-radius:6px;padding:10px 12px;font-family:Menlo,Monaco,monospace;font-size:11px;line-height:1.5;color:#94a3b8;max-height:320px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
-.log-err{color:var(--red)}.log-warn{color:var(--amber)}.log-ratchet{color:var(--blue)}.log-entry{color:var(--green)}.log-exit{color:var(--red)}
+.bar-green{background:linear-gradient(90deg,var(--pass),#34d399)}
+.bar-amber{background:linear-gradient(90deg,var(--warn),#fbbf24)}
+.bar-red{background:linear-gradient(90deg,var(--fail),#f87171)}
+.log-box{background:#0a0e15;border:1px solid var(--border);border-radius:6px;padding:10px 12px;
+         font-family:"JetBrains Mono",Menlo,monospace;font-size:10.5px;line-height:1.55;
+         color:#9ca3af;max-height:340px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+.log-err{color:var(--fail)}.log-warn{color:var(--warn)}.log-ratchet{color:var(--info)}
+.log-entry{color:var(--pass)}.log-exit{color:#a8a29e}
 
-/* MISC */
-.mono{font-family:Menlo,Monaco,monospace;font-size:11px}
-.pos{color:var(--green)}.neg{color:var(--red)}.muted{color:var(--fg2)}
-pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:Menlo,Monaco,monospace;font-size:11.5px;overflow:auto;white-space:pre-wrap}
+/* ── BANNER ────────────────────────────────────────────────────────────── */
+.banner{padding:10px 16px;border-radius:8px;font-size:12.5px;font-weight:600;
+        margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.banner-green{background:rgba(34,197,94,.08);color:var(--pass);border:1px solid rgba(34,197,94,.25)}
+.banner-gray{background:var(--bg2);color:var(--fg2);border:1px solid var(--border)}
+
+/* ── INPUTS (TUNE/PLAYMAKER) ───────────────────────────────────────────── */
+input,select{font-family:"JetBrains Mono",monospace;font-size:12px}
+button.primary{padding:8px 16px;background:var(--info);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+button.primary:hover{background:#2563eb}
+button.secondary{padding:8px 16px;background:var(--bg2);color:var(--fg1);border:1px solid var(--border);border-radius:6px;cursor:pointer}
+
+pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;
+    font-family:"JetBrains Mono",monospace;font-size:11px;overflow:auto;white-space:pre-wrap}
+
+/* ── SCROLLBAR ─────────────────────────────────────────────────────────── */
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-track{background:var(--bg1)}
+*::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:4px}
+*::-webkit-scrollbar-thumb:hover{background:var(--bg4)}
 </style></head><body>
 
 <div class="nav">
-  <div class="nav-title">SCROOGE <span>V5</span></div>
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name">SCROOGE <span class="brand-v">V5</span></div>
+  </div>
   <button class="tab active" onclick="showTab('live',this)">LIVE</button>
   <button class="tab" onclick="showTab('pairs',this)">PAIRS</button>
+  <button class="tab" onclick="showTab('cells',this)">CELLS</button>
+  <button class="tab" onclick="showTab('indicators',this)">INDICATORS</button>
   <button class="tab" onclick="showTab('health',this)">HEALTH</button>
   <button class="tab" onclick="showTab('system',this)">SYSTEM</button>
   <button class="tab" onclick="showTab('tune',this);loadTune()">TUNE</button>
   <button class="tab" onclick="showTab('playmaker',this);loadPlaymaker()">PLAYMAKER</button>
   <div class="nav-right">
-    <div class="sess-dots">
-      <span class="sess-dot" id="sd-asia">ASI</span>
+    <div class="sess-dots" title="Trading session — UTC hour windows: asia 22-7, london 7-13, ny 13-22">
+      <span class="sess-dot" id="sd-asia">ASIA</span>
       <span class="sess-dot" id="sd-lon">LON</span>
       <span class="sess-dot" id="sd-ny">NY</span>
     </div>
-    <span id="utc-clock" style="font-family:monospace;font-size:12px;color:var(--fg2)">--:-- UTC</span>
-    <span style="color:var(--border)">|</span>
-    <span id="ts" style="font-size:11px;color:var(--fg2)">--</span>
-    <span id="spin" style="font-size:11px;opacity:.5">●</span>
+    <span id="utc-clock">--:--:-- UTC</span>
+    <span style="color:var(--border-2)">·</span>
+    <span id="ts" style="font-size:11px;color:var(--fg3)">—</span>
+    <span id="spin">●</span>
   </div>
 </div>
 
-<!-- LIVE TAB -->
+<!-- ─── LIVE TAB ─────────────────────────────────────────────────────────── -->
 <div id="tab-live" class="pane active">
   <div id="banner" class="banner banner-gray">Loading...</div>
-  <div id="acct-bar" class="acct-bar" style="display:none"></div>
+
+  <!-- Hero: account metrics -->
+  <div class="hero">
+    <div class="hero-acct" id="hero-acct"></div>
+    <div class="hero-side">
+      <div id="daily-pl-card" class="card" style="margin:0;padding:14px 16px">
+        <div class="card-title">Today (UTC)</div>
+        <div id="daily-pl-content" class="muted">loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market state gauges -->
+  <div id="gauges" class="gauges"></div>
+
   <div class="card">
-    <div class="card-title">Open Positions</div>
+    <div class="card-title">Open Positions
+      <span id="open-count" class="tag">0 / 0</span>
+    </div>
     <table id="positions-tbl">
       <thead><tr>
         <th>Pair</th><th>Dir</th><th>Entry</th><th>Age</th>
@@ -144,20 +297,46 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
       </tr></thead>
       <tbody id="positions-body"></tbody>
     </table>
-    <div id="no-positions" class="muted" style="padding:12px 10px;font-size:12px;display:none">No open positions</div>
+    <div id="no-positions" class="muted" style="padding:14px 12px;font-size:12px;display:none">No open positions</div>
   </div>
+
   <div class="card">
-    <div class="card-title">Recent Events</div>
-    <div id="events-feed"></div>
+    <div class="card-title">Recent Events
+      <span class="tag" id="last-trade-tag" style="display:none">last fired</span>
+    </div>
+    <div id="events-feed" class="events"></div>
   </div>
 </div>
 
-<!-- PAIRS TAB -->
+<!-- ─── PAIRS TAB ────────────────────────────────────────────────────────── -->
 <div id="tab-pairs" class="pane">
   <div id="pairs-grid" class="pairs-grid"></div>
 </div>
 
-<!-- HEALTH TAB -->
+<!-- ─── CELLS TAB ────────────────────────────────────────────────────────── -->
+<div id="tab-cells" class="pane">
+  <div class="card" style="padding:12px 18px;margin-bottom:12px">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11.5px">
+      <div><span class="pill pill-pass">READY</span> all gates pass + in-session</div>
+      <div><span class="pill pill-inverted">INVERTED</span> direction flipped at exec</div>
+      <div><span class="pill pill-shadow">SHADOW</span> shadow-log only</div>
+      <div><span class="pill pill-block">DISABLED</span> off entirely</div>
+      <div class="muted">·</div>
+      <div class="muted">Cell = (pair × session × direction)</div>
+    </div>
+  </div>
+  <div id="cells-grid" class="cells-grid"></div>
+</div>
+
+<!-- ─── INDICATORS TAB ───────────────────────────────────────────────────── -->
+<div id="tab-indicators" class="pane">
+  <div class="card" style="padding:12px 18px;margin-bottom:12px">
+    <div class="muted" style="font-size:11.5px">Per-pair raw MarketView values from the most recent scan cycle. Updated every scan (300s).</div>
+  </div>
+  <div id="ind-grid" class="ind-grid"></div>
+</div>
+
+<!-- ─── HEALTH TAB ───────────────────────────────────────────────────────── -->
 <div id="tab-health" class="pane">
   <div class="card">
     <div class="card-title">Engine Status</div>
@@ -169,7 +348,7 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
   </div>
 </div>
 
-<!-- SYSTEM TAB -->
+<!-- ─── SYSTEM TAB ───────────────────────────────────────────────────────── -->
 <div id="tab-system" class="pane">
   <div id="sys-metrics" class="sys-grid"></div>
   <div class="card">
@@ -185,11 +364,11 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
   </div>
 </div>
 
-<!-- TUNE TAB -->
+<!-- ─── TUNE TAB (preserved exit-config editor) ──────────────────────────── -->
 <div id="tab-tune" class="pane">
   <div class="card">
     <div class="card-title">Exit knobs — defaults + per-pair overrides
-      <span class="muted" style="font-weight:normal;font-size:11px">(live; ratchet re-reads each 30s tick, new entries read on placement)</span>
+      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(live; ratchet re-reads each 5s tick, new entries read on placement)</span>
     </div>
     <div id="tune-msg" style="padding:8px 10px;font-size:12px"></div>
     <div style="overflow-x:auto">
@@ -211,59 +390,49 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
     </table>
     </div>
     <div style="padding:10px;display:flex;gap:10px;align-items:center">
-      <button id="tune-save"  onclick="saveTune()"  style="padding:8px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Save all changes</button>
-      <button id="tune-reset" onclick="loadTune()" style="padding:8px 16px;background:var(--bg2);color:var(--fg);border:1px solid var(--border);border-radius:6px;cursor:pointer">Discard edits</button>
+      <button class="primary" onclick="saveTune()">Save all changes</button>
+      <button class="secondary" onclick="loadTune()">Discard edits</button>
       <span class="muted" style="font-size:11px">Per-pair: blank = inherit default. Rules: <code>trail &lt; trigger</code>, <code>tp2_at &gt; tp1_at</code>, <code>tp1% + tp2% &lt; 1</code>.</span>
     </div>
   </div>
-
   <div class="card">
-    <div class="card-title">TP ladder (partial close) — ported from V4 harvest_ladder
-      <span class="muted" style="font-weight:normal;font-size:11px">(defaults OFF — toggle on per scope to use)</span>
+    <div class="card-title">TP ladder (partial close) — V4 harvest_ladder port
+      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(defaults OFF — toggle on per scope to use)</span>
     </div>
     <div style="overflow-x:auto">
     <table id="tune-tp-tbl" style="font-size:12px">
       <thead>
         <tr>
           <th style="text-align:left">Scope</th>
-          <th title="Enable the TP1 partial close on peak crossing tp1_at_pips">TP1 on</th>
-          <th title="Peak MFE that triggers TP1 partial close (pips from entry)">TP1 at (pips)</th>
-          <th title="Fraction of INITIAL position to close at TP1 (e.g. 0.5 = 50%)">TP1 close %</th>
-          <th title="Bump SL to this many pips above entry when TP1 fires (0 = no bump)">TP1 SL lock (pips)</th>
-          <th title="Enable TP2 (requires TP1 enabled — TP2 only fires after TP1)">TP2 on</th>
-          <th title="Peak MFE that triggers TP2 partial close (must be > TP1 at)">TP2 at (pips)</th>
-          <th title="Fraction of INITIAL position to close at TP2">TP2 close %</th>
+          <th>TP1 on</th><th>TP1 at (pips)</th><th>TP1 close %</th><th>TP1 SL lock (pips)</th>
+          <th>TP2 on</th><th>TP2 at (pips)</th><th>TP2 close %</th>
           <th></th>
         </tr>
       </thead>
       <tbody id="tune-tp-body"></tbody>
     </table>
     </div>
-    <div class="muted" style="padding:6px 10px;font-size:11px">
-      Closes a fraction of the INITIAL position (not the post-TP1 remainder). Runner stays under the ratchet.
-      A blank cell in a pair row inherits the default for that field. Toggle a "clear" to drop all overrides for that pair.
-    </div>
   </div>
 </div>
 
-<!-- PLAYMAKER TAB -->
+<!-- ─── PLAYMAKER TAB (preserved + extended for new mechanisms) ──────────── -->
 <div id="tab-playmaker" class="pane">
   <div class="card">
     <div class="card-title">Account knobs
-      <span class="muted" style="font-weight:normal;font-size:11px">(live; reads each new entry / each playmaker cycle)</span>
+      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(live; reads each new entry / each playmaker cycle)</span>
     </div>
     <div id="pm-msg" style="padding:8px 10px;font-size:12px"></div>
     <div style="display:flex;gap:24px;flex-wrap:wrap;padding:10px">
       <div>
         <label style="font-size:11px;color:var(--fg2);display:block;margin-bottom:4px">Margin per trade (fraction of balance)</label>
         <input id="pm-risk" type="number" step="0.001" min="0.001" max="1"
-               style="width:120px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:Menlo,monospace;font-size:13px;text-align:right">
+               style="width:120px;background:var(--bg0);color:var(--fg1);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:right">
         <div id="pm-risk-warn" style="font-size:11px;margin-top:4px"></div>
       </div>
       <div>
         <label style="font-size:11px;color:var(--fg2);display:block;margin-bottom:4px">Max concurrent trades</label>
         <input id="pm-maxc" type="number" step="1" min="1" max="20"
-               style="width:120px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:Menlo,monospace;font-size:13px;text-align:right">
+               style="width:120px;background:var(--bg0);color:var(--fg1);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:right">
       </div>
       <div id="pm-risk-math" style="font-size:11px;color:var(--fg2);align-self:flex-end;padding-bottom:6px"></div>
     </div>
@@ -271,18 +440,15 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
 
   <div class="card">
     <div class="card-title">Per-pair playmaker gates
-      <span class="muted" style="font-weight:normal;font-size:11px">(blank cell on a pair row = inherit default)</span>
+      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(blank cell on a pair row = inherit default)</span>
     </div>
     <div style="overflow-x:auto">
     <table id="pm-tbl" style="font-size:12px">
       <thead>
         <tr>
           <th style="text-align:left">Scope</th>
-          <th title="If off, this pair is blocked from new entries">Enabled</th>
-          <th title="Minimum |direction.score| to pass the playmaker (was global 0.25)">Min |dir.score|</th>
-          <th title="Minimum direction.certainty (was global 0.30)">Min dir.certainty</th>
-          <th title="Minimum momentum.certainty (was global 0.25)">Min mom.certainty</th>
-          <th title="Minutes the playmaker blocks this pair after a losing exit on it (in-memory; resets on restart)">Cooldown after loss (min)</th>
+          <th>Enabled</th><th>Min |dir.score|</th><th>Min dir.cert</th>
+          <th>Min mom.cert</th><th>Cooldown after loss (min)</th>
           <th></th>
         </tr>
       </thead>
@@ -290,703 +456,732 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;paddi
     </table>
     </div>
     <div style="padding:10px;display:flex;gap:10px;align-items:center">
-      <button id="pm-save"  onclick="savePlaymaker()"  style="padding:8px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Save all changes</button>
-      <button id="pm-reset" onclick="loadPlaymaker()" style="padding:8px 16px;background:var(--bg2);color:var(--fg);border:1px solid var(--border);border-radius:6px;cursor:pointer">Discard edits</button>
+      <button class="primary" onclick="savePlaymaker()">Save all changes</button>
+      <button class="secondary" onclick="loadPlaymaker()">Discard edits</button>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Per-cell governance (read-only view)
+      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(edit by direct config — hot-reloaded on save)</span>
+    </div>
+    <div id="pm-governance"></div>
   </div>
 </div>
 
 <script>
-// ── Utilities ────────────────────────────────────────────────────────────────
-
-
-// ── PLAYMAKER tab ────────────────────────────────────────────────────────────
-let PM_META = null;
-async function loadPlaymaker() {
-  const r = await fetch('/api/config/playmaker');
-  const d = await r.json();
-  PM_META = d;
-  renderPlaymaker();
-  document.getElementById('pm-msg').textContent = '';
-}
-function _pmInp(val, ph, w='70px') {
-  const v = (val === null || val === undefined) ? '' : val;
-  return `<input type="number" step="0.01" value="${v}" placeholder="${ph}" `+
-         `style="width:${w};background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:Menlo,monospace;font-size:12px;text-align:right">`;
-}
-function _pmBoolCell(val, isDefault) {
-  if (isDefault) return `<input type="checkbox" ${val ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue)">`;
-  return `<select data-bool="enabled" style="background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:3px;font-size:11.5px">
-    <option value=""    ${val===null?'selected':''}>inherit</option>
-    <option value="on"  ${val===true?'selected':''}>on</option>
-    <option value="off" ${val===false?'selected':''}>off</option></select>`;
-}
-function _pmRow(scope, eff, override, isDefault) {
-  const o = (k) => isDefault ? eff[k] : (override[k] === undefined ? null : override[k]);
-  const enVal = isDefault ? !!eff.enabled : (override.enabled !== undefined ? !!override.enabled : null);
-  const label = isDefault ? `<b>Default (all pairs)</b>` : `<b>${scope.replace('_','/')}</b>`;
-  return `<tr data-scope="${scope}">
-    <td>${label}</td>
-    <td>${_pmBoolCell(enVal, isDefault)}</td>
-    <td>${_pmInp(o('min_direction_score'), eff.min_direction_score)}</td>
-    <td>${_pmInp(o('min_dir_certainty'),   eff.min_dir_certainty)}</td>
-    <td>${_pmInp(o('min_mom_certainty'),   eff.min_mom_certainty)}</td>
-    <td>${_pmInp(o('cooldown_after_sl_min'), eff.cooldown_after_sl_min)}</td>
-    <td>${isDefault ? '' : `<button onclick="clearPmOverride('${scope}')" style="padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:4px;cursor:pointer;font-size:11px">clear</button>`}</td>
-  </tr>`;
-}
-function _updatePmRiskMath() {
-  const risk = parseFloat(document.getElementById('pm-risk').value || 0);
-  const maxc = parseInt(document.getElementById('pm-maxc').value || 0);
-  const warn = document.getElementById('pm-risk-warn');
-  const math = document.getElementById('pm-risk-math');
-  if (risk > 0.05) {
-    warn.innerHTML = `<span style="color:var(--red)">⚠ ${(risk*100).toFixed(1)}% per trade is aggressive</span>`;
-  } else {
-    warn.innerHTML = '';
-  }
-  if (risk > 0 && maxc > 0) {
-    math.innerHTML = `Max simultaneous margin used: <b>${(risk*maxc*100).toFixed(1)}%</b> of NAV (${maxc} concurrent × ${(risk*100).toFixed(1)}%)`;
-  } else {
-    math.innerHTML = '';
-  }
-}
-function renderPlaymaker() {
-  if (!PM_META) return;
-  const cfg = PM_META.cfg || {};
-  const acct = cfg.account || {};
-  const defaults = cfg.defaults || {};
-  const per      = cfg.per_pair || {};
-  const pairs    = PM_META.pairs || [];
-  document.getElementById('pm-risk').value = (acct.risk_pct_per_trade ?? '');
-  document.getElementById('pm-maxc').value = (acct.max_concurrent_trades ?? '');
-  document.getElementById('pm-risk').oninput  = _updatePmRiskMath;
-  document.getElementById('pm-maxc').oninput  = _updatePmRiskMath;
-  _updatePmRiskMath();
-  let html = _pmRow('__defaults', defaults, defaults, true);
-  for (const p of pairs) {
-    const ov = per[p] || {};
-    const eff = Object.assign({}, defaults, ov);
-    html += _pmRow(p, eff, ov, false);
-  }
-  document.getElementById('pm-body').innerHTML = html;
-}
-function clearPmOverride(pair) {
-  const row = document.querySelector(`#pm-body tr[data-scope="${pair}"]`);
-  if (!row) return;
-  row.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
-  const sel = row.querySelector('select'); if (sel) sel.value = '';
-  document.getElementById('pm-msg').innerHTML = `<span class="muted">Cleared ${pair.replace('_','/')} overrides (unsaved)</span>`;
-}
-function _pmCollectRow(row, isDefault) {
-  const out = {};
-  if (isDefault) {
-    const cb = row.querySelector('input[type="checkbox"]');
-    out.enabled = !!cb?.checked;
-  } else {
-    const sel = row.querySelector('select');
-    if (sel) {
-      if (sel.value === 'on')  out.enabled = true;
-      if (sel.value === 'off') out.enabled = false;
-    }
-  }
-  const inputs = row.querySelectorAll('input[type="number"]');
-  const fields = ['min_direction_score','min_dir_certainty','min_mom_certainty','cooldown_after_sl_min'];
-  fields.forEach((f, i) => {
-    const v = inputs[i]?.value.trim();
-    if (v !== undefined && v !== '') out[f] = parseFloat(v);
-  });
-  return out;
-}
-async function savePlaymaker() {
-  const payload = {account: {}, defaults: {}, per_pair: {}};
-  const risk = parseFloat(document.getElementById('pm-risk').value);
-  const maxc = parseInt(document.getElementById('pm-maxc').value);
-  if (isFinite(risk)) payload.account.risk_pct_per_trade = risk;
-  if (isFinite(maxc)) payload.account.max_concurrent_trades = maxc;
-  document.querySelectorAll('#pm-body tr').forEach(row => {
-    const scope = row.getAttribute('data-scope');
-    const isDef = scope === '__defaults';
-    const vals = _pmCollectRow(row, isDef);
-    if (isDef) {
-      payload.defaults = vals;
-    } else if (Object.keys(vals).length) {
-      payload.per_pair[scope] = vals;
-    }
-  });
-  // Defaults row must include all fields
-  const need = ['enabled','min_direction_score','min_dir_certainty','min_mom_certainty','cooldown_after_sl_min'];
-  for (const k of need) {
-    if (payload.defaults[k] === undefined) {
-      document.getElementById('pm-msg').innerHTML = `<span style="color:var(--red)">Default row missing ${k}</span>`;
-      return;
-    }
-  }
-  const msg = document.getElementById('pm-msg');
-  msg.innerHTML = '<span class="muted">Saving…</span>';
-  try {
-    const r = await fetch('/api/config/playmaker', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
-    const d = await r.json();
-    if (!r.ok || !d.ok) {
-      msg.innerHTML = `<span style="color:var(--red)">Save rejected: ${d.error || r.status}</span>`;
-      return;
-    }
-    PM_META.cfg = d.cfg;
-    renderPlaymaker();
-    msg.innerHTML = `<span style="color:var(--green)">Saved — live (next playmaker cycle / next entry).</span>`;
-  } catch (exc) {
-    msg.innerHTML = `<span style="color:var(--red)">Network error: ${exc}</span>`;
-  }
-}
-
-// ── TUNE tab ─────────────────────────────────────────────────────────────────
-let TUNE_META = null;
-async function loadTune() {
-  const r = await fetch('/api/config/exit');
-  const d = await r.json();
-  TUNE_META = d;
-  renderTune();
-  document.getElementById('tune-msg').textContent = '';
-}
-function _inp(val, ph, w='62px') {
-  const v = (val === null || val === undefined) ? '' : val;
-  return `<input type="number" step="0.1" value="${v}" placeholder="${ph}" `+
-         `style="width:${w};background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:Menlo,monospace;font-size:12px;text-align:right">`;
-}
-function _row(scope, eff, override, isDefault) {
-  // eff = effective values for this scope (defaults merged with override)
-  // override = per-pair overrides dict (or defaults dict for the default row); blank cells = inherit
-  const o = (k) => isDefault ? eff[k] : (override[k] === undefined ? null : override[k]);
-  const trig  = eff.step_trigger_pips, trail = eff.step_trail_pips, size = eff.step_size_pips;
-  const tp1   = (trig != null && trail != null) ? (trig - trail).toFixed(1)+'p' : '—';
-  const tp2   = (trig != null && trail != null && size != null) ? (trig + size - trail).toFixed(1)+'p' : '—';
-  const label = isDefault
-    ? `<b>Default (all pairs)</b>`
-    : `<b>${scope.replace('_','/')}</b> <span class="muted" style="font-size:10.5px">override only listed fields</span>`;
-  return `<tr data-scope="${scope}">
-    <td>${label}</td>
-    <td>${_inp(o('initial_sl_pips'),   eff.initial_sl_pips)}</td>
-    <td>${_inp(o('step_trigger_pips'), eff.step_trigger_pips)}</td>
-    <td>${_inp(o('step_trail_pips'),   eff.step_trail_pips)}</td>
-    <td>${_inp(o('step_size_pips'),    eff.step_size_pips)}</td>
-    <td>${_inp(o('step_engage_min'),   eff.step_engage_min)}</td>
-    <td>${_inp(o('step_cadence_min'),  eff.step_cadence_min)}</td>
-    <td class="muted" style="font-size:11px;font-family:Menlo,monospace">+${tp1} / +${tp2}</td>
-    <td>${isDefault ? '' : `<button onclick="clearPairOverride('${scope}')" style="padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:4px;cursor:pointer;font-size:11px">clear</button>`}</td>
-  </tr>`;
-}
-function renderTune() {
-  if (!TUNE_META) return;
-  const cfg = TUNE_META.cfg || {};
-  const defaults = cfg.defaults || {};
-  const per      = cfg.per_pair || {};
-  const pairs    = TUNE_META.pairs || [];
-  const tbody    = document.getElementById('tune-body');
-  let html = _row('__defaults', defaults, defaults, true);
-  for (const p of pairs) {
-    const ov = per[p] || {};
-    const eff = Object.assign({}, defaults, ov);
-    html += _row(p, eff, ov, false);
-  }
-  tbody.innerHTML = html;
-  renderTuneTP(defaults, per, pairs);
-}
-function clearPairOverride(pair) {
-  const row = document.querySelector(`tr[data-scope="${pair}"]`);
-  if (!row) return;
-  row.querySelectorAll('input').forEach(i => i.value = '');
-  document.getElementById('tune-msg').innerHTML = `<span class="muted">Cleared ${pair.replace('_','/')} overrides (unsaved)</span>`;
-}
-function _collectRow(row) {
-  const fields = ['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min'];
-  const inputs = row.querySelectorAll('input');
-  const out = {};
-  fields.forEach((f, i) => {
-    const v = inputs[i].value.trim();
-    if (v !== '') out[f] = parseFloat(v);
-  });
-  return out;
-}
-
-function _chk(checked) {
-  return `<input type="checkbox" ${checked ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue)">`;
-}
-function _tpRow(scope, eff, override, isDefault) {
-  const o = (k) => isDefault ? eff[k] : (override[k] === undefined ? null : override[k]);
-  // For per-pair rows, show inherited values as placeholder; explicit override = checked/value
-  const t1on = isDefault ? !!eff.tp1_enabled : (override.tp1_enabled !== undefined ? !!override.tp1_enabled : null);
-  const t2on = isDefault ? !!eff.tp2_enabled : (override.tp2_enabled !== undefined ? !!override.tp2_enabled : null);
-  // For pair rows, render a tri-state via a hidden input value 'inherit'|'on'|'off' attached to a label.
-  const t1box = isDefault ? _chk(t1on) : `<select data-bool="tp1_enabled" style="background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:3px;font-size:11.5px">
-    <option value=""    ${t1on===null ? 'selected':''}>inherit</option>
-    <option value="on"  ${t1on===true ? 'selected':''}>on</option>
-    <option value="off" ${t1on===false? 'selected':''}>off</option></select>`;
-  const t2box = isDefault ? _chk(t2on) : `<select data-bool="tp2_enabled" style="background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:3px;font-size:11.5px">
-    <option value=""    ${t2on===null ? 'selected':''}>inherit</option>
-    <option value="on"  ${t2on===true ? 'selected':''}>on</option>
-    <option value="off" ${t2on===false? 'selected':''}>off</option></select>`;
-  const label = isDefault
-    ? `<b>Default (all pairs)</b>`
-    : `<b>${scope.replace('_','/')}</b>`;
-  return `<tr data-scope="${scope}">
-    <td>${label}</td>
-    <td>${t1box}</td>
-    <td>${_inp(o('tp1_at_pips'),   eff.tp1_at_pips)}</td>
-    <td>${_inp(o('tp1_close_pct'), eff.tp1_close_pct)}</td>
-    <td>${_inp(o('tp1_lock_pips'), eff.tp1_lock_pips)}</td>
-    <td>${t2box}</td>
-    <td>${_inp(o('tp2_at_pips'),   eff.tp2_at_pips)}</td>
-    <td>${_inp(o('tp2_close_pct'), eff.tp2_close_pct)}</td>
-    <td>${isDefault ? '' : `<button onclick="clearPairOverrideTP('${scope}')" style="padding:3px 8px;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:4px;cursor:pointer;font-size:11px">clear</button>`}</td>
-  </tr>`;
-}
-function renderTuneTP(defaults, per, pairs) {
-  const tbody = document.getElementById('tune-tp-body');
-  let html = _tpRow('__defaults', defaults, defaults, true);
-  for (const p of pairs) {
-    const ov = per[p] || {};
-    const eff = Object.assign({}, defaults, ov);
-    html += _tpRow(p, eff, ov, false);
-  }
-  tbody.innerHTML = html;
-}
-function clearPairOverrideTP(pair) {
-  const row = document.querySelector(`#tune-tp-body tr[data-scope="${pair}"]`);
-  if (!row) return;
-  row.querySelectorAll('input').forEach(i => i.value = '');
-  row.querySelectorAll('select').forEach(s => s.value = '');
-  document.getElementById('tune-msg').innerHTML = `<span class="muted">Cleared ${pair.replace('_','/')} TP overrides (unsaved)</span>`;
-}
-function _collectTPRow(row, isDefault) {
-  // 8 cells: scope label, TP1 on, tp1_at, tp1_pct, tp1_lock, TP2 on, tp2_at, tp2_pct
-  const out = {};
-  if (isDefault) {
-    const boxes = row.querySelectorAll('input[type="checkbox"]');
-    out.tp1_enabled = boxes[0]?.checked || false;
-    out.tp2_enabled = boxes[1]?.checked || false;
-  } else {
-    const sels = row.querySelectorAll('select');
-    sels.forEach(sel => {
-      const k = sel.getAttribute('data-bool');
-      const v = sel.value;
-      if (v === 'on')  out[k] = true;
-      if (v === 'off') out[k] = false;
-      // 'inherit' (empty) → omit
-    });
-  }
-  const inputs = row.querySelectorAll('input[type="number"]');
-  const fields = ['tp1_at_pips','tp1_close_pct','tp1_lock_pips','tp2_at_pips','tp2_close_pct'];
-  fields.forEach((f, i) => {
-    const v = inputs[i]?.value.trim();
-    if (v !== undefined && v !== '') out[f] = parseFloat(v);
-  });
-  return out;
-}
-
-async function saveTune() {
-  const rows = document.querySelectorAll('#tune-body tr');
-  const payload = {defaults: {}, per_pair: {}};
-  rows.forEach(row => {
-    const scope = row.getAttribute('data-scope');
-    const vals = _collectRow(row);
-    if (scope === '__defaults') {
-      payload.defaults = vals;
-    } else if (Object.keys(vals).length) {
-      payload.per_pair[scope] = vals;
-    }
-  });
-  // Merge TP1/TP2 fields from the second table
-  const tpRows = document.querySelectorAll('#tune-tp-body tr');
-  tpRows.forEach(row => {
-    const scope = row.getAttribute('data-scope');
-    const isDef = scope === '__defaults';
-    const vals = _collectTPRow(row, isDef);
-    if (isDef) {
-      Object.assign(payload.defaults, vals);
-    } else if (Object.keys(vals).length) {
-      payload.per_pair[scope] = Object.assign(payload.per_pair[scope] || {}, vals);
-    }
-  });
-  // sanity: defaults must have all 6 fields
-  const need = ['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min',
-                'tp1_enabled','tp1_at_pips','tp1_close_pct','tp1_lock_pips','tp2_enabled','tp2_at_pips','tp2_close_pct'];
-  for (const k of need) {
-    if (payload.defaults[k] === undefined) {
-      document.getElementById('tune-msg').innerHTML = `<span style="color:var(--red)">Default row missing ${k} — every default field is required.</span>`;
-      return;
-    }
-  }
-  const msg = document.getElementById('tune-msg');
-  msg.innerHTML = '<span class="muted">Saving…</span>';
-  try {
-    const r = await fetch('/api/config/exit', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
-    const d = await r.json();
-    if (!r.ok || !d.ok) {
-      msg.innerHTML = `<span style="color:var(--red)">Save rejected: ${d.error || r.status}</span>`;
-      return;
-    }
-    TUNE_META.cfg = d.cfg;
-    renderTune();
-    msg.innerHTML = `<span style="color:var(--green)">Saved — live (next ratchet tick).</span>`;
-  } catch (exc) {
-    msg.innerHTML = `<span style="color:var(--red)">Network error: ${exc}</span>`;
-  }
-}
-
-function showTab(name, btn) {
-  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+/* ═════════════════════════════════════════════════════════════════════════
+ * Helpers
+ * ═════════════════════════════════════════════════════════════════════════ */
+const PAIRS_ALL = ["AUD_USD","AUD_JPY","EUR_JPY","EUR_USD","GBP_USD","USD_CAD","USD_CHF","USD_JPY"];
+const PAIR_SESSIONS = {
+  "AUD_USD":["asia","london","ny"], "AUD_JPY":["asia","london","ny"],
+  "EUR_JPY":["asia","london","ny"], "EUR_USD":["london","ny"],
+  "GBP_USD":["london","ny"],        "USD_CAD":["ny"],
+  "USD_CHF":["london","ny"],        "USD_JPY":["asia","london","ny"],
+};
+function showTab(name, btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
 }
+function fmt(v,d=2){return v==null?'—':Number(v).toFixed(d)}
+function fmtPips(v){if(v==null)return '—';const n=Number(v);return (n>=0?'+':'')+n.toFixed(1)+'p'}
+function fmtDollar(v){if(v==null)return '—';const n=Number(v);return (n>=0?'+':'')+'$'+Math.abs(n).toFixed(2)}
+function colorPips(v){if(v==null)return '';return v>=0?'pos':'neg'}
+function colorDollar(v){if(v==null)return '';return v>=0?'pos':'neg'}
+function fmtAge(m){if(m==null)return '—';if(m<60)return Math.round(m)+'m';const h=Math.floor(m/60),mm=Math.round(m%60);return h+'h '+mm+'m'}
+function escape(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function dirPill(b){
+  if(b==='long')  return '<span class="pill pill-long">LONG</span>';
+  if(b==='short') return '<span class="pill pill-short">SHORT</span>';
+  return '<span class="pill pill-block">BLOCK</span>';
+}
+function volPill(r){
+  if(r==='extreme') return '<span class="pill pill-fail">EXTR</span>';
+  if(r==='high')    return '<span class="pill pill-warn">HIGH</span>';
+  if(r==='normal')  return '<span class="pill pill-pass">NORM</span>';
+  if(r==='low')     return '<span class="pill pill-info">LOW</span>';
+  return '<span class="pill pill-block">'+(r||'?').toUpperCase()+'</span>';
+}
+function sessionOfHour(h){if(h>=7&&h<13)return'london';if(h>=13&&h<22)return'ny';return'asia';}
+function currentSession(){return sessionOfHour(new Date().getUTCHours());}
 
-function fmt(v, digits=2) {
-  if (v == null) return '—';
-  return Number(v).toFixed(digits);
-}
-function fmtPips(v) { if (v == null) return '—'; const n = Number(v); return (n >= 0 ? '+' : '') + n.toFixed(1) + 'p'; }
-function fmtDollar(v) { if (v == null) return '—'; const n = Number(v); return (n >= 0 ? '+' : '') + '$' + Math.abs(n).toFixed(2); }
-function colorPips(v) { if (v == null) return ''; return v >= 0 ? 'pos' : 'neg'; }
-function colorDollar(v) { if (v == null) return ''; return v >= 0 ? 'pos' : 'neg'; }
-function pilClass(bias) {
-  return bias === 'long' ? 'pill-green' : bias === 'short' ? 'pill-red' : 'pill-amber';
-}
-function volClass(r) {
-  return r === 'high' ? 'pill-amber' : r === 'extreme' ? 'pill-red' : r === 'low' ? 'pill-gray' : 'pill-blue';
-}
-function fmtAge(min) {
-  if (min == null) return '—';
-  const h = Math.floor(min / 60), m = Math.round(min % 60);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
+/* ═════════════════════════════════════════════════════════════════════════
+ * Polling: /api/state, /api/sysinfo, /api/daily_pl
+ * ═════════════════════════════════════════════════════════════════════════ */
+let STATE=null, SYSINFO=null, DAILY_PL=null;
 
-// Compute ratchet level label from sl_locked_pips
-function ratchetLevel(slPips) {
-  if (slPips == null) return '<span class="muted">—</span>';
-  const v = Number(slPips);
-  if (v < 0) return `<span class="muted">SL ${fmtPips(v)}</span>`;
-  return `<span class="pos">${fmtPips(v)} protected</span>`;
+async function fetchState(){
+  try{
+    document.getElementById('spin').classList.add('spin-active');
+    const r=await fetch('/api/state'); STATE=await r.json();
+    document.getElementById('ts').textContent='upd '+new Date().toLocaleTimeString();
+    renderAll();
+  }catch(e){console.error(e)}
+  finally{setTimeout(()=>document.getElementById('spin').classList.remove('spin-active'),300)}
 }
-
-// UTC clock
-function tickClock() {
-  const d = new Date();
-  const h = String(d.getUTCHours()).padStart(2,'0');
-  const m = String(d.getUTCMinutes()).padStart(2,'0');
-  const s = String(d.getUTCSeconds()).padStart(2,'0');
-  document.getElementById('utc-clock').textContent = `${h}:${m}:${s} UTC`;
-  // Session dots
-  const utcH = d.getUTCHours();
-  const asia = utcH >= 23 || utcH < 8;
-  const lon  = utcH >= 7 && utcH < 16;
-  const ny   = utcH >= 13 && utcH < 22;
-  document.getElementById('sd-asia').classList.toggle('on', asia);
-  document.getElementById('sd-lon').classList.toggle('on', lon);
-  document.getElementById('sd-ny').classList.toggle('on', ny);
+async function fetchSysinfo(){
+  try{const r=await fetch('/api/sysinfo');SYSINFO=await r.json();renderSysinfo()}catch(e){}
 }
-setInterval(tickClock, 1000); tickClock();
-
-// ── State polling ─────────────────────────────────────────────────────────────
-let _lastState = null;
-let _spinOn = true;
-
-async function fetchState() {
-  try {
-    const r = await fetch('/api/state');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    _lastState = await r.json();
-    renderState(_lastState);
-    _spinOn = !_spinOn;
-    document.getElementById('spin').style.opacity = _spinOn ? '.5' : '.15';
-  } catch(e) {
-    document.getElementById('ts').textContent = 'fetch error: ' + e.message;
-  }
+async function fetchDailyPL(){
+  try{const r=await fetch('/api/daily_pl');DAILY_PL=await r.json();renderDailyPL()}catch(e){}
 }
 
-async function fetchSysinfo() {
-  try {
-    const r = await fetch('/api/sysinfo');
-    if (!r.ok) return;
-    const d = await r.json();
-    renderSysinfo(d);
-  } catch(e) {}
+function renderAll(){
+  if(!STATE)return;
+  renderBanner();
+  renderAcctBar();
+  renderGauges();
+  renderPositions();
+  renderEvents();
+  renderPairs();
+  renderCells();
+  renderIndicators();
+  renderHealth();
+  renderPMGovernance();
+  // session dots
+  const cur=currentSession();
+  ['asia','lon','ny'].forEach(s=>{
+    const id={asia:'asia',lon:'london',ny:'ny'}[s];
+    document.getElementById('sd-'+s).classList.toggle('on',id===cur);
+  });
 }
 
-setInterval(fetchState, 10000);
-setInterval(fetchSysinfo, 30000);
-fetchState();
-fetchSysinfo();
-
-// ── Render: state ─────────────────────────────────────────────────────────────
-function renderState(s) {
-  // Timestamp
-  if (s.last_cycle_time) {
-    const ago = Math.round((Date.now() - new Date(s.last_cycle_time)) / 60000);
-    document.getElementById('ts').textContent = `cycle ${s.cycle_count} · ${ago < 1 ? '<1' : ago}m ago`;
-  }
-
-  // Banner
-  const banner = document.getElementById('banner');
-  if (s.dry_run) {
-    banner.className = 'banner banner-gray';
-    banner.innerHTML = '⚠ DRY RUN — signals only, no orders';
+/* ── Banner + account bar ──────────────────────────────────────────────── */
+function renderBanner(){
+  const b=document.getElementById('banner');
+  if(STATE.dry_run){
+    b.className='banner banner-gray';
+    b.innerHTML='<span class="pill pill-warn">DRY RUN</span> Signal-only — no orders placed';
   } else {
-    banner.className = 'banner banner-green';
-    banner.innerHTML = `✦ V5 LIVE — 6p step-trail ratchet · 8 pairs · ${(s.open_positions||[]).length} open · cycle ${s.cycle_count}`;
+    const c=STATE.cycle_count||0; const t=STATE.last_cycle_time?new Date(STATE.last_cycle_time):null;
+    const ago=t?Math.round((Date.now()-t)/60000):null;
+    b.className='banner banner-green';
+    b.innerHTML='<span class="pill pill-pass">LIVE</span> '+
+      `Cycle ${c} · last ${ago!=null?(ago<1?'<1':ago)+'m ago':'—'} · `+
+      `scan ${STATE.engine?.scan_interval_seconds||300}s / manage ${STATE.engine?.manage_interval_seconds||5}s · `+
+      `pick: <b>${STATE.governance?.random_pick?'RANDOM':'edge_rank'}</b>`;
   }
-
-  // Account bar
-  renderAccount(s.account);
-
-  // Positions
-  renderPositions(s.open_positions || [], s.last_views || []);
-
-  // Events
-  renderEvents(s.recent_events || []);
-
-  // Pairs tab
-  renderPairs(s.last_tickets || [], s.last_views || []);
-
-  // Health tab
-  renderHealth(s);
+}
+function renderAcctBar(){
+  const a=STATE.account||{};
+  const el=document.getElementById('hero-acct');
+  if(a.error){el.innerHTML=`<div class="hm"><div class="lbl">ERR</div><div class="val neg">${a.error}</div></div>`;return}
+  const upl=Number(a.unrealized_pl||0);
+  const m=(lbl,val,sub,cls='')=>`<div class="hm"><div class="lbl">${lbl}</div><div class="val ${cls}">${val}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
+  el.innerHTML=
+    m('NAV','$'+Number(a.nav||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}))+
+    m('Balance','$'+Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}))+
+    m('Unrealized P&amp;L',fmtDollar(upl),'',colorDollar(upl))+
+    m('Margin Used','$'+Number(a.margin_used||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}))+
+    m('Open Trades',a.open_trades||0)+
+    m('Lifetime P&amp;L',fmtDollar(a.pl||0),'',colorDollar(a.pl||0));
+}
+function renderDailyPL(){
+  const el=document.getElementById('daily-pl-content');
+  if(!DAILY_PL || DAILY_PL.error){el.innerHTML=`<span class="muted">${DAILY_PL?DAILY_PL.error:'loading'}</span>`;return}
+  const d=DAILY_PL;
+  const cls=d.net_usd>=0?'pos':'neg';
+  el.innerHTML=
+    `<div style="font-size:24px;font-weight:700;font-family:'JetBrains Mono',monospace" class="${cls}">${fmtDollar(d.net_usd)}</div>`+
+    `<div class="muted" style="font-size:11px;margin-top:4px">${d.n_trades||0} closed · ${d.n_wins||0}W / ${d.n_losses||0}L · `+
+    `${d.wr_pct!=null?d.wr_pct+'% WR':'—'}</div>`+
+    (Object.keys(d.per_pair||{}).length?
+      `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">`+
+      Object.entries(d.per_pair).map(([p,v])=>{
+        const c=v.pl>=0?'pos':'neg';
+        return `<span class="fc"><span class="fk">${p.replace('_','/')}</span><span class="fv ${c}">${fmtDollar(v.pl)}</span></span>`;
+      }).join('')+`</div>`:'');
 }
 
-// ── Account bar ───────────────────────────────────────────────────────────────
-function renderAccount(acct) {
-  const bar = document.getElementById('acct-bar');
-  if (!acct || !acct.nav) { bar.style.display = 'none'; return; }
-  bar.style.display = 'flex';
-  const upl_c = colorDollar(acct.unrealized_pl);
-  const pl_c  = colorDollar(acct.pl);
-  bar.innerHTML = `
-    <div class="acct-m"><div class="lbl">NAV</div><div class="val">$${Number(acct.nav).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
-    <div class="acct-sep"></div>
-    <div class="acct-m"><div class="lbl">Balance</div><div class="val">$${Number(acct.balance).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
-    <div class="acct-sep"></div>
-    <div class="acct-m"><div class="lbl">Open P/L</div><div class="val ${upl_c}">${fmtDollar(acct.unrealized_pl)}</div></div>
-    <div class="acct-sep"></div>
-    <div class="acct-m"><div class="lbl">All-Time P/L</div><div class="val ${pl_c}">${fmtDollar(acct.pl)}</div></div>
-    <div class="acct-sep"></div>
-    <div class="acct-m"><div class="lbl">Margin Used</div><div class="val">$${Number(acct.margin_used||0).toFixed(2)}</div></div>
-    <div class="acct-sep"></div>
-    <div class="acct-m"><div class="lbl">Open Trades</div><div class="val">${acct.open_trades||0}</div></div>
-  `;
+/* ── Market state gauges ───────────────────────────────────────────────── */
+function gauge({lbl,val,sub,pct,cls='info',num=null}){
+  const r=18, C=2*Math.PI*r;
+  const off=C*(1-Math.min(Math.max(pct||0,0),100)/100);
+  return `<div class="gauge ${cls}">
+    <div class="gauge-ring">
+      <svg width="48" height="48" viewBox="0 0 48 48">
+        <circle class="gauge-bg" cx="24" cy="24" r="${r}"/>
+        <circle class="gauge-fg" cx="24" cy="24" r="${r}" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+      </svg>
+      <div class="gauge-num">${num!=null?num:''}</div>
+    </div>
+    <div class="gauge-text">
+      <div class="gauge-lbl">${lbl}</div>
+      <div class="gauge-val">${val}</div>
+      ${sub?`<div class="gauge-sub">${sub}</div>`:''}
+    </div>
+  </div>`;
+}
+function renderGauges(){
+  const el=document.getElementById('gauges');
+  const tickets=STATE.last_tickets||[];
+  const actionable=tickets.filter(t=>t.actionable).length;
+  const blocked=tickets.filter(t=>t.dir_bias==='block').length;
+  const extreme=tickets.filter(t=>t.vol_regime==='extreme').length;
+  const open=(STATE.open_positions||[]).length;
+  const maxC=STATE.governance?.account?.max_concurrent_trades||4;
+  // Spread alert: count pairs with spread above per-pair max (rough threshold 3p as heuristic)
+  const wideSpread=(STATE.last_views||[]).filter(v=>v.spread_pips!=null&&v.spread_pips>3.0).length;
+  el.innerHTML =
+    gauge({lbl:'Actionable Cells',val:`${actionable} / ${tickets.length}`,
+           sub:'pairs passing all gates this cycle',pct:tickets.length?100*actionable/tickets.length:0,
+           cls:actionable>=2?'ok':actionable>=1?'warn':'fail',num:actionable})+
+    gauge({lbl:'Open Positions',val:`${open} / ${maxC}`,
+           sub:'of max_concurrent_trades',pct:maxC?100*open/maxC:0,
+           cls:open===0?'info':open<maxC?'ok':'warn',num:open})+
+    gauge({lbl:'Blocked Pairs',val:`${blocked} / ${tickets.length}`,
+           sub:'direction = block (no setup)',pct:tickets.length?100*blocked/tickets.length:0,
+           cls:blocked>=tickets.length-1?'fail':blocked>=tickets.length/2?'warn':'ok',num:blocked})+
+    gauge({lbl:'Vol: Extreme',val:`${extreme} / ${tickets.length}`,
+           sub:'pairs in extreme vol regime',pct:tickets.length?100*extreme/tickets.length:0,
+           cls:extreme>0?'warn':'ok',num:extreme})+
+    gauge({lbl:'Wide Spread',val:`${wideSpread} / ${tickets.length}`,
+           sub:'pairs with spread > 3p',pct:tickets.length?100*wideSpread/tickets.length:0,
+           cls:wideSpread>0?'warn':'ok',num:wideSpread});
 }
 
-// ── Positions table ───────────────────────────────────────────────────────────
-function renderPositions(positions, views) {
-  const tbody = document.getElementById('positions-body');
-  const noPos = document.getElementById('no-positions');
-  if (!positions.length) {
-    tbody.innerHTML = '';
-    noPos.style.display = 'block';
-    return;
-  }
-  noPos.style.display = 'none';
-
-  const viewMap = {};
-  views.forEach(v => { viewMap[v.pair] = v; });
-
-  tbody.innerHTML = positions.map(p => {
-    const dirPill = p.direction === 'long'
-      ? '<span class="pill pill-green">▲ LONG</span>'
-      : '<span class="pill pill-red">▼ SHORT</span>';
-    const netC = colorPips(p.net_pips_now);
-    const uplC = colorDollar(p.unrealized_pl);
-    const slStr = p.sl_locked_pips != null
-      ? `<span class="${p.sl_locked_pips >= 0 ? 'pos' : 'neg'}">${fmtPips(p.sl_locked_pips)}</span> @ ${p.sl_price}`
-      : '<span class="muted">not locked</span>';
-
+/* ── Positions table ───────────────────────────────────────────────────── */
+function renderPositions(){
+  const tb=document.getElementById('positions-body');
+  const np=document.getElementById('no-positions');
+  const cnt=document.getElementById('open-count');
+  const maxC=STATE.governance?.account?.max_concurrent_trades||4;
+  const pos=STATE.open_positions||[];
+  cnt.textContent=`${pos.length} / ${maxC}`;
+  if(!pos.length){tb.innerHTML='';np.style.display='block';return}
+  np.style.display='none';
+  tb.innerHTML=pos.map(p=>{
     return `<tr>
-      <td><strong>${p.pair.replace('_','/')}</strong></td>
-      <td>${dirPill}</td>
+      <td><b>${p.pair.replace('_','/')}</b></td>
+      <td>${dirPill(p.direction)}</td>
       <td class="mono">${p.entry}</td>
       <td>${fmtAge(p.elapsed_min)}</td>
-      <td>${slStr}</td>
-      <td class="pos">${fmtPips(p.peak_pips)}</td>
-      <td class="${netC}">${fmtPips(p.net_pips_now)}</td>
-      <td class="${uplC}">${fmtDollar(p.unrealized_pl)}</td>
-      <td>${ratchetLevel(p.sl_locked_pips)}</td>
+      <td>${p.sl_locked_pips!=null?fmtPips(p.sl_locked_pips):'<span class="muted">—</span>'}</td>
+      <td class="mono ${colorPips(p.peak_pips)}">${fmtPips(p.peak_pips)}</td>
+      <td class="mono ${colorPips(p.net_pips_now)}">${fmtPips(p.net_pips_now)}</td>
+      <td class="mono ${colorDollar(p.unrealized_pl)}">${p.unrealized_pl!=null?fmtDollar(p.unrealized_pl):'—'}</td>
+      <td class="mono muted" style="font-size:11px">${p.sl_price!=null?'SL @ '+p.sl_price:'—'}</td>
     </tr>`;
   }).join('');
 }
 
-// ── Events feed ───────────────────────────────────────────────────────────────
-function renderEvents(events) {
-  const feed = document.getElementById('events-feed');
-  if (!events.length) {
-    feed.innerHTML = '<div class="muted" style="padding:12px 10px;font-size:12px">No events yet</div>';
-    return;
-  }
-  feed.innerHTML = events.slice().reverse().slice(0,25).map(e => {
-    let cls = '';
-    if (/ENTER|RECOVER|SIGNAL/i.test(e)) cls = 'ev-entry';
-    else if (/EXIT|CLOSE|STOP/i.test(e)) cls = 'ev-exit';
-    else if (/RATCHET|LOCK/i.test(e)) cls = 'ev-ratchet';
-    return `<div class="event-row ${cls}">${e}</div>`;
+/* ── Events feed ───────────────────────────────────────────────────────── */
+function renderEvents(){
+  const el=document.getElementById('events-feed');
+  const ev=STATE.recent_events||[];
+  const ltt=STATE.last_trade_ticket;
+  const ltTag=document.getElementById('last-trade-tag');
+  if(ltt){
+    ltTag.style.display='inline-block';
+    ltTag.textContent=`last: ${ltt.pair.replace('_','/')}/${ltt.session} ${ltt.direction.toUpperCase()} (${ltt.pick_method||'?'})${ltt.inverted_live?' INV':''}`;
+  } else ltTag.style.display='none';
+  if(!ev.length){el.innerHTML='<div class="muted" style="padding:14px">No recent events</div>';return}
+  el.innerHTML=ev.slice().reverse().map(e=>{
+    const s=String(e); let cls='';
+    if(s.includes('ENTER'))cls='ev-entry';
+    else if(s.includes('EXIT')){
+      cls='ev-exit';
+      if(/approx_net=\+/.test(s))cls+=' win';
+      else if(/approx_net=-/.test(s))cls+=' lose';
+    }
+    else if(s.includes('RATCHET'))cls='ev-ratchet';
+    return `<div class="ev ${cls}">${escape(s)}</div>`;
   }).join('');
 }
 
-// ── Pairs grid ────────────────────────────────────────────────────────────────
-function renderPairs(tickets, views) {
-  const grid = document.getElementById('pairs-grid');
-  if (!tickets.length) {
-    grid.innerHTML = '<div class="muted" style="padding:20px;font-size:12px">No pair data yet — waiting for first cycle</div>';
-    return;
-  }
-
-  const viewMap = {};
-  views.forEach(v => { viewMap[v.pair] = v; });
-
-  // Group by pair (take best session or most recent)
-  const byPair = {};
-  tickets.forEach(t => {
-    if (!byPair[t.pair] || t.timestamp > byPair[t.pair].timestamp) byPair[t.pair] = t;
-  });
-
-  grid.innerHTML = Object.values(byPair).sort((a,b) => b.composite - a.composite).map(t => {
-    const v = viewMap[t.pair] || {};
-    const biasClass = `bias-${t.dir_bias}`;
-    const dirPill = t.dir_bias === 'long'
-      ? '<span class="pill pill-green">▲ LONG</span>'
-      : t.dir_bias === 'short'
-      ? '<span class="pill pill-red">▼ SHORT</span>'
-      : '<span class="pill pill-amber">■ BLOCK</span>';
-    const volPill = `<span class="pill ${volClass(t.vol_regime)}">${t.vol_regime.toUpperCase()}</span>`;
-    const actionPill = t.actionable
-      ? '<span class="pill pill-green">ACTIVE</span>'
-      : '<span class="pill pill-gray">FILTERED</span>';
-
-    // Score bar
-    const scoreW = Math.round(Math.abs(t.dir_score) * 100);
-    const scoreColor = t.dir_score > 0 ? 'var(--green)' : 'var(--red)';
-
-    // Feature chips
-    const rsiClass = v.rsi14 > 70 ? 'rsi-ob' : v.rsi14 < 30 ? 'rsi-os' : '';
-    const spreadClass = v.spread_pips > 2 ? 'spread-hi' : '';
-    const chips = [
-      v.rsi14 != null ? `<span class="fc ${rsiClass}"><span class="fk">RSI</span><span class="fv">${fmt(v.rsi14,1)}</span></span>` : '',
-      v.rsi_slope != null ? `<span class="fc"><span class="fk">RSI△</span><span class="fv">${v.rsi_slope>=0?'+':''}${fmt(v.rsi_slope,2)}</span></span>` : '',
-      v.h1_ret_1bar != null ? `<span class="fc"><span class="fk">H1ret</span><span class="fv">${fmtPips(v.h1_ret_1bar)}</span></span>` : '',
-      v.h1_ret_4bar != null ? `<span class="fc"><span class="fk">4H</span><span class="fv">${fmtPips(v.h1_ret_4bar)}</span></span>` : '',
-      v.adr_consumed != null ? `<span class="fc"><span class="fk">ADR</span><span class="fv">${Math.round(v.adr_consumed*100)}%</span></span>` : '',
-      v.spread_pips != null ? `<span class="fc ${spreadClass}"><span class="fk">spd</span><span class="fv">${fmt(v.spread_pips,1)}p</span></span>` : '',
-      v.htf_pct_20 != null ? `<span class="fc"><span class="fk">H20</span><span class="fv">${fmt(v.htf_pct_20,3)}</span></span>` : '',
+/* ── PAIRS tab ─────────────────────────────────────────────────────────── */
+function chip(k,v,cls=''){return v==null?'':`<span class="fc ${cls}"><span class="fk">${k}</span><span class="fv">${v}</span></span>`}
+function renderPairs(){
+  const g=document.getElementById('pairs-grid');
+  const tickets=STATE.last_tickets||[];
+  if(!tickets.length){g.innerHTML='<div class="muted" style="padding:14px">No cycle data yet</div>';return}
+  const viewMap={};(STATE.last_views||[]).forEach(v=>viewMap[v.pair]=v);
+  const gov=STATE.governance||{};
+  const inv_live=new Set((gov.inverted_live_cells||[]).map(c=>c[0]+'/'+c[1]));
+  const inv_shadow=new Set((gov.inverted_shadow_cells||[]).map(c=>c[0]+'/'+c[1]));
+  const disabled=new Set((gov.disabled_cells||[]).map(c=>c[0]+'/'+c[1]+'/'+c[2]));
+  g.innerHTML=tickets.map(t=>{
+    const v=viewMap[t.pair]||{};
+    const biasCls=t.dir_bias==='long'?'bias-long':t.dir_bias==='short'?'bias-short':'bias-block';
+    const actCls=t.actionable?'actionable':'';
+    const scoreW=Math.min(Math.abs(t.dir_score||0)*100,100);
+    const scoreColor=t.dir_bias==='long'?'var(--long)':t.dir_bias==='short'?'var(--short)':'var(--block)';
+    const isInvLive=inv_live.has(t.pair+'/'+t.session);
+    const isInvShadow=inv_shadow.has(t.pair+'/'+t.session);
+    const isDisabled=disabled.has(t.pair+'/'+t.session+'/'+t.dir_bias);
+    // Per-cell rules check
+    const cellKey3=t.pair+'/'+t.session+'/'+t.dir_bias;
+    const cellKey2=t.pair+'/'+t.session;
+    const rules=[];
+    const mcmax=gov.per_cell_mom_cert_max?.[cellKey2];
+    const mcmin=gov.per_cell_mom_cert_min?.[cellKey2];
+    const wrng=gov.per_cell_willr_range?.[cellKey3];
+    const krng=gov.per_cell_kc_up_range?.[cellKey3];
+    if(mcmax!=null){const ok=t.mom_certainty<=mcmax;rules.push(`<span class="pc-rule ${ok?'pass':'fail'}">mcert≤${mcmax}: ${t.mom_certainty.toFixed(2)} ${ok?'✓':'✗'}</span>`)}
+    if(mcmin!=null){const ok=t.mom_certainty>=mcmin;rules.push(`<span class="pc-rule ${ok?'pass':'fail'}">mcert≥${mcmin}: ${t.mom_certainty.toFixed(2)} ${ok?'✓':'✗'}</span>`)}
+    if(wrng&&v.willr_m5!=null){const ok=v.willr_m5>=wrng[0]&&v.willr_m5<=wrng[1];rules.push(`<span class="pc-rule ${ok?'pass':'fail'}">willr∈[${wrng[0]},${wrng[1]}]: ${v.willr_m5.toFixed(1)} ${ok?'✓':'✗'}</span>`)}
+    if(krng&&v.kc_up_dist_pips!=null){const ok=v.kc_up_dist_pips>=krng[0]&&v.kc_up_dist_pips<=krng[1];rules.push(`<span class="pc-rule ${ok?'pass':'fail'}">kc_up∈[${krng[0]},${krng[1]}]: ${v.kc_up_dist_pips.toFixed(2)} ${ok?'✓':'✗'}</span>`)}
+    if(isInvLive)rules.push('<span class="pc-rule" style="background:rgba(168,85,247,.1);color:var(--inverted);border-color:rgba(168,85,247,.3)">INVERTED-LIVE</span>');
+    if(isInvShadow)rules.push('<span class="pc-rule" style="background:rgba(100,116,139,.15);color:var(--shadow);border-color:rgba(100,116,139,.3)">SHADOW</span>');
+    if(isDisabled)rules.push('<span class="pc-rule" style="background:rgba(107,114,128,.15);color:var(--fg3)">DISABLED</span>');
+    // Full chip set
+    const chips=[
+      v.rsi14!=null?chip('RSI',fmt(v.rsi14,1),v.rsi14>70?'hot':v.rsi14<30?'cool':''):''
+      ,v.h1_ret_1bar!=null?chip('H1r',fmtPips(v.h1_ret_1bar),colorPips(v.h1_ret_1bar)):''
+      ,v.h1_ret_4bar!=null?chip('4H',fmtPips(v.h1_ret_4bar),colorPips(v.h1_ret_4bar)):''
+      ,v.adr_consumed!=null?chip('ADR',Math.round(v.adr_consumed*100)+'%'):''
+      ,v.spread_pips!=null?chip('spd',fmt(v.spread_pips,1)+'p',v.spread_pips>3?'hot':''):''
+      ,v.close_pos_daily!=null?chip('cpos',fmt(v.close_pos_daily,2)):''
+      ,v.willr_m5!=null?chip('willr',fmt(v.willr_m5,1)):''
+      ,v.aroonosc_h1!=null?chip('aroon',fmt(v.aroonosc_h1,1)):''
+      ,v.kc_up_dist_pips!=null?chip('kc_up',fmt(v.kc_up_dist_pips,2)):''
+      ,v.efi!=null?chip('efi',fmt(v.efi,2)):''
+      ,v.vortex_diff_h1!=null?chip('vortex',fmt(v.vortex_diff_h1,3),v.vortex_diff_h1>0?'pos':'neg'):''
+      ,v.atr_h1_relative!=null?chip('atrH1rel',fmt(v.atr_h1_relative,2)):''
+      ,v.atr_conc!=null?chip('atr_conc',fmt(v.atr_conc,2)):''
+      ,v.htf_pct_20!=null?chip('H20',fmt(v.htf_pct_20,2)):''
+      ,v.rvol_5bar!=null?chip('rvol5',fmt(v.rvol_5bar,2)):''
     ].filter(Boolean).join('');
-
-    return `<div class="pair-card ${biasClass}">
-      <div class="pair-name">${t.pair.replace('_','/')}</div>
-      <div class="pair-sub">${t.session.toUpperCase()} session · ${actionPill}</div>
-      <div class="pair-row">
-        <span class="pair-lbl">Direction</span>
-        ${dirPill}
-        <span style="font-size:11px;color:var(--fg2)">score ${t.dir_score >= 0 ? '+' : ''}${fmt(t.dir_score,3)}</span>
+    const actPill = t.actionable
+      ? '<span class="pill pill-pass">ACTIONABLE</span>'
+      : '<span class="pill pill-block">blocked</span>';
+    return `<div class="pair-card ${biasCls} ${actCls}">
+      <div class="pc-head">
+        <div class="pc-name">${t.pair.replace('_','/')}</div>
+        <div class="pc-sess">${t.session.toUpperCase()}</div>
+        <div class="pc-actpill">${actPill}</div>
       </div>
-      <div style="margin:5px 0 2px;background:var(--bg3);border-radius:3px;height:4px;overflow:hidden">
-        <div style="width:${scoreW}%;height:100%;background:${scoreColor};border-radius:3px"></div>
+      <div class="pc-row"><span class="pc-lbl">Dir</span>${dirPill(t.dir_bias)}<span class="muted mono" style="font-size:11px">${(t.dir_score>=0?'+':'')+fmt(t.dir_score,3)}</span></div>
+      <div class="pc-score-bar"><div class="pc-score-fill" style="width:${scoreW}%;background:${scoreColor}"></div></div>
+      <div class="pc-row"><span class="pc-lbl">Cert</span><span class="mono">${Math.round(t.dir_certainty*100)}% dir · ${Math.round(t.mom_certainty*100)}% mom</span></div>
+      <div class="pc-row"><span class="pc-lbl">Vol</span>${volPill(t.vol_regime)}<span class="muted mono" style="font-size:11px">~${fmt(t.expected_pips,1)}p exp</span></div>
+      <div class="pc-profiles">
+        L:<b>${t.long_profile||'?'}</b> · S:<b>${t.short_profile||'?'}</b> · M:<b>${t.mom_profile||'?'}</b>
+        ${t.active_side?`<br><span class="muted">active: ${(t.active_side||'').replace('_profile','')} · gates ${t.gates_passed===true?'<span class="pos">✓</span>':t.gates_passed===false?'<span class="neg">✗</span>':'—'}${t.cert_boost?' · boost '+t.cert_boost+'×':''}</span>`:''}
       </div>
-      <div class="pair-row">
-        <span class="pair-lbl">Certainty</span>
-        <span>${Math.round(t.dir_certainty*100)}% dir · ${Math.round(t.mom_certainty*100)}% mom</span>
-      </div>
-      <div class="pair-row">
-        <span class="pair-lbl">Vol</span>
-        ${volPill}
-        <span style="font-size:11px;color:var(--fg2)">~${fmt(t.expected_pips,1)}p expected</span>
-      </div>
-      <div class="pair-row" title="Direction module v2: each cell holds a long-side weight profile and a short-side weight profile; whichever yields the stronger |score| wins.">
-        <span class="pair-lbl">Dir prof</span>
-        <span style="font-size:11px;color:var(--fg2)">
-          L:<b style="color:var(--fg)">${t.long_profile||'?'}</b> · S:<b style="color:var(--fg)">${t.short_profile||'?'}</b>
-          ${t.active_side ? `<span style="color:var(--fg2)"> · active ${(t.active_side||'').replace('_profile','')}</span>` : ''}
-        </span>
-      </div>
-      <div class="pair-row" title="Momentum module v3: per-(pair×session×direction) profile. Gates check rvol/atr/h1_ret/adr per profile spec. gates✗ → certainty=0 → playmaker rejects.">
-        <span class="pair-lbl">Mom prof</span>
-        <span style="font-size:11px">
-          <b style="color:var(--fg)">${t.mom_profile||'?'}</b>
-          · gates <span style="color:${t.gates_passed?'var(--green)':'var(--red)'};font-weight:600">${t.gates_passed===true?'✓':t.gates_passed===false?'✗':'—'}</span>
-          ${t.cert_boost ? `<span style="color:var(--fg2)"> · boost ${t.cert_boost}×</span>` : ''}
-        </span>
-      </div>
-      ${chips ? `<div class="feat-row">${chips}</div>` : ''}
+      ${rules.length?`<div class="pc-rules">${rules.join('')}</div>`:''}
+      ${chips?`<div class="pc-chips">${chips}</div>`:''}
     </div>`;
   }).join('');
 }
 
-// ── Health tab ────────────────────────────────────────────────────────────────
-function renderHealth(s) {
-  const eng = document.getElementById('health-engine');
-  const ago = s.last_cycle_time ? Math.round((Date.now() - new Date(s.last_cycle_time))/60000) : null;
-  eng.innerHTML = `<table>
-    <tr><td width="160">Mode</td><td>${s.dry_run ? '<span class="pill pill-amber">DRY RUN</span>' : '<span class="pill pill-green">LIVE</span>'}</td></tr>
-    <tr><td>Cycle count</td><td>${s.cycle_count}</td></tr>
-    <tr><td>Last cycle</td><td>${s.last_cycle_time ? new Date(s.last_cycle_time).toISOString().replace('T',' ').slice(0,19) + ' UTC (' + (ago < 1 ? '<1' : ago) + 'm ago)' : '—'}</td></tr>
-    <tr><td>Open positions</td><td>${(s.open_positions||[]).length}</td></tr>
-    <tr><td>Pairs stamped</td><td>${(s.last_tickets||[]).length}</td></tr>
-    <tr><td>Server time</td><td>${s.server_time ? new Date(s.server_time).toISOString().replace('T',' ').slice(0,19) + ' UTC' : '—'}</td></tr>
-  </table>`;
-
-  // Per-pair health
-  const pairs = document.getElementById('health-pairs');
-  if (!(s.last_tickets||[]).length) {
-    pairs.innerHTML = '<div class="muted" style="padding:12px;font-size:12px">No cycle data yet</div>';
-    return;
+/* ── CELLS tab (per-cell governance grid) ──────────────────────────────── */
+function renderCells(){
+  const g=document.getElementById('cells-grid');
+  if(!STATE.governance){g.innerHTML='<div class="muted" style="padding:14px">No governance data</div>';return}
+  const gov=STATE.governance;
+  const inv_live=new Set((gov.inverted_live_cells||[]).map(c=>c.join('/')));
+  const inv_shadow=new Set((gov.inverted_shadow_cells||[]).map(c=>c.join('/')));
+  const disabled=new Set((gov.disabled_cells||[]).map(c=>c.join('/')));
+  const tickets={};(STATE.last_tickets||[]).forEach(t=>tickets[t.pair+'/'+t.session]=t);
+  const views={};(STATE.last_views||[]).forEach(v=>views[v.pair]=v);
+  const cur=currentSession();
+  const all=[];
+  for(const p of PAIRS_ALL){
+    for(const s of (PAIR_SESSIONS[p]||[])){
+      for(const d of ['long','short']){
+        all.push({pair:p,session:s,dir:d});
+      }
+    }
   }
-  const viewMap = {};
-  (s.last_views||[]).forEach(v => { viewMap[v.pair] = v; });
-  pairs.innerHTML = (s.last_tickets||[]).map(t => {
-    const v = viewMap[t.pair] || {};
-    const bidStr = v.bid != null ? `bid ${v.bid} / ask ${v.ask}` : '—';
-    return `<div class="health-card">
-      <div class="health-name">${t.pair.replace('_','/')} <span class="muted" style="font-weight:400">${t.session}</span></div>
-      <div class="health-det">${bidStr}</div>
-      <div class="health-det">${t.dir_bias.toUpperCase()} ${fmtPips(t.dir_score*10)} · ${t.vol_regime}</div>
+  g.innerHTML=all.map(c=>{
+    const k3=c.pair+'/'+c.session+'/'+c.dir;
+    const k2=c.pair+'/'+c.session;
+    const isDisabled=disabled.has(k3);
+    const isInvLive=inv_live.has(k2);
+    const isInvShadow=inv_shadow.has(k2)&&!isInvLive;
+    const inSession=c.session===cur;
+    const t=tickets[k2]; // ticket for this pair+session (whichever direction won that cycle)
+    const v=views[c.pair];
+    // Rules
+    const rules=[];
+    const mcmax=gov.per_cell_mom_cert_max?.[k2];
+    const mcmin=gov.per_cell_mom_cert_min?.[k2];
+    const wrng=gov.per_cell_willr_range?.[k3];
+    const krng=gov.per_cell_kc_up_range?.[k3];
+    let allPass=true;
+    if(mcmax!=null){
+      const cur=t?.mom_certainty;
+      const ok=cur!=null&&cur<=mcmax;
+      if(!ok)allPass=false;
+      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">mcert ≤ ${mcmax}</span><span>${cur!=null?cur.toFixed(2):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+    }
+    if(mcmin!=null){
+      const cur=t?.mom_certainty;
+      const ok=cur!=null&&cur>=mcmin;
+      if(!ok)allPass=false;
+      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">mcert ≥ ${mcmin}</span><span>${cur!=null?cur.toFixed(2):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+    }
+    if(wrng){
+      const cur=v?.willr_m5;
+      const ok=cur!=null&&cur>=wrng[0]&&cur<=wrng[1];
+      if(!ok)allPass=false;
+      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">willr ∈ [${wrng[0]}, ${wrng[1]}]</span><span>${cur!=null?cur.toFixed(1):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+    }
+    if(krng){
+      const cur=v?.kc_up_dist_pips;
+      const ok=cur!=null&&cur>=krng[0]&&cur<=krng[1];
+      if(!ok)allPass=false;
+      rules.push(`<div class="cr ${cur==null?'':ok?'pass':'fail'}"><span class="cr-name">kc_up ∈ [${krng[0]}, ${krng[1]}]</span><span>${cur!=null?cur.toFixed(2):'—'} ${cur==null?'':ok?'✓':'✗'}</span></div>`);
+    }
+    // Status badge
+    let badge='';
+    let cellCls='';
+    if(isDisabled){badge='<span class="pill pill-block">DISABLED</span>';cellCls='disabled'}
+    else if(isInvLive){badge='<span class="pill pill-inverted">INVERTED</span>'}
+    else if(isInvShadow){badge='<span class="pill pill-shadow">SHADOW</span>'}
+    else badge='<span class="pill pill-info" style="opacity:.6">active</span>';
+    if(!isDisabled&&!inSession)cellCls+=' inactive-session';
+    // Ready indicator: in-session, not disabled, ticket actionable, dir matches, all rules pass
+    const tickerOk=t&&t.actionable&&t.dir_bias===c.dir;
+    if(tickerOk&&inSession&&!isDisabled&&allPass){
+      cellCls+=' ready';
+      badge=`<span class="pill pill-pass">READY ${isInvLive?'(inv)':''}</span>`;
+    }
+    return `<div class="cell ${cellCls}">
+      <div class="cell-head">
+        <div class="cell-name">${c.pair.replace('_','/')}</div>
+        <div class="cell-dir ${c.dir}">${c.session}/${c.dir}</div>
+        <div class="cell-status">${badge}</div>
+      </div>
+      ${rules.length?`<div class="cell-rules">${rules.join('')}</div>`:`<div class="cell-meta" style="font-size:10.5px"><span class="muted">no per-cell rules</span></div>`}
+      <div class="cell-meta">
+        ${t?`${t.dir_bias.toUpperCase()} score ${(t.dir_score>=0?'+':'')+t.dir_score.toFixed(3)} · dcert ${Math.round(t.dir_certainty*100)}% · mcert ${Math.round(t.mom_certainty*100)}%`:'<span class="muted">no ticket this cycle</span>'}
+      </div>
     </div>`;
   }).join('');
 }
 
-// ── Sysinfo (SYSTEM tab) ──────────────────────────────────────────────────────
-function renderSysinfo(d) {
-  const sys = d.system || {};
-  const metrics = document.getElementById('sys-metrics');
-  function barColor(pct) { return pct > 80 ? 'bar-red' : pct > 60 ? 'bar-amber' : 'bar-green'; }
-  metrics.innerHTML = [
-    {lbl:'CPU', val:`${sys.cpu_pct||0}%`, sub:`load ${sys.load_1||0} · ${sys.cpu_count||0} cores`, pct:sys.cpu_pct||0},
-    {lbl:'RAM', val:`${sys.ram_pct||0}%`, sub:`${sys.ram_used_gb||0} / ${sys.ram_total_gb||0} GB`, pct:sys.ram_pct||0},
-    {lbl:'Disk', val:`${sys.disk_pct||0}%`, sub:`${sys.disk_used_gb||0} / ${sys.disk_total_gb||0} GB`, pct:sys.disk_pct||0},
-    {lbl:'Uptime', val:sys.uptime||'—', sub:sys.hostname||'—', pct:0},
-  ].map(m => `<div class="sys-m">
-    <div class="lbl">${m.lbl}</div>
-    <div class="val">${m.val}</div>
-    <div class="sub">${m.sub}</div>
-    ${m.pct ? `<div class="bar-bg"><div class="bar-fill ${barColor(m.pct)}" style="width:${m.pct}%"></div></div>` : ''}
-  </div>`).join('');
-
-  // Services table
-  const svcs = document.getElementById('svc-body');
-  svcs.innerHTML = (d.services||[]).map(s => {
-    const ok = s.active === 'active';
-    const dot = ok ? 'dot-green' : s.active === 'failed' ? 'dot-red' : 'dot-amber';
-    return `<tr>
-      <td><span class="dot ${dot}"></span>${s.name}</td>
-      <td><span class="pill ${ok ? 'pill-green' : 'pill-red'}">${s.active}/${s.sub}</span></td>
-      <td class="mono muted">${s.pid||'—'}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="3" class="muted">No services found</td></tr>';
-
-  // Log
-  const logBox = document.getElementById('log-box');
-  logBox.innerHTML = (d.logs||[]).map(l => {
-    let cls = '';
-    if (/ERROR|CRITICAL/i.test(l)) cls = 'log-err';
-    else if (/WARN/i.test(l)) cls = 'log-warn';
-    else if (/RATCHET|LOCK/i.test(l)) cls = 'log-ratchet';
-    else if (/ENTER|RECOVER|PLACED/i.test(l)) cls = 'log-entry';
-    else if (/EXIT|CLOSE|STOP/i.test(l)) cls = 'log-exit';
-    return `<span class="${cls}">${l.replace(/</g,'&lt;')}</span>\n`;
+/* ── INDICATORS tab ────────────────────────────────────────────────────── */
+function indRow(k,v){return `<div class="ind-row"><span class="ik">${k}</span><span class="iv">${v}</span></div>`}
+function renderIndicators(){
+  const el=document.getElementById('ind-grid');
+  const tickets={};(STATE.last_tickets||[]).forEach(t=>tickets[t.pair]=t);
+  const views=STATE.last_views||[];
+  if(!views.length){el.innerHTML='<div class="muted" style="padding:14px">No view data</div>';return}
+  el.innerHTML=views.map(v=>{
+    const t=tickets[v.pair]||{};
+    return `<div class="ind-card">
+      <div class="ind-card-head">
+        <div class="ind-pair">${v.pair.replace('_','/')} <span class="muted" style="font-size:11px;font-weight:500">${v.session}</span></div>
+        <div class="ind-vols">
+          ${t.dir_bias?dirPill(t.dir_bias):''}
+          ${t.vol_regime?volPill(t.vol_regime):''}
+        </div>
+      </div>
+      <div class="ind-rows">
+        ${indRow('bid/ask',(v.bid||'—')+' / '+(v.ask||'—'))}
+        ${indRow('spread',v.spread_pips!=null?v.spread_pips.toFixed(1)+'p':'—')}
+        ${indRow('rsi14_h1',v.rsi14!=null?v.rsi14.toFixed(1):'—')}
+        ${indRow('rsi_slope',v.rsi_slope!=null?v.rsi_slope.toFixed(2):'—')}
+        ${indRow('h1_ret_1bar',v.h1_ret_1bar!=null?fmtPips(v.h1_ret_1bar):'—')}
+        ${indRow('h1_ret_4bar',v.h1_ret_4bar!=null?fmtPips(v.h1_ret_4bar):'—')}
+        ${indRow('close_pos_d',v.close_pos_daily!=null?v.close_pos_daily.toFixed(3):'—')}
+        ${indRow('adr_consumed',v.adr_consumed!=null?Math.round(v.adr_consumed*100)+'%':'—')}
+        ${indRow('willr_m5',v.willr_m5!=null?v.willr_m5.toFixed(1):'—')}
+        ${indRow('aroonosc_h1',v.aroonosc_h1!=null?v.aroonosc_h1.toFixed(1):'—')}
+        ${indRow('kc_up_dist',v.kc_up_dist_pips!=null?v.kc_up_dist_pips.toFixed(2)+'p':'—')}
+        ${indRow('efi',v.efi!=null?v.efi.toFixed(3):'—')}
+        ${indRow('vortex_diff',v.vortex_diff_h1!=null?(v.vortex_diff_h1>=0?'+':'')+v.vortex_diff_h1.toFixed(3):'—')}
+        ${indRow('atr_5m',v.atr_5m!=null?v.atr_5m.toFixed(2)+'p':'—')}
+        ${indRow('atr_1h',v.atr_1h!=null?v.atr_1h.toFixed(1)+'p':'—')}
+        ${indRow('atr_h1_rel',v.atr_h1_relative!=null?v.atr_h1_relative.toFixed(2):'—')}
+        ${indRow('atr_conc',v.atr_conc!=null?v.atr_conc.toFixed(2):'—')}
+        ${indRow('rvol_5bar',v.rvol_5bar!=null?v.rvol_5bar.toFixed(2):'—')}
+        ${indRow('trend_4h',v.trend_4h!=null?(v.trend_4h>0?'↑':v.trend_4h<0?'↓':'—'):'—')}
+      </div>
+    </div>`;
   }).join('');
-  logBox.scrollTop = logBox.scrollHeight;
 }
+
+/* ── HEALTH tab ────────────────────────────────────────────────────────── */
+function renderHealth(){
+  const eng=document.getElementById('health-engine');
+  const ago=STATE.last_cycle_time?Math.round((Date.now()-new Date(STATE.last_cycle_time))/60000):null;
+  const ltt=STATE.last_trade_ticket;
+  eng.innerHTML=`<table>
+    <tr><td width="180">Mode</td><td>${STATE.dry_run?'<span class="pill pill-warn">DRY RUN</span>':'<span class="pill pill-pass">LIVE</span>'}</td></tr>
+    <tr><td>Cycle count</td><td class="mono">${STATE.cycle_count}</td></tr>
+    <tr><td>Last cycle</td><td class="mono">${STATE.last_cycle_time?new Date(STATE.last_cycle_time).toISOString().replace('T',' ').slice(0,19)+' UTC ('+(ago<1?'<1':ago)+'m ago)':'—'}</td></tr>
+    <tr><td>Scan interval</td><td class="mono">${STATE.engine?.scan_interval_seconds||300}s</td></tr>
+    <tr><td>Manage interval</td><td class="mono">${STATE.engine?.manage_interval_seconds||5}s</td></tr>
+    <tr><td>Pick method</td><td>${STATE.governance?.random_pick?'<span class="pill pill-info">RANDOM</span>':'<span class="pill pill-pass">edge_rank</span>'}</td></tr>
+    <tr><td>Open positions</td><td class="mono">${(STATE.open_positions||[]).length}</td></tr>
+    <tr><td>Pairs stamped</td><td class="mono">${(STATE.last_tickets||[]).length}</td></tr>
+    <tr><td>Last trade fired</td><td class="mono">${ltt?`${ltt.pair}/${ltt.session} ${ltt.direction} (${ltt.pick_method})${ltt.inverted_live?' INV':''}`:'<span class="muted">—</span>'}</td></tr>
+    <tr><td>Server time</td><td class="mono">${STATE.server_time?new Date(STATE.server_time).toISOString().replace('T',' ').slice(0,19)+' UTC':'—'}</td></tr>
+  </table>`;
+  const pairs=document.getElementById('health-pairs');
+  if(!(STATE.last_tickets||[]).length){pairs.innerHTML='<div class="muted" style="padding:12px;font-size:12px">No cycle data yet</div>';return}
+  const viewMap={};(STATE.last_views||[]).forEach(v=>viewMap[v.pair]=v);
+  pairs.innerHTML=(STATE.last_tickets||[]).map(t=>{
+    const v=viewMap[t.pair]||{};
+    return `<div class="hcard">
+      <div class="hcard-name">${t.pair.replace('_','/')} <span class="muted" style="font-weight:400">${t.session}</span></div>
+      <div class="hcard-det">${v.bid!=null?'bid '+v.bid+' / ask '+v.ask:'—'}</div>
+      <div class="hcard-det">${t.dir_bias.toUpperCase()} score ${(t.dir_score>=0?'+':'')+t.dir_score.toFixed(3)} · ${t.vol_regime}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── PM governance read-only display ───────────────────────────────────── */
+function renderPMGovernance(){
+  const el=document.getElementById('pm-governance');
+  if(!STATE.governance){el.innerHTML='<div class="muted">no data</div>';return}
+  const g=STATE.governance;
+  const fmt=(o,empty='—')=>{
+    if(!o||Object.keys(o).length===0)return `<span class="muted">${empty}</span>`;
+    return Object.entries(o).map(([k,v])=>`<span class="fc"><span class="fk">${k}</span><span class="fv">${Array.isArray(v)?'['+v.join(', ')+']':v}</span></span>`).join(' ');
+  };
+  const list=(arr,empty='—')=>{
+    if(!arr||!arr.length)return `<span class="muted">${empty}</span>`;
+    return arr.map(c=>`<span class="fc"><span class="fv">${c.join('/')}</span></span>`).join(' ');
+  };
+  el.innerHTML=`
+    <table>
+      <tr><td width="200" valign="top"><b>random_pick</b></td><td>${g.random_pick?'<span class="pill pill-info">TRUE</span>':'<span class="pill pill-block">false</span>'}</td></tr>
+      <tr><td valign="top"><b>disabled_cells</b> (${(g.disabled_cells||[]).length})</td><td>${list(g.disabled_cells,'none')}</td></tr>
+      <tr><td valign="top"><b>inverted_live_cells</b> (${(g.inverted_live_cells||[]).length})</td><td>${list(g.inverted_live_cells,'none')}</td></tr>
+      <tr><td valign="top"><b>inverted_shadow_cells</b> (${(g.inverted_shadow_cells||[]).length})</td><td>${list(g.inverted_shadow_cells,'none')}</td></tr>
+      <tr><td valign="top"><b>per_cell_mom_cert_max</b></td><td>${fmt(g.per_cell_mom_cert_max)}</td></tr>
+      <tr><td valign="top"><b>per_cell_mom_cert_min</b></td><td>${fmt(g.per_cell_mom_cert_min)}</td></tr>
+      <tr><td valign="top"><b>per_cell_willr_range</b></td><td>${fmt(g.per_cell_willr_range)}</td></tr>
+      <tr><td valign="top"><b>per_cell_kc_up_range</b></td><td>${fmt(g.per_cell_kc_up_range)}</td></tr>
+    </table>`;
+}
+
+/* ── Sysinfo (SYSTEM tab) ──────────────────────────────────────────────── */
+function renderSysinfo(){
+  if(!SYSINFO)return;
+  const sys=SYSINFO.system||{};
+  const m=document.getElementById('sys-metrics');
+  const barColor=p=>p>80?'bar-red':p>60?'bar-amber':'bar-green';
+  m.innerHTML=[
+    {lbl:'CPU',val:`${sys.cpu_pct||0}%`,sub:`load ${sys.load_1||0} · ${sys.cpu_count||0} cores`,pct:sys.cpu_pct||0},
+    {lbl:'RAM',val:`${sys.ram_pct||0}%`,sub:`${sys.ram_used_gb||0} / ${sys.ram_total_gb||0} GB`,pct:sys.ram_pct||0},
+    {lbl:'Disk',val:`${sys.disk_pct||0}%`,sub:`${sys.disk_used_gb||0} / ${sys.disk_total_gb||0} GB`,pct:sys.disk_pct||0},
+    {lbl:'Uptime',val:sys.uptime||'—',sub:sys.hostname||'—',pct:0},
+  ].map(x=>`<div class="sys-m"><div class="lbl">${x.lbl}</div><div class="val">${x.val}</div><div class="sub">${x.sub}</div>${x.pct>0?`<div class="bar-bg"><div class="bar-fill ${barColor(x.pct)}" style="width:${x.pct}%"></div></div>`:''}</div>`).join('');
+  const svc=document.getElementById('svc-body');
+  svc.innerHTML=(SYSINFO.services||[]).map(s=>{
+    const st=s.status||'—';
+    const stcls=st==='running'?'pill-pass':st==='dead'||st==='failed'?'pill-fail':'pill-block';
+    return `<tr><td>${s.name}</td><td><span class="pill ${stcls}">${st}</span></td><td class="mono">${s.pid||'—'}</td></tr>`;
+  }).join('');
+  const log=document.getElementById('log-box');
+  log.innerHTML=(SYSINFO.log||[]).map(l=>{
+    let cls='';
+    if(/error|exception/i.test(l))cls='log-err';
+    else if(/warn/i.test(l))cls='log-warn';
+    else if(/RATCHET/i.test(l))cls='log-ratchet';
+    else if(/ENTERED/i.test(l))cls='log-entry';
+    else if(/EXIT/i.test(l))cls='log-exit';
+    return `<div class="${cls}">${escape(l)}</div>`;
+  }).join('');
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+ * TUNE tab — preserved from prior version
+ * ═════════════════════════════════════════════════════════════════════════ */
+let TUNE_META=null;
+async function loadTune(){const r=await fetch('/api/config/exit');const d=await r.json();TUNE_META=d;renderTune();document.getElementById('tune-msg').textContent=''}
+function _inp(val,ph,w='70px'){const v=(val==null)?'':val;return `<input type="number" step="0.01" value="${v}" placeholder="${ph}" style="width:${w};background:var(--bg0);color:var(--fg1);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:right">`}
+function _row(scope,eff,override,isDef){
+  const f=TUNE_META.fields;
+  const cell=(k,ph='')=>`<td>${_inp(override?override[k]:'',isDef?fmt(eff[k],1):'inherit '+fmt(eff[k],1),'78px')}</td>`;
+  const tp1_lock=fmt((eff.step_trigger_pips||0)-(eff.step_trail_pips||0),1);
+  const tp2_lock=fmt((eff.step_trigger_pips||0)+(eff.step_size_pips||0)-(eff.step_trail_pips||0),1);
+  return `<tr data-scope="${scope}">
+    <td><b>${isDef?'DEFAULT':scope.replace('_','/')}</b></td>
+    ${cell('initial_sl_pips')}${cell('step_trigger_pips')}${cell('step_trail_pips')}${cell('step_size_pips')}
+    ${cell('step_engage_min')}${cell('step_cadence_min')}
+    <td class="muted mono" style="font-size:11px">${tp1_lock}p / ${tp2_lock}p</td>
+    <td>${isDef?'':`<button class="secondary" style="padding:3px 8px;font-size:11px" onclick="clearPairOverride('${scope}')">clear</button>`}</td>
+  </tr>`;
+}
+function renderTune(){
+  if(!TUNE_META)return;
+  const body=document.getElementById('tune-body');
+  const defaults=TUNE_META.cfg.defaults||{};
+  const per=TUNE_META.cfg.per_pair||{};
+  let rows=[_row('DEFAULT',defaults,defaults,true)];
+  for(const p of TUNE_META.pairs){const ov=per[p]||null;const eff={...defaults,...(ov||{})};rows.push(_row(p,eff,ov,false))}
+  body.innerHTML=rows.join('');
+  renderTuneTP(defaults,per,TUNE_META.pairs);
+}
+function clearPairOverride(p){document.querySelector(`#tune-body tr[data-scope="${p}"]`).querySelectorAll('input').forEach(i=>i.value='')}
+function _collectRow(row){
+  const out={};
+  row.querySelectorAll('input').forEach((inp,i)=>{
+    const keys=['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min'];
+    if(inp.value!==''&&keys[i])out[keys[i]]=Number(inp.value);
+  });
+  return out;
+}
+function _chk(c){return `<input type="checkbox" ${c?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--info)">`}
+function _tpRow(scope,eff,override,isDef){
+  const cell=(k,t='number',ph='',w='62px')=>{
+    if(t==='bool')return `<td>${_chk(override?override[k]:eff[k])}</td>`;
+    return `<td>${_inp(override?override[k]:'',isDef?fmt(eff[k],1):'inherit '+fmt(eff[k],1),w)}</td>`;
+  };
+  return `<tr data-scope="${scope}">
+    <td><b>${isDef?'DEFAULT':scope.replace('_','/')}</b></td>
+    ${cell('tp1_enabled','bool')}${cell('tp1_at_pips')}${cell('tp1_close_pct')}${cell('tp1_lock_pips')}
+    ${cell('tp2_enabled','bool')}${cell('tp2_at_pips')}${cell('tp2_close_pct')}
+    <td>${isDef?'':`<button class="secondary" style="padding:3px 8px;font-size:11px" onclick="clearPairOverrideTP('${scope}')">clear</button>`}</td>
+  </tr>`;
+}
+function renderTuneTP(defaults,per,pairs){
+  const body=document.getElementById('tune-tp-body');
+  let rows=[_tpRow('DEFAULT',defaults,defaults,true)];
+  for(const p of pairs){const ov=per[p]||null;const eff={...defaults,...(ov||{})};rows.push(_tpRow(p,eff,ov,false))}
+  body.innerHTML=rows.join('');
+}
+function clearPairOverrideTP(p){document.querySelector(`#tune-tp-body tr[data-scope="${p}"]`).querySelectorAll('input[type=number]').forEach(i=>i.value='')}
+function _collectTPRow(row,isDef){
+  const out={};
+  const inputs=Array.from(row.querySelectorAll('input'));
+  const keys=['tp1_enabled','tp1_at_pips','tp1_close_pct','tp1_lock_pips','tp2_enabled','tp2_at_pips','tp2_close_pct'];
+  inputs.forEach((inp,i)=>{
+    if(!keys[i])return;
+    if(inp.type==='checkbox')out[keys[i]]=inp.checked;
+    else if(inp.value!=='')out[keys[i]]=Number(inp.value);
+  });
+  return out;
+}
+async function saveTune(){
+  const msg=document.getElementById('tune-msg');
+  msg.textContent='Saving…';
+  const defaults={};const per_pair={};
+  const tbody=document.getElementById('tune-body');
+  Array.from(tbody.querySelectorAll('tr')).forEach(row=>{
+    const scope=row.dataset.scope;const collected=_collectRow(row);
+    if(scope==='DEFAULT'){
+      Array.from(row.querySelectorAll('input')).forEach((inp,i)=>{
+        const keys=['initial_sl_pips','step_trigger_pips','step_trail_pips','step_size_pips','step_engage_min','step_cadence_min'];
+        if(keys[i]&&inp.value!=='')defaults[keys[i]]=Number(inp.value);
+      });
+    } else if(Object.keys(collected).length){per_pair[scope]=collected}
+  });
+  // TP rows
+  const tpbody=document.getElementById('tune-tp-body');
+  Array.from(tpbody.querySelectorAll('tr')).forEach(row=>{
+    const scope=row.dataset.scope;const isDef=scope==='DEFAULT';
+    const collected=_collectTPRow(row,isDef);
+    if(isDef){Object.assign(defaults,collected)}
+    else if(Object.keys(collected).length){per_pair[scope]={...(per_pair[scope]||{}),...collected}}
+  });
+  const body={schema:'v2',defaults,per_pair};
+  try{
+    const r=await fetch('/api/config/exit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    msg.innerHTML=d.ok?'<span class="pos">Saved.</span>':`<span class="neg">Error: ${escape(d.error||'unknown')}</span>`;
+  }catch(e){msg.innerHTML=`<span class="neg">Error: ${e.message}</span>`}
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+ * PLAYMAKER tab — preserved
+ * ═════════════════════════════════════════════════════════════════════════ */
+let PM_META=null;
+async function loadPlaymaker(){const r=await fetch('/api/config/playmaker');const d=await r.json();PM_META=d;renderPlaymaker();document.getElementById('pm-msg').textContent=''}
+function _pmInp(val,ph,w='70px'){const v=(val==null)?'':val;return `<input type="number" step="0.01" value="${v}" placeholder="${ph}" style="width:${w};background:var(--bg0);color:var(--fg1);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:right">`}
+function _pmBoolCell(val){return `<input type="checkbox" ${val?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--info)">`}
+function _pmRow(scope,eff,override,isDef){
+  const cell=(k,t='number',w='80px')=>{
+    if(t==='bool')return `<td>${_pmBoolCell(override?override[k]:eff[k])}</td>`;
+    return `<td>${_pmInp(override?override[k]:'',isDef?fmt(eff[k],3):'inherit '+fmt(eff[k],3),w)}</td>`;
+  };
+  return `<tr data-scope="${scope}">
+    <td><b>${isDef?'DEFAULT':scope.replace('_','/')}</b></td>
+    ${cell('enabled','bool')}${cell('min_direction_score')}${cell('min_dir_certainty')}${cell('min_mom_certainty')}
+    ${cell('cooldown_after_sl_min')}
+    <td>${isDef?'':`<button class="secondary" style="padding:3px 8px;font-size:11px" onclick="clearPmOverride('${scope}')">clear</button>`}</td>
+  </tr>`;
+}
+function _updatePmRiskMath(){
+  const risk=Number(document.getElementById('pm-risk').value)||0;
+  const maxc=Number(document.getElementById('pm-maxc').value)||0;
+  const m=document.getElementById('pm-risk-math');
+  m.textContent=risk&&maxc?`= ${Math.round(risk*100)}% margin × ${maxc} concurrent = ${Math.round(risk*maxc*100)}% max exposure`:'';
+  const w=document.getElementById('pm-risk-warn');
+  if(risk>0.10)w.innerHTML='<span class="warn">⚠ margin per trade ≥ 10% — aggressive</span>';
+  else w.innerHTML='';
+}
+function renderPlaymaker(){
+  if(!PM_META)return;
+  const body=document.getElementById('pm-body');
+  const defaults=PM_META.cfg.defaults||{};
+  const per=PM_META.cfg.per_pair||{};
+  let rows=[_pmRow('DEFAULT',defaults,defaults,true)];
+  for(const p of PM_META.pairs){const ov=per[p]||null;const eff={...defaults,...(ov||{})};rows.push(_pmRow(p,eff,ov,false))}
+  body.innerHTML=rows.join('');
+  const acct=PM_META.cfg.account||{};
+  document.getElementById('pm-risk').value=acct.margin_pct_per_trade||'';
+  document.getElementById('pm-maxc').value=acct.max_concurrent_trades||'';
+  ['pm-risk','pm-maxc'].forEach(id=>document.getElementById(id).oninput=_updatePmRiskMath);
+  _updatePmRiskMath();
+}
+function clearPmOverride(p){document.querySelector(`#pm-body tr[data-scope="${p}"]`).querySelectorAll('input[type=number]').forEach(i=>i.value='')}
+function _pmCollectRow(row,isDef){
+  const out={};
+  const inputs=Array.from(row.querySelectorAll('input'));
+  const keys=['enabled','min_direction_score','min_dir_certainty','min_mom_certainty','cooldown_after_sl_min'];
+  inputs.forEach((inp,i)=>{
+    if(!keys[i])return;
+    if(inp.type==='checkbox')out[keys[i]]=inp.checked;
+    else if(inp.value!=='')out[keys[i]]=Number(inp.value);
+  });
+  return out;
+}
+async function savePlaymaker(){
+  const msg=document.getElementById('pm-msg');
+  msg.textContent='Saving…';
+  const defaults={};const per_pair={};
+  const body=document.getElementById('pm-body');
+  Array.from(body.querySelectorAll('tr')).forEach(row=>{
+    const scope=row.dataset.scope;const isDef=scope==='DEFAULT';
+    const c=_pmCollectRow(row,isDef);
+    if(isDef)Object.assign(defaults,c);
+    else if(Object.keys(c).length)per_pair[scope]=c;
+  });
+  const acct={margin_pct_per_trade:Number(document.getElementById('pm-risk').value)||undefined,
+              max_concurrent_trades:Number(document.getElementById('pm-maxc').value)||undefined};
+  // Preserve all the NEW per-cell governance fields when saving — read from STATE.governance
+  const gov=STATE?.governance||{};
+  const payload={
+    schema:'v1', account:acct, defaults, per_pair,
+    disabled_cells:        (gov.disabled_cells||[]).map(c=>c),
+    inverted_live_cells:   (gov.inverted_live_cells||[]).map(c=>c),
+    inverted_shadow_cells: (gov.inverted_shadow_cells||[]).map(c=>c),
+    per_cell_mom_cert_max: gov.per_cell_mom_cert_max||{},
+    per_cell_mom_cert_min: gov.per_cell_mom_cert_min||{},
+    per_cell_willr_range:  gov.per_cell_willr_range||{},
+    per_cell_kc_up_range:  gov.per_cell_kc_up_range||{},
+    random_pick:           !!gov.random_pick,
+  };
+  try{
+    const r=await fetch('/api/config/playmaker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    msg.innerHTML=d.ok?'<span class="pos">Saved.</span>':`<span class="neg">Error: ${escape(d.error||'unknown')}</span>`;
+  }catch(e){msg.innerHTML=`<span class="neg">Error: ${e.message}</span>`}
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+ * UTC clock + polling loop
+ * ═════════════════════════════════════════════════════════════════════════ */
+function tickClock(){
+  const d=new Date();
+  document.getElementById('utc-clock').textContent=
+    d.toISOString().slice(11,19)+' UTC';
+}
+setInterval(tickClock,1000);tickClock();
+
+fetchState();fetchSysinfo();fetchDailyPL();
+setInterval(fetchState,10000);
+setInterval(fetchSysinfo,30000);
+setInterval(fetchDailyPL,60000);
 </script>
 </body></html>
