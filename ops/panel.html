@@ -170,6 +170,9 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .cell-dir.short{color:var(--short);background:rgba(244,114,182,.1)}
 .cell-status{margin-left:auto}
 .cell-rules{margin-top:7px;display:flex;flex-direction:column;gap:3px;font-size:11px;font-family:"JetBrains Mono",monospace}
+.cell-block-reasons{margin-top:6px;padding:5px 8px;background:rgba(249,115,22,.08);border-left:2px solid var(--warn);border-radius:3px;font-size:10.5px;font-family:"JetBrains Mono",monospace}
+.cell-block-reasons .cbr-head{color:var(--warn);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:9.5px;margin-bottom:3px}
+.cell-block-reasons .cbr-item{color:var(--fg2);line-height:1.4}
 .cr{display:flex;justify-content:space-between;gap:6px;padding:3px 7px;border-radius:4px;background:var(--bg3);color:var(--fg2)}
 .cr.pass{background:rgba(34,197,94,.06);color:var(--pass)}
 .cr.fail{background:rgba(239,68,68,.06);color:var(--fail)}
@@ -1124,32 +1127,32 @@ function renderDailyPL(){
 // Shared gate-check helper — must match playmaker.pick_best gate order exactly.
 // Returns true only if the cell would actually fire given current ticket/view/governance.
 const MAX_SPREAD_PAIR={EUR_USD:2.5, GBP_USD:3.0, USD_JPY:2.0, AUD_USD:2.5, USD_CAD:3.0, USD_CHF:3.0, EUR_JPY:3.5, AUD_JPY:4.0};
-function cellPassesAllGates(c, t, v, gov){
-  if(!t || !gov) return false;
+function cellBlockReasons(c, t, v, gov){
+  const reasons=[];
+  if(!t || !gov) return reasons;
   const k2=c.pair+'/'+c.session;
   const k3=k2+'/'+c.dir;
   const defs=gov.defaults||{};
-  // Base floors
-  if(t.dir_certainty!=null && t.dir_certainty < (defs.min_dir_certainty??0.30)) return false;
-  if(t.mom_certainty!=null && t.mom_certainty < (defs.min_mom_certainty??0.25)) return false;
-  if(t.dir_score!=null && Math.abs(t.dir_score) < (defs.min_direction_score??0.25)) return false;
-  // Per-cell gates
-  const mcmax=gov.per_cell_mom_cert_max?.[k2];
-  const mcmin=gov.per_cell_mom_cert_min?.[k2];
-  const dcmax=gov.per_cell_dir_cert_max?.[k2];
-  const dcmin=gov.per_cell_dir_cert_min?.[k2];
-  const wrng=gov.per_cell_willr_range?.[k3];
-  const krng=gov.per_cell_kc_up_range?.[k3];
-  if(mcmax!=null && !(t.mom_certainty!=null && t.mom_certainty<=mcmax)) return false;
-  if(mcmin!=null && !(t.mom_certainty!=null && t.mom_certainty>=mcmin)) return false;
-  if(dcmax!=null && !(t.dir_certainty!=null && t.dir_certainty<=dcmax)) return false;
-  if(dcmin!=null && !(t.dir_certainty!=null && t.dir_certainty>=dcmin)) return false;
-  if(wrng && !(v?.willr_m5!=null && v.willr_m5>=wrng[0] && v.willr_m5<=wrng[1])) return false;
-  if(krng && !(v?.kc_up_dist_pips!=null && v.kc_up_dist_pips>=krng[0] && v.kc_up_dist_pips<=krng[1])) return false;
-  // Spread gate
+  const minDC=defs.min_dir_certainty??0.30, minMC=defs.min_mom_certainty??0.25, minDS=defs.min_direction_score??0.25;
+  if(t.dir_certainty!=null && t.dir_certainty < minDC) reasons.push(`d_cert ${t.dir_certainty.toFixed(2)}<${minDC}`);
+  if(t.mom_certainty!=null && t.mom_certainty < minMC) reasons.push(`m_cert ${t.mom_certainty.toFixed(2)}<${minMC}`);
+  if(t.dir_score!=null && Math.abs(t.dir_score) < minDS) reasons.push(`|score| ${Math.abs(t.dir_score).toFixed(2)}<${minDS}`);
+  const mcmax=gov.per_cell_mom_cert_max?.[k2], mcmin=gov.per_cell_mom_cert_min?.[k2];
+  const dcmax=gov.per_cell_dir_cert_max?.[k2], dcmin=gov.per_cell_dir_cert_min?.[k2];
+  const wrng=gov.per_cell_willr_range?.[k3], krng=gov.per_cell_kc_up_range?.[k3];
+  if(mcmax!=null && !(t.mom_certainty!=null && t.mom_certainty<=mcmax)) reasons.push(`m_cert ${t.mom_certainty?.toFixed(2)}>${mcmax}`);
+  if(mcmin!=null && !(t.mom_certainty!=null && t.mom_certainty>=mcmin)) reasons.push(`m_cert ${t.mom_certainty?.toFixed(2)}<${mcmin}`);
+  if(dcmax!=null && !(t.dir_certainty!=null && t.dir_certainty<=dcmax)) reasons.push(`d_cert ${t.dir_certainty?.toFixed(2)}>${dcmax}`);
+  if(dcmin!=null && !(t.dir_certainty!=null && t.dir_certainty>=dcmin)) reasons.push(`d_cert ${t.dir_certainty?.toFixed(2)}<${dcmin}`);
+  if(wrng && !(v?.willr_m5!=null && v.willr_m5>=wrng[0] && v.willr_m5<=wrng[1])) reasons.push(`willr ${v?.willr_m5?.toFixed(1)} not in [${wrng[0]},${wrng[1]}]`);
+  if(krng && !(v?.kc_up_dist_pips!=null && v.kc_up_dist_pips>=krng[0] && v.kc_up_dist_pips<=krng[1])) reasons.push(`kc_up ${v?.kc_up_dist_pips?.toFixed(1)} not in [${krng[0]},${krng[1]}]`);
   const maxSp=MAX_SPREAD_PAIR[c.pair]??3.0;
-  if(t.spread_pips!=null && t.spread_pips>0 && t.spread_pips>maxSp) return false;
-  return true;
+  if(t.spread_pips!=null && t.spread_pips>0 && t.spread_pips>maxSp) reasons.push(`spread ${t.spread_pips.toFixed(1)}p>${maxSp}`);
+  return reasons;
+}
+
+function cellPassesAllGates(c, t, v, gov){
+  return cellBlockReasons(c, t, v, gov).length === 0 && t && t.dir_bias===c.dir;
 }
 
 function renderMosaic(){
@@ -1179,7 +1182,13 @@ function renderMosaic(){
     if(fire) cls+=' fired';
     const dirSym=c.dir==='long'?'L':'S';
     const sessSym=c.session==='asia'?'AS':c.session==='london'?'LN':'NY';
-    return `<div class="mosaic-tile ${cls}" title="${c.pair}/${c.session}/${c.dir} · ${c.status}${fire?` · ${fire.n} fires ${fmtDollar(fire.pl)}`:''}">
+    // Compute block reasons for hover tooltip (only when in session + not disabled)
+    let blockTip='';
+    if(!disabled && inSess && !ready){
+      const reasons=cellBlockReasons(c, t, STATE.last_views?.find(v=>v.pair===c.pair), STATE.governance);
+      if(reasons.length) blockTip=` · BLOCKED: ${reasons.join(' · ')}`;
+    }
+    return `<div class="mosaic-tile ${cls}" title="${c.pair}/${c.session}/${c.dir} · ${c.status}${fire?` · ${fire.n} fires ${fmtDollar(fire.pl)}`:''}${blockTip}">
       <div class="mt-pair">${c.pair.replace('_','/')}</div>
       <div class="mt-meta">${sessSym} · ${dirSym}${fire?` · ${fire.n}t`:''}</div>
     </div>`;
@@ -1668,6 +1677,10 @@ function renderCells(){
     else badge='<span class="pill pill-info" style="opacity:.6">active</span>';
     if(!isDisabled&&!inSession)cellCls+=' inactive-session';
     if(ready){cellCls+=' ready'; badge=`<span class="pill pill-pass">READY ${isInvLive?'(inv)':''}</span>`;}
+    else if(!isDisabled && inSession && x.blockReasons?.length){
+      // Show why this cell is blocked when it's in session + not disabled
+      badge=`<span class="pill pill-warn" title="${x.blockReasons.join(' · ')}">BLOCKED ${x.blockReasons.length}×</span>`;
+    }
     // Today's fires badge (top-right corner)
     const fire=x.fire;
     const fireBadge=fire ? `<div class="cell-fire-badge ${fire.pl>=0?'pos':'neg'}">${fire.n}× ${fmtDollar(fire.pl)}</div>` : '';
@@ -1693,6 +1706,10 @@ function renderCells(){
         <span class="cell-expand-toggle">▾</span>
       </div>
       ${rules.length?`<div class="cell-rules">${rules.join('')}</div>`:`<div class="cell-meta" style="font-size:10.5px"><span class="muted">no per-cell rules</span></div>`}
+      ${(!isDisabled && inSession && x.blockReasons?.length) ? `<div class="cell-block-reasons">
+        <div class="cbr-head">blocked by:</div>
+        ${x.blockReasons.map(r=>`<div class="cbr-item">• ${r}</div>`).join('')}
+      </div>` : ''}
       <div class="cell-meta" style="justify-content:space-between;align-items:center">
         <span>${t?`${t.dir_bias.toUpperCase()} ${(t.dir_score>=0?'+':'')+t.dir_score.toFixed(3)} · dc ${Math.round(t.dir_certainty*100)} · mc ${Math.round(t.mom_certainty*100)}`:'<span class="muted">no ticket</span>'}</span>
         ${sparkSvg}
