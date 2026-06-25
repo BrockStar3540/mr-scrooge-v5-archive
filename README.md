@@ -6,19 +6,29 @@ Automated forex trading bot for OANDA. Modular signal pipeline: direction → mo
 
 ## Status
 
-Live since 2026-06-18 on EC2 (Tailscale `[REDACTED-IP]`). 8 pairs: AUD/JPY, AUD/USD, EUR/JPY, EUR/USD, GBP/USD, USD/CAD, USD/CHF, USD/JPY. Dashboard: `https://[REDACTED-HOST]:8084/`.
+Live since 2026-06-18 on EC2 (Tailscale `[REDACTED-IP]`). 8 pairs: AUD/JPY, AUD/USD, EUR/JPY, EUR/USD, GBP/USD, USD/CAD, USD/CHF, USD/JPY. Dashboard: `https://[REDACTED-HOST]:8084/` — 8 tabs (LIVE / PAIRS / CELLS / INDICATORS / HEALTH / SYSTEM / TUNE / PLAYMAKER) with `?stream=1` and `?mode=overlay` modes for live broadcasting.
 
 Pipeline at a glance:
 
 ```
-OANDA M5/H1/D feed
-   → MarketView (24 dir features + 10 mom features + aggregators)
+OANDA M5/H1/D feed (5s manage, 300s scan)
+   → MarketView (28 dir features incl willr_m5/aroonosc_h1/kc_up_dist/efi/vortex_diff_h1)
    → DirectionModule (per pair × session × direction, 48 cells)  → bias + score + cert
    → MomentumModule  (per pair × session × direction, 48 cells)  → expected_pips + cert
-   → Playmaker (cert/score floors + spread gate + tournament)    → winning ticket
+   → Playmaker (cert/score floors + spread gate + per-cell governance + random pick)
+        ├── disabled_cells              — cell off entirely (14 cells currently)
+        ├── inverted_live_cells         — flip trade direction at execution (8 cells)
+        ├── inverted_shadow_cells       — log inversion signal only (2 cells)
+        ├── per_cell_mom_cert_min/max   — m_cert floor/ceiling per cell (2 + 2)
+        ├── per_cell_dir_cert_min/max   — d_cert floor/ceiling per cell (3 + 2)
+        ├── per_cell_willr_range        — willr_m5 [min, max] per cell (1)
+        ├── per_cell_kc_up_range        — kc_up_dist_pips [min, max] per cell (1)
+        └── random_pick                  — random.choice among actionable (active)
    → Broker (OANDA market order, server-side SL = -20p)
-   → RatchetManager (poll 30s, trail SL up as price runs)
+   → RatchetManager (poll 5s, step-trail SL at MFE +7.5/10/12.5/15/17.5/20)
 ```
+
+All per-cell governance mechanisms are hot-reloadable via config — no restart needed for tuning thresholds. New mechanism types (a new gate kind) require code + restart.
 
 ## Where to read more
 
@@ -97,3 +107,34 @@ edit config/playmaker_config.json  # account + per-pair gates
 ```
 
 Or use the TUNE / PLAYMAKER tabs on the dashboard at `:8084` for guarded edits.
+
+## Dashboard
+
+Modern dark UI (rebuilt 2026-06-24). 8 tabs, glass-blur nav, semantic colors (long=cyan, short=magenta, inverted=purple, shadow=slate), JetBrains Mono numerics.
+
+- **LIVE** — giga P/L ticker, equity curve, cell mosaic, account bar, open positions, today's trades, recent events
+- **PAIRS** — per-pair signal cards with 15 indicator chips + per-cell rule pass/fail footers
+- **CELLS** — 38-cell governance grid with filter/sort/fire counts
+- **INDICATORS** — per-pair feature cards + sparklines (dir_sc / m_cert / willr / vortex / kc_up / cpos)
+- **HEALTH** — scan/manage intervals, pick method, last fired
+- **SYSTEM** — CPU / RAM / services / Mini / logs
+- **TUNE** — live SL + ratchet + TP edits
+- **PLAYMAKER** — account knobs + per-pair gates + per-cell governance view
+
+URL modes for streaming:
+- `?stream=1` — large hero, hides non-LIVE tabs, enables decision ticker
+- `?mode=overlay` — transparent body for OBS chromakey (just trade overlays + corner P/L pill)
+
+## Per-cell governance — when to use what
+
+| mechanism | shape | when to ship |
+|-----------|-------|--------------|
+| `disabled_cells`            | list of [pair, session, dir] | cell has structural negative edge with corroboration (ML + broker + walk-forward) |
+| `inverted_live_cells`       | list of [pair, session]     | cell's signal direction is consistently wrong — flip the firing pin |
+| `inverted_shadow_cells`     | list of [pair, session]     | shadow-log opposite direction signals to evaluate inversion before commit |
+| `per_cell_mom_cert_min`     | dict pair/session → float   | cell's edge IS the high-conviction setup (cert correlates with MFE) |
+| `per_cell_mom_cert_max`     | dict pair/session → float   | cell's edge IS the big-move setup (low cert predicts magnitude) |
+| `per_cell_dir_cert_min/max` | dict pair/session → float   | direction certainty floor/ceiling — same logic on the direction module |
+| `per_cell_willr_range`      | dict pair/session/dir → [lo, hi] | cell only profitable in a specific willr_m5 window |
+| `per_cell_kc_up_range`      | dict pair/session/dir → [lo, hi] | cell only profitable when distance to upper Keltner is in a window |
+| `random_pick`               | bool                        | spread fire rate across all actionable cells instead of max-composite (for evaluating alternative rankings) |
