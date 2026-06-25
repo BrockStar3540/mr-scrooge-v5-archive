@@ -1121,6 +1121,37 @@ function renderDailyPL(){
 }
 
 /* ── Cell mosaic (streaming scoreboard) ────────────────────────────────── */
+// Shared gate-check helper — must match playmaker.pick_best gate order exactly.
+// Returns true only if the cell would actually fire given current ticket/view/governance.
+const MAX_SPREAD_PAIR={EUR_USD:2.5, GBP_USD:3.0, USD_JPY:2.0, AUD_USD:2.5, USD_CAD:3.0, USD_CHF:3.0, EUR_JPY:3.5, AUD_JPY:4.0};
+function cellPassesAllGates(c, t, v, gov){
+  if(!t || !gov) return false;
+  const k2=c.pair+'/'+c.session;
+  const k3=k2+'/'+c.dir;
+  const defs=gov.defaults||{};
+  // Base floors
+  if(t.dir_certainty!=null && t.dir_certainty < (defs.min_dir_certainty??0.30)) return false;
+  if(t.mom_certainty!=null && t.mom_certainty < (defs.min_mom_certainty??0.25)) return false;
+  if(t.dir_score!=null && Math.abs(t.dir_score) < (defs.min_direction_score??0.25)) return false;
+  // Per-cell gates
+  const mcmax=gov.per_cell_mom_cert_max?.[k2];
+  const mcmin=gov.per_cell_mom_cert_min?.[k2];
+  const dcmax=gov.per_cell_dir_cert_max?.[k2];
+  const dcmin=gov.per_cell_dir_cert_min?.[k2];
+  const wrng=gov.per_cell_willr_range?.[k3];
+  const krng=gov.per_cell_kc_up_range?.[k3];
+  if(mcmax!=null && !(t.mom_certainty!=null && t.mom_certainty<=mcmax)) return false;
+  if(mcmin!=null && !(t.mom_certainty!=null && t.mom_certainty>=mcmin)) return false;
+  if(dcmax!=null && !(t.dir_certainty!=null && t.dir_certainty<=dcmax)) return false;
+  if(dcmin!=null && !(t.dir_certainty!=null && t.dir_certainty>=dcmin)) return false;
+  if(wrng && !(v?.willr_m5!=null && v.willr_m5>=wrng[0] && v.willr_m5<=wrng[1])) return false;
+  if(krng && !(v?.kc_up_dist_pips!=null && v.kc_up_dist_pips>=krng[0] && v.kc_up_dist_pips<=krng[1])) return false;
+  // Spread gate
+  const maxSp=MAX_SPREAD_PAIR[c.pair]??3.0;
+  if(t.spread_pips!=null && t.spread_pips>0 && t.spread_pips>maxSp) return false;
+  return true;
+}
+
 function renderMosaic(){
   const el=document.getElementById('mosaic-grid');
   if(!el || !STATE) return;
@@ -1132,7 +1163,7 @@ function renderMosaic(){
   el.innerHTML=cells.map(c=>{
     const inSess=c.session===cur;
     const t=tickets[c.pair+'/'+c.session];
-    const ready=c.status==='ready' && inSess && t?.actionable;
+    const ready=c.status==='ready' && inSess && t?.actionable && cellPassesAllGates(c, t, STATE.last_views?.find(v=>v.pair===c.pair), STATE.governance);
     const inverted=c.status==='inverted_live';
     const disabled=c.status==='disabled' || c.status==='inverted_shadow';
     const fireKey=`${c.pair}/${c.session}/${c.dir}`;
@@ -1535,21 +1566,39 @@ function renderCells(){
     const inSession=c.session===cur;
     const t=tickets[k2];
     const v=views[c.pair];
-    // Rules pass
+    // Rules pass — must match playmaker.pick_best gate order exactly
     const mcmax=gov.per_cell_mom_cert_max?.[k2];
     const mcmin=gov.per_cell_mom_cert_min?.[k2];
+    const dcmax=gov.per_cell_dir_cert_max?.[k2];
+    const dcmin=gov.per_cell_dir_cert_min?.[k2];
     const wrng=gov.per_cell_willr_range?.[k3];
     const krng=gov.per_cell_kc_up_range?.[k3];
-    const hasRules=mcmax!=null||mcmin!=null||wrng!=null||krng!=null;
-    let allPass=true;
-    if(mcmax!=null&&!(t?.mom_certainty!=null&&t.mom_certainty<=mcmax))allPass=false;
-    if(mcmin!=null&&!(t?.mom_certainty!=null&&t.mom_certainty>=mcmin))allPass=false;
-    if(wrng&&!(v?.willr_m5!=null&&v.willr_m5>=wrng[0]&&v.willr_m5<=wrng[1]))allPass=false;
-    if(krng&&!(v?.kc_up_dist_pips!=null&&v.kc_up_dist_pips>=krng[0]&&v.kc_up_dist_pips<=krng[1]))allPass=false;
+    const hasRules=mcmax!=null||mcmin!=null||dcmax!=null||dcmin!=null||wrng!=null||krng!=null;
+    // Base gates from playmaker defaults (cert/score floors)
+    const defs=gov.defaults||{};
+    const minDirCert=defs.min_dir_certainty??0.30;
+    const minMomCert=defs.min_mom_certainty??0.25;
+    const minDirScore=defs.min_direction_score??0.25;
+    let allPass=true; const blockReasons=[];
+    // Base floors (always enforced)
+    if(t?.dir_certainty!=null && t.dir_certainty < minDirCert){allPass=false; blockReasons.push(`d_cert ${t.dir_certainty.toFixed(2)}<${minDirCert}`);}
+    if(t?.mom_certainty!=null && t.mom_certainty < minMomCert){allPass=false; blockReasons.push(`m_cert ${t.mom_certainty.toFixed(2)}<${minMomCert}`);}
+    if(t?.dir_score!=null && Math.abs(t.dir_score) < minDirScore){allPass=false; blockReasons.push(`|score| ${Math.abs(t.dir_score).toFixed(2)}<${minDirScore}`);}
+    // Per-cell gates
+    if(mcmax!=null&&!(t?.mom_certainty!=null&&t.mom_certainty<=mcmax)){allPass=false; blockReasons.push(`m_cert>${mcmax}`);}
+    if(mcmin!=null&&!(t?.mom_certainty!=null&&t.mom_certainty>=mcmin)){allPass=false; blockReasons.push(`m_cert<${mcmin}`);}
+    if(dcmax!=null&&!(t?.dir_certainty!=null&&t.dir_certainty<=dcmax)){allPass=false; blockReasons.push(`d_cert>${dcmax}`);}
+    if(dcmin!=null&&!(t?.dir_certainty!=null&&t.dir_certainty>=dcmin)){allPass=false; blockReasons.push(`d_cert<${dcmin}`);}
+    if(wrng&&!(v?.willr_m5!=null&&v.willr_m5>=wrng[0]&&v.willr_m5<=wrng[1])){allPass=false; blockReasons.push(`willr out of [${wrng[0]},${wrng[1]}]`);}
+    if(krng&&!(v?.kc_up_dist_pips!=null&&v.kc_up_dist_pips>=krng[0]&&v.kc_up_dist_pips<=krng[1])){allPass=false; blockReasons.push(`kc_up out of [${krng[0]},${krng[1]}]`);}
+    // Spread gate (hardcoded per-pair max in playmaker.py)
+    const MAX_SPREAD={EUR_USD:2.5, GBP_USD:3.0, USD_JPY:2.0, AUD_USD:2.5, USD_CAD:3.0, USD_CHF:3.0, EUR_JPY:3.5, AUD_JPY:4.0};
+    const maxSpread=MAX_SPREAD[c.pair]??3.0;
+    if(t?.spread_pips!=null && t.spread_pips>0 && t.spread_pips>maxSpread){allPass=false; blockReasons.push(`spread ${t.spread_pips.toFixed(1)}p>${maxSpread}`);}
     const tickerOk=t&&t.actionable&&t.dir_bias===c.dir;
     const ready=tickerOk&&inSession&&!isDisabled&&allPass;
     return {c,k2,k3,isDisabled,isInvLive,isInvShadow,inSession,t,v,
-            hasRules,mcmax,mcmin,wrng,krng,allPass,ready,
+            hasRules,mcmax,mcmin,dcmax,dcmin,wrng,krng,allPass,ready,blockReasons,
             fire:fires[k3]};
   });
   // Filter
