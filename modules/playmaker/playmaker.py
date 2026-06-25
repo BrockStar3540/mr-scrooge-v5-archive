@@ -104,6 +104,13 @@ def _pm_load() -> dict:
         pcdn_raw = raw.get("per_cell_dir_cert_min") or {}
         per_cell_dir_cert_min = {tuple(k.split("/")): float(v) for k, v in pcdn_raw.items()
                                   if "/" in k and len(k.split("/")) == 2}
+        # per_cell_dir_cert_max: dict of "pair/session" -> float CEILING on d_cert.
+        # Mirror of per_cell_dir_cert_min. Used with min for range filters when only
+        # mid-range direction conviction works for the cell (extremes go either way).
+        # 2026-06-25 first use: USD_CHF/ny + USD_CHF/london = 0.55 (paired with min 0.35).
+        pcdx_raw = raw.get("per_cell_dir_cert_max") or {}
+        per_cell_dir_cert_max = {tuple(k.split("/")): float(v) for k, v in pcdx_raw.items()
+                                  if "/" in k and len(k.split("/")) == 2}
         # per_cell_willr_range: dict of "pair/session/direction" -> [min, max] on willr_m5.
         # 2026-06-23 backtest finding (EUR_JPY/ny/short): willr in [-85, -7] gives
         # +8.48p/70.2% WR vs baseline +6.95p/64.8% (1999 V5-actionable bars).
@@ -135,6 +142,7 @@ def _pm_load() -> dict:
             "per_cell_mom_cert_max": per_cell_mom_cert_max,
             "per_cell_mom_cert_min": per_cell_mom_cert_min,
             "per_cell_dir_cert_min": per_cell_dir_cert_min,
+            "per_cell_dir_cert_max": per_cell_dir_cert_max,
             "per_cell_willr_range":  per_cell_willr_range,
             "per_cell_kc_up_range":  per_cell_kc_up_range,
         }
@@ -147,6 +155,7 @@ def _pm_load() -> dict:
                 "per_cell_mom_cert_max": {},
                 "per_cell_mom_cert_min": {},
                 "per_cell_dir_cert_min": {},
+                "per_cell_dir_cert_max": {},
                 "per_cell_willr_range":  {},
                 "per_cell_kc_up_range":  {}}
 
@@ -302,6 +311,12 @@ def pick_best(
         _pcdn = pm.get("per_cell_dir_cert_min", {})
         _cell_dmin = _pcdn.get((t.pair, t.session))
         if _cell_dmin is not None and t.direction.certainty < _cell_dmin:
+            continue
+        # 2026-06-25 per-cell d_cert CEILING: mirror of min for range filters.
+        # First use: USD_CHF/ny + london = 0.55 (paired with min 0.35).
+        _pcdx = pm.get("per_cell_dir_cert_max", {})
+        _cell_dmax = _pcdx.get((t.pair, t.session))
+        if _cell_dmax is not None and t.direction.certainty > _cell_dmax:
             continue
         # 2026-06-23 per-cell willr_m5 range gate (per pair/session/direction).
         # 2026 backtest finding: EUR_JPY/ny/short willr in [-85, -7] = +8.5p/70% WR

@@ -319,6 +319,7 @@ def _state(engine: "Engine") -> dict:
             "per_cell_mom_cert_max":   {"/".join(k): v for k, v in _pm.get("per_cell_mom_cert_max", {}).items()},
             "per_cell_mom_cert_min":   {"/".join(k): v for k, v in _pm.get("per_cell_mom_cert_min", {}).items()},
             "per_cell_dir_cert_min":   {"/".join(k): v for k, v in _pm.get("per_cell_dir_cert_min", {}).items()},
+            "per_cell_dir_cert_max":   {"/".join(k): v for k, v in _pm.get("per_cell_dir_cert_max", {}).items()},
             "per_cell_willr_range":    {"/".join(k): list(v) for k, v in _pm.get("per_cell_willr_range", {}).items()},
             "per_cell_kc_up_range":    {"/".join(k): list(v) for k, v in _pm.get("per_cell_kc_up_range", {}).items()},
             "random_pick":             bool(_pm.get("random_pick", False)),
