@@ -96,6 +96,14 @@ def _pm_load() -> dict:
         pcmn_raw = raw.get("per_cell_mom_cert_min") or {}
         per_cell_mom_cert_min = {tuple(k.split("/")): float(v) for k, v in pcmn_raw.items()
                                   if "/" in k and len(k.split("/")) == 2}
+        # per_cell_dir_cert_min: dict of "pair/session" -> float FLOOR on d_cert.
+        # 2026-06-24 deep-dive on GBP_USD/ny inverted (n=11): both losses had d_cert
+        # 0.49/0.50, 8 of 9 winners had d_cert >= 0.54 (one win at 0.49). Clean gap at
+        # 0.51-0.53. Floor 0.52 catches both losses, costs 1 winning trade — net
+        # +31.45p over n=11. Mirror of per_cell_mom_cert_min on direction certainty.
+        pcdn_raw = raw.get("per_cell_dir_cert_min") or {}
+        per_cell_dir_cert_min = {tuple(k.split("/")): float(v) for k, v in pcdn_raw.items()
+                                  if "/" in k and len(k.split("/")) == 2}
         # per_cell_willr_range: dict of "pair/session/direction" -> [min, max] on willr_m5.
         # 2026-06-23 backtest finding (EUR_JPY/ny/short): willr in [-85, -7] gives
         # +8.48p/70.2% WR vs baseline +6.95p/64.8% (1999 V5-actionable bars).
@@ -126,6 +134,7 @@ def _pm_load() -> dict:
             "random_pick":     random_pick,
             "per_cell_mom_cert_max": per_cell_mom_cert_max,
             "per_cell_mom_cert_min": per_cell_mom_cert_min,
+            "per_cell_dir_cert_min": per_cell_dir_cert_min,
             "per_cell_willr_range":  per_cell_willr_range,
             "per_cell_kc_up_range":  per_cell_kc_up_range,
         }
@@ -137,6 +146,7 @@ def _pm_load() -> dict:
                 "random_pick":     False,
                 "per_cell_mom_cert_max": {},
                 "per_cell_mom_cert_min": {},
+                "per_cell_dir_cert_min": {},
                 "per_cell_willr_range":  {},
                 "per_cell_kc_up_range":  {}}
 
@@ -285,6 +295,13 @@ def pick_best(
         _pcmn = pm.get("per_cell_mom_cert_min", {})
         _cell_min = _pcmn.get((t.pair, t.session))
         if _cell_min is not None and t.momentum.certainty < _cell_min:
+            continue
+        # 2026-06-24 per-cell d_cert FLOOR: mirror on direction certainty.
+        # First use: GBP_USD/ny=0.52 (both n=11 inverted losses had d_cert 0.49/0.50;
+        # 8 of 9 winners had d_cert >= 0.54; clean gap at 0.51-0.53).
+        _pcdn = pm.get("per_cell_dir_cert_min", {})
+        _cell_dmin = _pcdn.get((t.pair, t.session))
+        if _cell_dmin is not None and t.direction.certainty < _cell_dmin:
             continue
         # 2026-06-23 per-cell willr_m5 range gate (per pair/session/direction).
         # 2026 backtest finding: EUR_JPY/ny/short willr in [-85, -7] = +8.5p/70% WR
