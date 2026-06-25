@@ -172,7 +172,11 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .cell-rules{margin-top:7px;display:flex;flex-direction:column;gap:3px;font-size:11px;font-family:"JetBrains Mono",monospace}
 .cell-block-reasons{margin-top:6px;padding:5px 8px;background:rgba(249,115,22,.08);border-left:2px solid var(--warn);border-radius:3px;font-size:10.5px;font-family:"JetBrains Mono",monospace}
 .cell-block-reasons .cbr-head{color:var(--warn);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:9.5px;margin-bottom:3px}
-.cell-block-reasons .cbr-item{color:var(--fg2);line-height:1.4}
+.cell-block-reasons .cbr-item{color:var(--fg2);line-height:1.5;display:flex;gap:6px;align-items:center}
+.cbr-tag{display:inline-block;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-family:"JetBrains Mono",monospace;min-width:48px;text-align:center}
+.cbr-tag-global{background:rgba(148,163,184,.18);color:#94a3b8;border:1px solid rgba(148,163,184,.3)}
+.cbr-tag-cell{background:rgba(245,158,11,.18);color:var(--warn);border:1px solid rgba(245,158,11,.3)}
+.cbr-tag-spread{background:rgba(34,211,238,.18);color:var(--info);border:1px solid rgba(34,211,238,.3)}
 .cr{display:flex;justify-content:space-between;gap:6px;padding:3px 7px;border-radius:4px;background:var(--bg3);color:var(--fg2)}
 .cr.pass{background:rgba(34,197,94,.06);color:var(--pass)}
 .cr.fail{background:rgba(239,68,68,.06);color:var(--fail)}
@@ -1127,6 +1131,7 @@ function renderDailyPL(){
 // Shared gate-check helper — must match playmaker.pick_best gate order exactly.
 // Returns true only if the cell would actually fire given current ticket/view/governance.
 const MAX_SPREAD_PAIR={EUR_USD:2.5, GBP_USD:3.0, USD_JPY:2.0, AUD_USD:2.5, USD_CAD:3.0, USD_CHF:3.0, EUR_JPY:3.5, AUD_JPY:4.0};
+// Each reason: {tag: 'GLOBAL'|'CELL'|'SPREAD', text: '...'}
 function cellBlockReasons(c, t, v, gov){
   const reasons=[];
   if(!t || !gov) return reasons;
@@ -1134,20 +1139,20 @@ function cellBlockReasons(c, t, v, gov){
   const k3=k2+'/'+c.dir;
   const defs=gov.defaults||{};
   const minDC=defs.min_dir_certainty??0.30, minMC=defs.min_mom_certainty??0.25, minDS=defs.min_direction_score??0.25;
-  if(t.dir_certainty!=null && t.dir_certainty < minDC) reasons.push(`d_cert ${t.dir_certainty.toFixed(2)}<${minDC}`);
-  if(t.mom_certainty!=null && t.mom_certainty < minMC) reasons.push(`m_cert ${t.mom_certainty.toFixed(2)}<${minMC}`);
-  if(t.dir_score!=null && Math.abs(t.dir_score) < minDS) reasons.push(`|score| ${Math.abs(t.dir_score).toFixed(2)}<${minDS}`);
+  if(t.dir_certainty!=null && t.dir_certainty < minDC) reasons.push({tag:'GLOBAL',text:`d_cert ${t.dir_certainty.toFixed(2)}<${minDC}`});
+  if(t.mom_certainty!=null && t.mom_certainty < minMC) reasons.push({tag:'GLOBAL',text:`m_cert ${t.mom_certainty.toFixed(2)}<${minMC}`});
+  if(t.dir_score!=null && Math.abs(t.dir_score) < minDS) reasons.push({tag:'GLOBAL',text:`|score| ${Math.abs(t.dir_score).toFixed(2)}<${minDS}`});
   const mcmax=gov.per_cell_mom_cert_max?.[k2], mcmin=gov.per_cell_mom_cert_min?.[k2];
   const dcmax=gov.per_cell_dir_cert_max?.[k2], dcmin=gov.per_cell_dir_cert_min?.[k2];
   const wrng=gov.per_cell_willr_range?.[k3], krng=gov.per_cell_kc_up_range?.[k3];
-  if(mcmax!=null && !(t.mom_certainty!=null && t.mom_certainty<=mcmax)) reasons.push(`m_cert ${t.mom_certainty?.toFixed(2)}>${mcmax}`);
-  if(mcmin!=null && !(t.mom_certainty!=null && t.mom_certainty>=mcmin)) reasons.push(`m_cert ${t.mom_certainty?.toFixed(2)}<${mcmin}`);
-  if(dcmax!=null && !(t.dir_certainty!=null && t.dir_certainty<=dcmax)) reasons.push(`d_cert ${t.dir_certainty?.toFixed(2)}>${dcmax}`);
-  if(dcmin!=null && !(t.dir_certainty!=null && t.dir_certainty>=dcmin)) reasons.push(`d_cert ${t.dir_certainty?.toFixed(2)}<${dcmin}`);
-  if(wrng && !(v?.willr_m5!=null && v.willr_m5>=wrng[0] && v.willr_m5<=wrng[1])) reasons.push(`willr ${v?.willr_m5?.toFixed(1)} not in [${wrng[0]},${wrng[1]}]`);
-  if(krng && !(v?.kc_up_dist_pips!=null && v.kc_up_dist_pips>=krng[0] && v.kc_up_dist_pips<=krng[1])) reasons.push(`kc_up ${v?.kc_up_dist_pips?.toFixed(1)} not in [${krng[0]},${krng[1]}]`);
+  if(mcmax!=null && !(t.mom_certainty!=null && t.mom_certainty<=mcmax)) reasons.push({tag:'CELL',text:`m_cert ${t.mom_certainty?.toFixed(2)}>${mcmax}`});
+  if(mcmin!=null && !(t.mom_certainty!=null && t.mom_certainty>=mcmin)) reasons.push({tag:'CELL',text:`m_cert ${t.mom_certainty?.toFixed(2)}<${mcmin}`});
+  if(dcmax!=null && !(t.dir_certainty!=null && t.dir_certainty<=dcmax)) reasons.push({tag:'CELL',text:`d_cert ${t.dir_certainty?.toFixed(2)}>${dcmax}`});
+  if(dcmin!=null && !(t.dir_certainty!=null && t.dir_certainty>=dcmin)) reasons.push({tag:'CELL',text:`d_cert ${t.dir_certainty?.toFixed(2)}<${dcmin}`});
+  if(wrng && !(v?.willr_m5!=null && v.willr_m5>=wrng[0] && v.willr_m5<=wrng[1])) reasons.push({tag:'CELL',text:`willr ${v?.willr_m5?.toFixed(1)} not in [${wrng[0]},${wrng[1]}]`});
+  if(krng && !(v?.kc_up_dist_pips!=null && v.kc_up_dist_pips>=krng[0] && v.kc_up_dist_pips<=krng[1])) reasons.push({tag:'CELL',text:`kc_up ${v?.kc_up_dist_pips?.toFixed(1)} not in [${krng[0]},${krng[1]}]`});
   const maxSp=MAX_SPREAD_PAIR[c.pair]??3.0;
-  if(t.spread_pips!=null && t.spread_pips>0 && t.spread_pips>maxSp) reasons.push(`spread ${t.spread_pips.toFixed(1)}p>${maxSp}`);
+  if(t.spread_pips!=null && t.spread_pips>0 && t.spread_pips>maxSp) reasons.push({tag:'SPREAD',text:`spread ${t.spread_pips.toFixed(1)}p>${maxSp}`});
   return reasons;
 }
 
@@ -1186,7 +1191,7 @@ function renderMosaic(){
     let blockTip='';
     if(!disabled && inSess && !ready){
       const reasons=cellBlockReasons(c, t, STATE.last_views?.find(v=>v.pair===c.pair), STATE.governance);
-      if(reasons.length) blockTip=` · BLOCKED: ${reasons.join(' · ')}`;
+      if(reasons.length) blockTip=` · BLOCKED: ${reasons.map(r=>`[${r.tag}] ${r.text}`).join(' · ')}`;
     }
     return `<div class="mosaic-tile ${cls}" title="${c.pair}/${c.session}/${c.dir} · ${c.status}${fire?` · ${fire.n} fires ${fmtDollar(fire.pl)}`:''}${blockTip}">
       <div class="mt-pair">${c.pair.replace('_','/')}</div>
@@ -1678,8 +1683,8 @@ function renderCells(){
     if(!isDisabled&&!inSession)cellCls+=' inactive-session';
     if(ready){cellCls+=' ready'; badge=`<span class="pill pill-pass">READY ${isInvLive?'(inv)':''}</span>`;}
     else if(!isDisabled && inSession && x.blockReasons?.length){
-      // Show why this cell is blocked when it's in session + not disabled
-      badge=`<span class="pill pill-warn" title="${x.blockReasons.join(' · ')}">BLOCKED ${x.blockReasons.length}×</span>`;
+      const tip=x.blockReasons.map(r=>`[${r.tag}] ${r.text}`).join(' · ');
+      badge=`<span class="pill pill-warn" title="${tip}">BLOCKED ${x.blockReasons.length}×</span>`;
     }
     // Today's fires badge (top-right corner)
     const fire=x.fire;
@@ -1708,7 +1713,7 @@ function renderCells(){
       ${rules.length?`<div class="cell-rules">${rules.join('')}</div>`:`<div class="cell-meta" style="font-size:10.5px"><span class="muted">no per-cell rules</span></div>`}
       ${(!isDisabled && inSession && x.blockReasons?.length) ? `<div class="cell-block-reasons">
         <div class="cbr-head">blocked by:</div>
-        ${x.blockReasons.map(r=>`<div class="cbr-item">• ${r}</div>`).join('')}
+        ${x.blockReasons.map(r=>`<div class="cbr-item"><span class="cbr-tag cbr-tag-${r.tag.toLowerCase()}">${r.tag}</span> ${r.text}</div>`).join('')}
       </div>` : ''}
       <div class="cell-meta" style="justify-content:space-between;align-items:center">
         <span>${t?`${t.dir_bias.toUpperCase()} ${(t.dir_score>=0?'+':'')+t.dir_score.toFixed(3)} · dc ${Math.round(t.dir_certainty*100)} · mc ${Math.round(t.mom_certainty*100)}`:'<span class="muted">no ticket</span>'}</span>
