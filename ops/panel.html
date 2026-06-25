@@ -1593,22 +1593,9 @@ function renderCells(){
     const minDirCert=defs.min_dir_certainty??0.30;
     const minMomCert=defs.min_mom_certainty??0.25;
     const minDirScore=defs.min_direction_score??0.25;
-    let allPass=true; const blockReasons=[];
-    // Base floors (always enforced)
-    if(t?.dir_certainty!=null && t.dir_certainty < minDirCert){allPass=false; blockReasons.push(`d_cert ${t.dir_certainty.toFixed(2)}<${minDirCert}`);}
-    if(t?.mom_certainty!=null && t.mom_certainty < minMomCert){allPass=false; blockReasons.push(`m_cert ${t.mom_certainty.toFixed(2)}<${minMomCert}`);}
-    if(t?.dir_score!=null && Math.abs(t.dir_score) < minDirScore){allPass=false; blockReasons.push(`|score| ${Math.abs(t.dir_score).toFixed(2)}<${minDirScore}`);}
-    // Per-cell gates
-    if(mcmax!=null&&!(t?.mom_certainty!=null&&t.mom_certainty<=mcmax)){allPass=false; blockReasons.push(`m_cert>${mcmax}`);}
-    if(mcmin!=null&&!(t?.mom_certainty!=null&&t.mom_certainty>=mcmin)){allPass=false; blockReasons.push(`m_cert<${mcmin}`);}
-    if(dcmax!=null&&!(t?.dir_certainty!=null&&t.dir_certainty<=dcmax)){allPass=false; blockReasons.push(`d_cert>${dcmax}`);}
-    if(dcmin!=null&&!(t?.dir_certainty!=null&&t.dir_certainty>=dcmin)){allPass=false; blockReasons.push(`d_cert<${dcmin}`);}
-    if(wrng&&!(v?.willr_m5!=null&&v.willr_m5>=wrng[0]&&v.willr_m5<=wrng[1])){allPass=false; blockReasons.push(`willr out of [${wrng[0]},${wrng[1]}]`);}
-    if(krng&&!(v?.kc_up_dist_pips!=null&&v.kc_up_dist_pips>=krng[0]&&v.kc_up_dist_pips<=krng[1])){allPass=false; blockReasons.push(`kc_up out of [${krng[0]},${krng[1]}]`);}
-    // Spread gate (hardcoded per-pair max in playmaker.py)
-    const MAX_SPREAD={EUR_USD:2.5, GBP_USD:3.0, USD_JPY:2.0, AUD_USD:2.5, USD_CAD:3.0, USD_CHF:3.0, EUR_JPY:3.5, AUD_JPY:4.0};
-    const maxSpread=MAX_SPREAD[c.pair]??3.0;
-    if(t?.spread_pips!=null && t.spread_pips>0 && t.spread_pips>maxSpread){allPass=false; blockReasons.push(`spread ${t.spread_pips.toFixed(1)}p>${maxSpread}`);}
+    // Use shared helper (returns array of {tag, text})
+    const blockReasons=cellBlockReasons(c, t, v, gov);
+    const allPass=blockReasons.length===0;
     const tickerOk=t&&t.actionable&&t.dir_bias===c.dir;
     const ready=tickerOk&&inSession&&!isDisabled&&allPass;
     return {c,k2,k3,isDisabled,isInvLive,isInvShadow,inSession,t,v,
