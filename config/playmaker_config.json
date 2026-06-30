@@ -126,10 +126,6 @@
     [
       "USD_CHF",
       "london"
-    ],
-    [
-      "AUD_JPY",
-      "asia"
     ]
   ],
   "random_pick": true,
@@ -159,7 +155,6 @@
   },
   "per_cell_dir_cert_max": {
     "USD_CHF/ny": 0.55,
-    "USD_CHF/london": 0.55,
-    "AUD_JPY/asia": 0.65
+    "USD_CHF/london": 0.55
   }
 }
