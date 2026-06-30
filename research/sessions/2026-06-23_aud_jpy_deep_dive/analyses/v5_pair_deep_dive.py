@@ -217,6 +217,7 @@ def main():
                 mfe = mae = hold_min = None
             realized = None; status = "OPEN"
 
+        sig = sig or {}
         rows.append({
             "tid": tid, "ts": e["ts"], "session": session,
             "trade_dir": e["dir"], "inverted": sig.get("inverted_live", False),
