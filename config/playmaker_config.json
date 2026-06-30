@@ -154,7 +154,8 @@
     ]
   },
   "per_cell_dir_cert_min": {
-    "GBP_USD/ny": 0.52
+    "GBP_USD/ny": 0.52,
+    "USD_JPY/asia": 0.49
   },
   "per_cell_dir_cert_max": {
     "USD_CHF/ny": 0.55,
