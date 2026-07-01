@@ -121,10 +121,6 @@
     ],
     [
       "USD_CHF",
-      "ny"
-    ],
-    [
-      "USD_CHF",
       "london"
     ]
   ],
@@ -154,7 +150,6 @@
     "USD_JPY/asia": 0.49
   },
   "per_cell_dir_cert_max": {
-    "USD_CHF/ny": 0.55,
     "USD_CHF/london": 0.55
   }
 }
