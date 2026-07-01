@@ -274,6 +274,23 @@ class Engine:
         if trade_ticket is None:
             return
 
+        # Open every actionable candidate this cycle (up to max_concurrent), not just one.
+        # Re-pick each iteration with opened pairs excluded; pick_best still enforces
+        # max_concurrent, 1-per-pair, session windows, cooldown, and all per-cell gates.
+        opened_pairs: set[str] = set()
+        picked = trade_ticket
+        while picked is not None:
+            self._signal_and_open(picked, views, now)
+            opened_pairs.add(picked.pair)
+            picked = pick_best(
+                tickets,
+                hour_utc=now.hour,
+                open_pairs=set(self.managers.keys()) | opened_pairs,
+                now=now,
+                sl_history=self._sl_history,
+            )
+
+    def _signal_and_open(self, trade_ticket, views, now):
         dr = trade_ticket.reads.get("direction", {})
         mr = trade_ticket.reads.get("momentum", {})
         # First word of each profile label so log stays single-token-per-field (parseable)
