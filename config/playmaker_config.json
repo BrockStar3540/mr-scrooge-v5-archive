@@ -83,6 +83,11 @@
       "EUR_USD",
       "ny",
       "long"
+    ],
+    [
+      "USD_JPY",
+      "london",
+      "long"
     ]
   ],
   "inverted_shadow_cells": [],
