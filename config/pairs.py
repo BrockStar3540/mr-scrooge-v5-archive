@@ -12,10 +12,10 @@ PAIRS = list(PIP.keys())
 PAIR_SESSIONS = {
     "AUD_JPY":  ["asia", "london"],
     "AUD_USD":  ["asia", "london", "ny"],
-    "EUR_JPY":  ["london", "ny"],
-    "EUR_USD":  ["london", "ny"],
-    "GBP_USD":  ["london", "ny"],
-    "USD_CAD":  ["ny"],
+    "EUR_JPY":  ["asia", "london", "ny"],
+    "EUR_USD":  ["asia", "london", "ny"],
+    "GBP_USD":  ["asia", "london", "ny"],
+    "USD_CAD":  ["asia", "london", "ny"],
     "USD_CHF":  ["london", "ny"],
     "USD_JPY":  ["asia", "london", "ny"],
 }
