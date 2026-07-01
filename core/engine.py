@@ -19,6 +19,7 @@ from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
 from modules.playmaker.playmaker import pick_best, TradeTicket, pm_margin_pct, pm_inverted_shadow_cells
+from modules.playmaker import lock_guard
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
 
@@ -40,6 +41,9 @@ class Engine:
         self._sl_history: dict[str, datetime] = {}
         # (pair, session, dir) -> bool actionable last cycle; rising edge => SHADOW_INVERT log
         self._invert_shadow_actionable: dict[tuple, bool] = {}
+        # cell_opens: "<pair>|<session>|<traded_dir>|<session_instance_key>" -> int
+        # In-memory only — resets on restart (acceptable; throttle is per-session anyway)
+        self._cell_opens: dict[str, int] = {}
 
         # Dashboard state — updated each cycle
         self.last_views:        list = []
@@ -51,6 +55,9 @@ class Engine:
 
         log.info("V5 engine ready | dry_run=%s | %d pairs | %d dir_mods | %d mom_mods",
                  dry_run, len(PAIRS), len(self.dir_mods), len(self.mom_mods))
+
+        # Lock guard startup: fingerprint check for all locked cells with snapshots
+        self._lock_guard_status: dict = lock_guard.startup_check(log)
 
         if not dry_run:
             self._recover_open_positions()
@@ -212,6 +219,7 @@ class Engine:
             open_pairs=set(self.managers.keys()),
             now=now,
             sl_history=self._sl_history,
+            cell_opens=self._cell_opens,
         )
 
         # ── Update dashboard state ────────────────────────────────────────────
@@ -288,6 +296,7 @@ class Engine:
                 open_pairs=set(self.managers.keys()) | opened_pairs,
                 now=now,
                 sl_history=self._sl_history,
+                cell_opens=self._cell_opens,
             )
 
     def _signal_and_open(self, trade_ticket, views, now):
@@ -324,7 +333,16 @@ class Engine:
         pip  = PIP[ticket.pair]
 
         entry_price = view.ask if ticket.direction == "long" else view.bid
+        # For locked cells, use the governance-frozen initial SL so the mechanism
+        # stays exactly as validated at lock time.
         initial_sl = initial_sl_pips_for(ticket.pair)
+        _gov = lock_guard.locked_governance(ticket.pair, ticket.session)
+        if _gov is not None:
+            _gov_sl = float(_gov.get("initial_sl_pips", initial_sl))
+            if _gov_sl != initial_sl:
+                lock_guard.log_drift(ticket.pair, ticket.session,
+                                     "initial_sl_pips", initial_sl, _gov_sl)
+                initial_sl = _gov_sl
         units = self.broker.size_units(ticket.pair, ticket.direction,
                                        margin_pct=pm_margin_pct())
         trade = self.broker.place_market(
@@ -356,3 +374,12 @@ class Engine:
         self.recent_events.append(
             f"{now.strftime('%H:%M:%S')} ENTER {ticket.pair} {ticket.direction} @ {entry_price:.5f}"
         )
+        # Increment per-session-instance open count for locked cell throttle tracking.
+        # Prune keys older than 2 days to bound dict size.
+        _inst = lock_guard.session_instance_key(ticket.session, now)
+        _opens_key = f"{ticket.pair}|{ticket.session}|{ticket.direction}|{_inst}"
+        self._cell_opens[_opens_key] = self._cell_opens.get(_opens_key, 0) + 1
+        from datetime import timedelta as _td
+        _cutoff_date = (now - _td(days=2)).strftime("%Y-%m-%d")
+        self._cell_opens = {k: v for k, v in self._cell_opens.items()
+                            if k.split("|")[-1].split("@")[-1] >= _cutoff_date}

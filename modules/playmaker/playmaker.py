@@ -37,6 +37,7 @@ from typing import Optional
 
 from ..signals.base import PairTicket
 from config.pairs import PAIR_SESSIONS
+from . import lock_guard
 
 
 
@@ -260,6 +261,7 @@ def pick_best(
     max_positions: Optional[int] = None,
     now:           Optional[datetime] = None,
     sl_history:    Optional[dict] = None,
+    cell_opens:    Optional[dict] = None,
 ) -> Optional[TradeTicket]:
     """Select the best-edge trade ticket from active pair tickets.
 
@@ -278,90 +280,252 @@ def pick_best(
         return None
 
     # Step 1: session + position + enabled + cooldown
+    # For LOCKED cells, every gate is resolved from the frozen governance snapshot
+    # instead of live config; drift is logged once per hour per field.
     eligible = []
     for t in tickets:
         if t.pair in open_pairs:
             continue
-        if t.session not in PAIR_SESSIONS.get(t.pair, []):
-            continue
+
+        # ── Lock guard: load frozen governance for this (pair, session) ───────
+        gov = lock_guard.locked_governance(t.pair, t.session)
+
+        # Session eligibility
+        if gov is not None:
+            _gov_sess_en = gov.get("session_enabled", True)
+            _live_sess_en = t.session in PAIR_SESSIONS.get(t.pair, [])
+            if _live_sess_en != _gov_sess_en:
+                lock_guard.log_drift(t.pair, t.session, "session_enabled",
+                                     _live_sess_en, _gov_sess_en)
+            if not _gov_sess_en:
+                continue
+        else:
+            if t.session not in PAIR_SESSIONS.get(t.pair, []):
+                continue
+
         pcfg = _pm_for_pair(pm, t.pair)
+
+        # Per-pair enabled
         if not pcfg.get("enabled", True):
             continue
-        # 2026-06-21 Master Matrix: per-cell disable for cells with negative ML edge + no live evidence
-        if (t.pair, t.session, t.direction.bias) in pm.get("disabled_cells", frozenset()):
-            continue
-        # 2026-06-23 per-cell m_cert CEILING (Brock reframe): block trades with m_cert
-        # above the cell's ceiling. Low m_cert = big-move setup; high m_cert = small
-        # contained move. For cells whose edge IS the big-move tail, filter out the
-        # small-move trades that would dilute the cell's average.
-        _pcmm = pm.get("per_cell_mom_cert_max", {})
-        _cell_max = _pcmm.get((t.pair, t.session))
-        if _cell_max is not None and t.momentum.certainty > _cell_max:
-            continue
-        # 2026-06-23 per-cell m_cert FLOOR: mirror of above for cells where the pattern
-        # is opposite (high m_cert correlates with big MFE). Block low-cert trades so
-        # only high-conviction setups fire.
-        _pcmn = pm.get("per_cell_mom_cert_min", {})
-        _cell_min = _pcmn.get((t.pair, t.session))
-        if _cell_min is not None and t.momentum.certainty < _cell_min:
-            continue
-        # 2026-06-24 per-cell d_cert FLOOR: mirror on direction certainty.
-        # First use: GBP_USD/ny=0.52 (both n=11 inverted losses had d_cert 0.49/0.50;
-        # 8 of 9 winners had d_cert >= 0.54; clean gap at 0.51-0.53).
-        _pcdn = pm.get("per_cell_dir_cert_min", {})
-        _cell_dmin = _pcdn.get((t.pair, t.session))
-        if _cell_dmin is not None and t.direction.certainty < _cell_dmin:
-            continue
-        # 2026-06-25 per-cell d_cert CEILING: mirror of min for range filters.
-        # First use: USD_CHF/ny + london = 0.55 (paired with min 0.35).
-        _pcdx = pm.get("per_cell_dir_cert_max", {})
-        _cell_dmax = _pcdx.get((t.pair, t.session))
-        if _cell_dmax is not None and t.direction.certainty > _cell_dmax:
-            continue
-        # 2026-06-23 per-cell willr_m5 range gate (per pair/session/direction).
-        # 2026 backtest finding: EUR_JPY/ny/short willr in [-85, -7] = +8.5p/70% WR
-        # vs baseline +6.9p/65% on 1999 V5-actionable bars. Block bars outside the range.
-        _pcwr = pm.get("per_cell_willr_range", {})
-        _willr_rng = _pcwr.get((t.pair, t.session, t.direction.bias))
-        if _willr_rng is not None:
-            _willr = getattr(t, "willr_m5", 0.0)
-            if _willr < _willr_rng[0] or _willr > _willr_rng[1]:
+
+        # Disabled-cell check (uses NATIVE direction, before any inversion)
+        if gov is not None:
+            _gov_dis = gov.get("disabled_long" if t.direction.bias == "long" else "disabled_short", False)
+            _live_dis = (t.pair, t.session, t.direction.bias) in pm.get("disabled_cells", frozenset())
+            if _live_dis != _gov_dis:
+                lock_guard.log_drift(t.pair, t.session,
+                                     f"disabled_{t.direction.bias}", _live_dis, _gov_dis)
+            if _gov_dis:
                 continue
-        # 2026-06-23 per-cell kc_up_dist_pips range gate (mirror of willr_range).
-        # AUD_USD/london/short backtest: kc_up in [-15, 0] = +4.22p/69% WR vs baseline
-        # +2.86p/65% on 1120 V5-actionable bars. Deep-below (<-20) is a LOSING zone.
-        _pckur = pm.get("per_cell_kc_up_range", {})
-        _kc_rng = _pckur.get((t.pair, t.session, t.direction.bias))
-        if _kc_rng is not None:
-            _kc = getattr(t, "kc_up_dist_pips", 0.0)
-            if _kc < _kc_rng[0] or _kc > _kc_rng[1]:
+        else:
+            # 2026-06-21 Master Matrix: per-cell disable for cells with negative ML edge + no live evidence
+            if (t.pair, t.session, t.direction.bias) in pm.get("disabled_cells", frozenset()):
                 continue
-        cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
+
+        # m_cert CEILING gate
+        if gov is not None:
+            _gov_mcmax = gov.get("mom_cert_max")
+            _live_mcmax = pm.get("per_cell_mom_cert_max", {}).get((t.pair, t.session))
+            if _gov_mcmax != _live_mcmax:
+                lock_guard.log_drift(t.pair, t.session, "mom_cert_max", _live_mcmax, _gov_mcmax)
+            if _gov_mcmax is not None and t.momentum.certainty > _gov_mcmax:
+                continue
+        else:
+            # 2026-06-23 per-cell m_cert CEILING (Brock reframe): block trades with m_cert
+            # above the cell's ceiling. Low m_cert = big-move setup; high m_cert = small
+            # contained move. For cells whose edge IS the big-move tail, filter out the
+            # small-move trades that would dilute the cell's average.
+            _pcmm = pm.get("per_cell_mom_cert_max", {})
+            _cell_max = _pcmm.get((t.pair, t.session))
+            if _cell_max is not None and t.momentum.certainty > _cell_max:
+                continue
+
+        # m_cert FLOOR gate
+        if gov is not None:
+            _gov_mcmin = gov.get("mom_cert_min")
+            _live_mcmin = pm.get("per_cell_mom_cert_min", {}).get((t.pair, t.session))
+            if _gov_mcmin != _live_mcmin:
+                lock_guard.log_drift(t.pair, t.session, "mom_cert_min", _live_mcmin, _gov_mcmin)
+            if _gov_mcmin is not None and t.momentum.certainty < _gov_mcmin:
+                continue
+        else:
+            # 2026-06-23 per-cell m_cert FLOOR: mirror of above for cells where the pattern
+            # is opposite (high m_cert correlates with big MFE). Block low-cert trades so
+            # only high-conviction setups fire.
+            _pcmn = pm.get("per_cell_mom_cert_min", {})
+            _cell_min = _pcmn.get((t.pair, t.session))
+            if _cell_min is not None and t.momentum.certainty < _cell_min:
+                continue
+
+        # d_cert FLOOR gate
+        if gov is not None:
+            _gov_dcmin = gov.get("dir_cert_min")
+            _live_dcmin = pm.get("per_cell_dir_cert_min", {}).get((t.pair, t.session))
+            if _gov_dcmin != _live_dcmin:
+                lock_guard.log_drift(t.pair, t.session, "dir_cert_min", _live_dcmin, _gov_dcmin)
+            if _gov_dcmin is not None and t.direction.certainty < _gov_dcmin:
+                continue
+        else:
+            # 2026-06-24 per-cell d_cert FLOOR: mirror on direction certainty.
+            # First use: GBP_USD/ny=0.52 (both n=11 inverted losses had d_cert 0.49/0.50;
+            # 8 of 9 winners had d_cert >= 0.54; clean gap at 0.51-0.53).
+            _pcdn = pm.get("per_cell_dir_cert_min", {})
+            _cell_dmin = _pcdn.get((t.pair, t.session))
+            if _cell_dmin is not None and t.direction.certainty < _cell_dmin:
+                continue
+
+        # d_cert CEILING gate
+        if gov is not None:
+            _gov_dcmax = gov.get("dir_cert_max")
+            _live_dcmax = pm.get("per_cell_dir_cert_max", {}).get((t.pair, t.session))
+            if _gov_dcmax != _live_dcmax:
+                lock_guard.log_drift(t.pair, t.session, "dir_cert_max", _live_dcmax, _gov_dcmax)
+            if _gov_dcmax is not None and t.direction.certainty > _gov_dcmax:
+                continue
+        else:
+            # 2026-06-25 per-cell d_cert CEILING: mirror of min for range filters.
+            # First use: USD_CHF/ny + london = 0.55 (paired with min 0.35).
+            _pcdx = pm.get("per_cell_dir_cert_max", {})
+            _cell_dmax = _pcdx.get((t.pair, t.session))
+            if _cell_dmax is not None and t.direction.certainty > _cell_dmax:
+                continue
+
+        # willr_m5 range gate
+        if gov is not None:
+            _gov_willr = gov.get(f"willr_range_{t.direction.bias}")  # [lo, hi] or null
+            _live_willr = pm.get("per_cell_willr_range", {}).get((t.pair, t.session, t.direction.bias))
+            _live_willr_l = list(_live_willr) if _live_willr is not None else None
+            if _gov_willr != _live_willr_l:
+                lock_guard.log_drift(t.pair, t.session, f"willr_range_{t.direction.bias}",
+                                     _live_willr_l, _gov_willr)
+            if _gov_willr is not None:
+                _willr = getattr(t, "willr_m5", 0.0)
+                if _willr < _gov_willr[0] or _willr > _gov_willr[1]:
+                    continue
+        else:
+            # 2026-06-23 per-cell willr_m5 range gate (per pair/session/direction).
+            # 2026 backtest finding: EUR_JPY/ny/short willr in [-85, -7] = +8.5p/70% WR
+            # vs baseline +6.9p/65% on 1999 V5-actionable bars. Block bars outside the range.
+            _pcwr = pm.get("per_cell_willr_range", {})
+            _willr_rng = _pcwr.get((t.pair, t.session, t.direction.bias))
+            if _willr_rng is not None:
+                _willr = getattr(t, "willr_m5", 0.0)
+                if _willr < _willr_rng[0] or _willr > _willr_rng[1]:
+                    continue
+
+        # kc_up range gate
+        if gov is not None:
+            _gov_kc = gov.get(f"kc_up_range_{t.direction.bias}")  # [lo, hi] or null
+            _live_kc = pm.get("per_cell_kc_up_range", {}).get((t.pair, t.session, t.direction.bias))
+            _live_kc_l = list(_live_kc) if _live_kc is not None else None
+            if _gov_kc != _live_kc_l:
+                lock_guard.log_drift(t.pair, t.session, f"kc_up_range_{t.direction.bias}",
+                                     _live_kc_l, _gov_kc)
+            if _gov_kc is not None:
+                _kc = getattr(t, "kc_up_dist_pips", 0.0)
+                if _kc < _gov_kc[0] or _kc > _gov_kc[1]:
+                    continue
+        else:
+            # 2026-06-23 per-cell kc_up_dist_pips range gate (mirror of willr_range).
+            # AUD_USD/london/short backtest: kc_up in [-15, 0] = +4.22p/69% WR vs baseline
+            # +2.86p/65% on 1120 V5-actionable bars. Deep-below (<-20) is a LOSING zone.
+            _pckur = pm.get("per_cell_kc_up_range", {})
+            _kc_rng = _pckur.get((t.pair, t.session, t.direction.bias))
+            if _kc_rng is not None:
+                _kc = getattr(t, "kc_up_dist_pips", 0.0)
+                if _kc < _kc_rng[0] or _kc > _kc_rng[1]:
+                    continue
+
+        # Cooldown gate
+        if gov is not None:
+            _gov_cd = float(gov.get("cooldown_after_sl_min", 0) or 0)
+            _live_cd = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
+            if _gov_cd != _live_cd:
+                lock_guard.log_drift(t.pair, t.session, "cooldown_after_sl_min", _live_cd, _gov_cd)
+            cd_min = _gov_cd
+        else:
+            cd_min = float(pcfg.get("cooldown_after_sl_min", 0) or 0)
         if cd_min > 0 and now is not None and sl_history and t.pair in sl_history:
             elapsed_min = (now - sl_history[t.pair]).total_seconds() / 60.0
             if elapsed_min < cd_min:
                 continue
-        eligible.append((t, pcfg))
+
+        # Build overridden pcfg for _passes_gates when locked
+        if gov is not None:
+            pcfg_eff = dict(pcfg)
+            for _fld, _gk in (
+                ("min_direction_score", "min_direction_score"),
+                ("min_dir_certainty",   "min_dir_certainty"),
+                ("min_mom_certainty",   "min_mom_certainty"),
+            ):
+                _gv = gov.get(_gk)
+                if _gv is not None and pcfg_eff.get(_fld) != _gv:
+                    lock_guard.log_drift(t.pair, t.session, _fld, pcfg_eff.get(_fld), _gv)
+                    pcfg_eff[_fld] = _gv
+        else:
+            pcfg_eff = pcfg
+
+        eligible.append((t, pcfg_eff, gov))
     if not eligible:
         return None
 
     # Step 2: certainty + spread gates per pair
-    candidates = [t for (t, pcfg) in eligible if _passes_gates(t, pcfg)]
+    candidates = [t for (t, pcfg_eff, _gov) in eligible if _passes_gates(t, pcfg_eff)]
     if not candidates:
         return None
 
-    # Step 3: pick winner — random.choice (if random_pick on) or max edge_rank
+    # Steps 3-5: winner selection, throttle-aware — a capped locked cell must not
+    # block other candidates from firing. Pick the winner, resolve inversion,
+    # check the throttle; if throttled, drop it from the pool and re-pick.
     if pm.get("random_pick", False):
         import random
-        best = random.choice(candidates)
-        pick_method = "random"
-    else:
-        best = max(candidates, key=_edge_rank)
-        pick_method = "edge_rank"
-    # Step 4: per-cell live inversion — flip trade direction for inverted_live_cells
-    signal_dir = best.direction.bias
-    inverted = (best.pair, best.session) in pm.get("inverted_live_cells", frozenset())
-    trade_dir = ("short" if signal_dir == "long" else "long") if inverted else signal_dir
+    best = None
+    signal_dir = trade_dir = None
+    inverted = False
+    pick_method = "edge_rank"
+    pool = list(candidates)
+    while pool:
+        if pm.get("random_pick", False):
+            cand = random.choice(pool)
+            pick_method = "random"
+        else:
+            cand = max(pool, key=_edge_rank)
+            pick_method = "edge_rank"
+        # Step 4: per-cell live inversion — locked cells use frozen inverted_live flag
+        signal_dir = cand.direction.bias
+        cand_gov = lock_guard.locked_governance(cand.pair, cand.session)
+        if cand_gov is not None:
+            _gov_inv = cand_gov.get("inverted_live", False)
+            _live_inv = (cand.pair, cand.session) in pm.get("inverted_live_cells", frozenset())
+            if _gov_inv != _live_inv:
+                lock_guard.log_drift(cand.pair, cand.session, "inverted_live", _live_inv, _gov_inv)
+            inverted = _gov_inv
+        else:
+            inverted = (cand.pair, cand.session) in pm.get("inverted_live_cells", frozenset())
+        trade_dir = ("short" if signal_dir == "long" else "long") if inverted else signal_dir
+
+        # Step 5: THROTTLE — locked cells cap opens per session-instance.
+        # A capped candidate is excluded and selection falls through to next-best.
+        if cell_opens is not None and now is not None:
+            _cap = lock_guard.throttle_cap(cand.pair, cand.session)
+            if (_cap is not None
+                    and trade_dir in lock_guard.locked_traded_directions(cand.pair, cand.session)):
+                _inst_key = lock_guard.session_instance_key(cand.session, now)
+                _opens_key = f"{cand.pair}|{cand.session}|{trade_dir}|{_inst_key}"
+                _opens_n = cell_opens.get(_opens_key, 0)
+                if _opens_n >= _cap:
+                    import logging as _lg
+                    _lg.getLogger("v5.playmaker").warning(
+                        "LOCK_GUARD throttle %s/%s/%s opens=%d cap=%d — holding fire this session",
+                        cand.pair, cand.session, trade_dir, _opens_n, _cap
+                    )
+                    pool.remove(cand)
+                    continue
+        best = cand
+        break
+    if best is None:
+        return None
     return TradeTicket(
         pair=best.pair,
         session=best.session,

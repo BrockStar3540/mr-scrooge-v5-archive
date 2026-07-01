@@ -138,3 +138,29 @@ URL modes for streaming:
 | `per_cell_willr_range`      | dict pair/session/dir → [lo, hi] | cell only profitable in a specific willr_m5 window |
 | `per_cell_kc_up_range`      | dict pair/session/dir → [lo, hi] | cell only profitable when distance to upper Keltner is in a window |
 | `random_pick`               | bool                        | spread fire rate across all actionable cells instead of max-composite (for evaluating alternative rankings) |
+
+### 🔒 LOCKED cells — security lock (2026-07-01)
+
+Brock-designated dialed-in cells are **frozen**: they keep trading exactly as validated,
+and global / per-pair / per-cell config changes do NOT apply to them unless explicitly
+overridden. Registry: `config/locked_cells.json` (baselines + `snapshot` + `overrides`).
+
+- **Enforcement**: `modules/playmaker/lock_guard.py`, wired into `pick_best()`. For a
+  locked (pair, session), every gate (session eligibility, disables, inversion, cert
+  floors/bounds, willr/kc ranges, cooldown, initial SL) resolves from the lock-time
+  `snapshot.governance`, not live config. Divergence is logged as
+  `LOCK_GUARD drift ... (using locked)` (rate-limited 1/h per field) and shown in
+  `/api/state.lock_guard`.
+- **Throttle**: locked traded directions cap at `snapshot.throttle.max_opens_per_session`
+  (default 2) per session-instance — engine-level changes (e.g. multi-open) cannot
+  multiply a locked cell's exposure. A capped cell falls through to the next candidate.
+- **Code-level drift**: restart-required inputs (direction/momentum profiles, factor
+  anchors, session hours, exit step params) are fingerprinted at lock time;
+  `startup_check()` logs CRITICAL `LOCK_GUARD CODE-DRIFT` on mismatch (alert-only,
+  keeps trading).
+- **Changing a locked cell**: add an entry to `overrides` in `locked_cells.json`
+  ({pair, session, field, value, approved_by, date, note}) — nothing applies silently.
+  Re-dialing a cell = update config, then re-run
+  `python3 research/tools/lock_snapshot.py --write` to take a fresh snapshot.
+- **Audit**: `research/tools/cell_audit.py` tags 🔒 + raises DEGRADING post-lock
+  (warning for Brock, not authorization to edit).

@@ -354,6 +354,41 @@ def _state(engine: "Engine") -> dict:
         "manage_interval_seconds": 5,
     }
 
+    # ── Lock guard status (read-only, cheap) ────────────────────────────────────
+    lock_guard_status = []
+    try:
+        from modules.playmaker import lock_guard as _lg
+        _lg_data = _lg._load()
+        if _lg_data:
+            for _lc in _lg_data.get("cells", []):
+                _pair    = _lc.get("pair")
+                _session = _lc.get("session")
+                _dir     = _lc.get("dir")
+                _snap    = _lc.get("snapshot")
+                _has_snap = _snap is not None
+                # code_fingerprint_ok: True if stored fp matches live fp, else False; None if no snapshot
+                _fp_ok = None
+                if _has_snap:
+                    _lg_status = getattr(engine, "_lock_guard_status", {})
+                    _fp_ok = _lg_status.get((_pair, _session), None)
+                # opens this session for this locked traded direction
+                _opens = 0
+                if now is not None and _pair and _session:
+                    _inst = _lg.session_instance_key(_session, now)
+                    _opens = getattr(engine, "_cell_opens", {}).get(
+                        f"{_pair}|{_session}|{_dir}|{_inst}", 0
+                    )
+                _cap = _lg.throttle_cap(_pair, _session) if (_pair and _session) else None
+                lock_guard_status.append({
+                    "cell":                 f"{_pair}/{_session}/{_dir}",
+                    "has_snapshot":         _has_snap,
+                    "code_fingerprint_ok":  _fp_ok,
+                    "opens_this_session":   _opens,
+                    "throttle_cap":         _cap,
+                })
+    except Exception as _exc:
+        lock_guard_status = [{"error": str(_exc)}]
+
     return {
         "account":         account,
         "open_positions":  open_positions,
@@ -367,6 +402,7 @@ def _state(engine: "Engine") -> dict:
         "server_time":     now.isoformat(),
         "governance":      governance,
         "engine":          engine_info,
+        "lock_guard":      lock_guard_status,
     }
 
 
