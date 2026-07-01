@@ -1,0 +1,103 @@
+{
+  "_doc": "LOCKED cells = validated / dialed-in. Audits MUST tag these with the lock indicator. The monitor alerts if a locked cell's POST-LOCK performance degrades, so Brock is warned BEFORE it bleeds and can edit it. Do NOT auto-change locked cells or propose changes to them unless the monitor flags degradation. See memory feedback_locked_cells.",
+  "lock_date": "2026-07-01",
+  "source": "OANDA broker CSV audit 2026-06-22..07-01 (research/sessions/2026-07-01_cell_audit_throughput)",
+  "alert_rules": {
+    "min_wr_pct": 50,
+    "alert_net_pips_below": 0.0,
+    "consecutive_losses": 3
+  },
+  "cells": [
+    {
+      "pair": "GBP_USD",
+      "session": "ny",
+      "dir": "short",
+      "locked": "2026-07-01",
+      "baseline": {
+        "n": 14,
+        "w": 12,
+        "l": 2,
+        "wr": 86,
+        "net_pips": 42.4,
+        "net_usd": 261.51,
+        "dates": "06-22->06-30"
+      }
+    },
+    {
+      "pair": "AUD_USD",
+      "session": "london",
+      "dir": "short",
+      "locked": "2026-07-01",
+      "baseline": {
+        "n": 7,
+        "w": 6,
+        "l": 1,
+        "wr": 86,
+        "net_pips": 30.2,
+        "net_usd": 599.21,
+        "dates": "06-22->06-24"
+      }
+    },
+    {
+      "pair": "USD_JPY",
+      "session": "london",
+      "dir": "long",
+      "locked": "2026-07-01",
+      "baseline": {
+        "n": 4,
+        "w": 4,
+        "l": 0,
+        "wr": 100,
+        "net_pips": 24.9,
+        "net_usd": 127.78,
+        "dates": "06-22->06-26"
+      }
+    },
+    {
+      "pair": "AUD_USD",
+      "session": "london",
+      "dir": "long",
+      "locked": "2026-07-01",
+      "baseline": {
+        "n": 2,
+        "w": 2,
+        "l": 0,
+        "wr": 100,
+        "net_pips": 12.6,
+        "net_usd": 257.59,
+        "dates": "06-25->06-26"
+      }
+    },
+    {
+      "pair": "USD_JPY",
+      "session": "asia",
+      "dir": "long",
+      "locked": "2026-07-01",
+      "baseline": {
+        "n": 2,
+        "w": 2,
+        "l": 0,
+        "wr": 100,
+        "net_pips": 9.7,
+        "net_usd": 51.04,
+        "dates": "06-25->06-26"
+      }
+    },
+    {
+      "pair": "AUD_JPY",
+      "session": "asia",
+      "dir": "short",
+      "locked": "2026-07-01",
+      "baseline": {
+        "n": 5,
+        "w": 4,
+        "l": 1,
+        "wr": 80,
+        "net_pips": 8.0,
+        "net_usd": 63.12,
+        "dates": "06-22->07-01"
+      }
+    }
+  ],
+  "lock_ts": "2026-07-01T06:29:20Z"
+}
