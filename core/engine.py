@@ -213,10 +213,14 @@ class Engine:
                 pass
 
         # ── Step 4: playmaker ─────────────────────────────────────────────────
+        # open_positions feeds the per-currency directional exposure cap
+        # (max_per_currency_direction) — pick_best needs pair + traded direction,
+        # not just which pairs are occupied.
         trade_ticket = pick_best(
             tickets,
             hour_utc=now.hour,
             open_pairs=set(self.managers.keys()),
+            open_positions=[(p, mgr.direction) for p, mgr in self.managers.items()],
             now=now,
             sl_history=self._sl_history,
             cell_opens=self._cell_opens,
@@ -286,14 +290,22 @@ class Engine:
         # Re-pick each iteration with opened pairs excluded; pick_best still enforces
         # max_concurrent, 1-per-pair, session windows, cooldown, and all per-cell gates.
         opened_pairs: set[str] = set()
+        opened_dirs: dict[str, str] = {}   # pair -> traded direction, this cycle
         picked = trade_ticket
         while picked is not None:
             self._signal_and_open(picked, views, now)
             opened_pairs.add(picked.pair)
+            opened_dirs[picked.pair] = picked.direction
+            # Exposure map for the currency cap: managers (live mode already holds
+            # the new position) overlaid with this cycle's opens (covers dry_run,
+            # where _open_trade never registers a manager) — dict dedupes by pair.
+            _open_pos = {p: mgr.direction for p, mgr in self.managers.items()}
+            _open_pos.update(opened_dirs)
             picked = pick_best(
                 tickets,
                 hour_utc=now.hour,
                 open_pairs=set(self.managers.keys()) | opened_pairs,
+                open_positions=list(_open_pos.items()),
                 now=now,
                 sl_history=self._sl_history,
                 cell_opens=self._cell_opens,

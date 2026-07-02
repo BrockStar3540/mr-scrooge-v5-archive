@@ -354,6 +354,20 @@ def _state(engine: "Engine") -> dict:
         "manage_interval_seconds": 5,
     }
 
+    # ── Per-currency directional exposure (RISK_CAP inputs, cheap) ────────────
+    # 2026-07-02 panel-unanimous cap: pick_best blocks a candidate when any single
+    # (currency, sign) exposure would exceed max_per_currency_direction. Surface
+    # the live map so the dashboard shows what the cap is counting.
+    try:
+        from modules.playmaker.playmaker import (currency_exposure as _ccy_exp_fn,
+                                                 pm_max_per_currency_direction as _ccy_cap_fn)
+        _ccy_exp = _ccy_exp_fn([(p, m.direction) for p, m in engine.managers.items()])
+        engine_info["currency_exposure"] = {f"{_c}/{_s}": _n
+                                            for (_c, _s), _n in sorted(_ccy_exp.items())}
+        engine_info["max_per_currency_direction"] = _ccy_cap_fn()
+    except Exception as _exc:
+        engine_info["currency_exposure"] = {"error": str(_exc)}
+
     # ── Lock guard status (read-only, cheap) ────────────────────────────────────
     lock_guard_status = []
     try:

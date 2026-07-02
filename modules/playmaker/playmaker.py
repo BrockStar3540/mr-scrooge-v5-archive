@@ -55,6 +55,7 @@ _PM_DEFAULTS = {
 _PM_ACCT_DEFAULTS = {
     "margin_pct_per_trade":  0.005,   # fraction of BALANCE used as margin per trade
     "max_concurrent_trades": 3,
+    "max_per_currency_direction": 1,  # max concurrent same-sign positions per CURRENCY
 }
 
 def _pm_load() -> dict:
@@ -197,6 +198,36 @@ pm_risk_pct = pm_margin_pct
 def pm_max_concurrent() -> int:
     return int(_pm_load()["account"]["max_concurrent_trades"])
 
+def pm_max_per_currency_direction() -> int:
+    """Max concurrent open positions exposing the same (currency, sign).
+
+    2026-07-02 panel-unanimous risk cap: the engine held three long-yen-pair
+    positions into a JPY crash — one macro bet at 3x size. A position exposes
+    two currencies with opposite signs (long BASE_QUOTE = long BASE + short
+    QUOTE); this caps how many open positions may share any single exposure."""
+    return int(_pm_load()["account"]["max_per_currency_direction"])
+
+def _currency_legs(pair: str, direction: str) -> tuple[tuple[str, str], tuple[str, str]]:
+    """The two (currency, sign) exposures of a position.
+
+    long BASE_QUOTE  = long BASE + short QUOTE
+    short BASE_QUOTE = short BASE + long QUOTE"""
+    base, quote = pair.split("_")
+    if direction == "long":
+        return ((base, "long"), (quote, "short"))
+    return ((base, "short"), (quote, "long"))
+
+def currency_exposure(open_positions) -> dict[tuple[str, str], int]:
+    """(currency, sign) -> count of open positions carrying that exposure.
+
+    open_positions: iterable of (pair, direction) tuples, direction = traded
+    direction ("long"|"short"). Also surfaced on /api/state for the dashboard."""
+    exp: dict[tuple[str, str], int] = {}
+    for pair, direction in (open_positions or []):
+        for leg in _currency_legs(pair, direction):
+            exp[leg] = exp.get(leg, 0) + 1
+    return exp
+
 def pm_inverted_shadow_cells() -> frozenset:
     """(pair, session) cells whose signal stream is shadow-logged for invert evaluation."""
     return _pm_load().get("inverted_shadow_cells", frozenset())
@@ -284,13 +315,19 @@ def pick_best(
     now:           Optional[datetime] = None,
     sl_history:    Optional[dict] = None,
     cell_opens:    Optional[dict] = None,
+    open_positions: Optional[list] = None,
 ) -> Optional[TradeTicket]:
     """Select the best-edge trade ticket from active pair tickets.
+
+    open_positions: list of (pair, direction) tuples for currently open trades —
+    feeds the per-currency directional exposure cap (max_per_currency_direction).
+    open_pairs is kept alongside for compatibility (position limit + 1-per-pair).
 
     Returns None when:
       - position limit is already reached (max_concurrent_trades from playmaker config), or
       - no ticket passes per-pair certainty + spread gates, or
-      - pair is under cooldown after a recent losing exit.
+      - pair is under cooldown after a recent losing exit, or
+      - every remaining candidate is excluded by the per-currency exposure cap.
 
     When multiple tickets pass (group arrival), picks the one with the highest
     abs(composite_score), breaking ties by expected_pips.
@@ -529,6 +566,10 @@ def pick_best(
     signal_dir = trade_dir = None
     inverted = False
     pick_method = "edge_rank"
+    # Per-currency directional exposure state (Step 6) — computed once per call;
+    # open_positions does not change while we re-pick within the pool.
+    _ccy_cap = int(pm["account"]["max_per_currency_direction"])
+    _ccy_exp = currency_exposure(open_positions)
     pool = list(candidates)
     while pool:
         if pm.get("random_pick", False):
@@ -583,6 +624,33 @@ def pick_best(
                     )
                     pool.remove(cand)
                     continue
+
+        # Step 6: PER-CURRENCY DIRECTIONAL EXPOSURE CAP (2026-07-02 panel-unanimous).
+        # Motivation: 2026-07-02 the engine held three long-yen-pair positions into a
+        # JPY crash — three "independent" trades were one macro bet at 3x size.
+        # A position exposes two currencies with opposite signs (long BASE_QUOTE =
+        # long BASE + short QUOTE); block the candidate when opening it would push
+        # any single (currency, sign) count past max_per_currency_direction across
+        # open positions + the candidate. Checked on trade_dir (post-inversion) —
+        # what we EXPOSE, not what the signal said.
+        # Lock-guard interaction: NONE by design — this is a portfolio-level
+        # constraint like max_concurrent_trades, applied after per-cell governance;
+        # LOCKED cells are subject to it (it constrains the portfolio, not the cell).
+        # Same fallthrough as the throttle: a capped candidate must not block others.
+        _capped_leg = None
+        for _leg in _currency_legs(cand.pair, trade_dir):
+            if _ccy_exp.get(_leg, 0) + 1 > _ccy_cap:
+                _capped_leg = _leg
+                break
+        if _capped_leg is not None:
+            import logging as _lg
+            _lg.getLogger("v5.playmaker").warning(
+                "RISK_CAP currency=%s dir=%s open=%d cap=%d — skipping %s",
+                _capped_leg[0], _capped_leg[1], _ccy_exp.get(_capped_leg, 0),
+                _ccy_cap, cand.pair
+            )
+            pool.remove(cand)
+            continue
         best = cand
         break
     if best is None:
