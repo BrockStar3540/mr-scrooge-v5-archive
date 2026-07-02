@@ -2,6 +2,8 @@
 
 # Mr. Scrooge V5
 
+> **STRATEGY-FREE BOT.** V5 has no named strategies, plays, or setup libraries (that was V4). The entire strategy is **direction** (factor-scored, per-cell profiles) + **momentum/distance** (expected-pips gate), resolved per (pair × session × direction) cell and ranked by the playmaker. Analyses must be scoped to same-engine trades (v2/v3 modules, live 2026-06-20+); V4 and v1-module history is inadmissible for cell decisions.
+
 Automated forex trading bot for OANDA. Modular signal pipeline: direction → momentum → playmaker → step-trail ratchet exit. Live on 8 currency pairs.
 
 ## Status
