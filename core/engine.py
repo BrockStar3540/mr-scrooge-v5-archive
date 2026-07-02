@@ -18,7 +18,9 @@ from typing import Optional
 from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
-from modules.playmaker.playmaker import pick_best, TradeTicket, pm_margin_pct, pm_inverted_shadow_cells
+from modules.signals import profile_shadow
+from modules.playmaker.playmaker import (pick_best, TradeTicket, pm_margin_pct,
+                                          pm_inverted_shadow_cells, pm_profile_shadow_enabled)
 from modules.playmaker import lock_guard
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
@@ -282,6 +284,30 @@ class Engine:
                              t.pair, t.session, t.direction.bias, _inv,
                              t.direction.score, t.direction.certainty, t.momentum.certainty,
                              _mid, now.isoformat())
+
+        # ── Shadow dual-stamp: corrected direction-profile assignment (NOT traded) ──
+        # research/sessions/2026-06-21_v5_2026_audit/: corrected per-cell profiles
+        # (most cells → reversion) won 6/6 months in a retrospective replay
+        # (+2.3-3.2p mean fwd/call). Stamp the SAME views through the corrected
+        # stack and log one line per pair per cycle when the stacks disagree on
+        # bias or either is non-block (all-block agreement skipped to limit noise).
+        # Scorer: research/tools/profile_shadow_score.py measures the 1H forward.
+        # Kill-switch: defaults.profile_shadow_enabled (hot-reload, no restart).
+        if pm_profile_shadow_enabled() and profile_shadow.shadow_enabled():
+            for t in tickets:
+                _v = next((v for v in views if v.pair == t.pair), None)
+                if _v is None:
+                    continue
+                _corr = profile_shadow.shadow_stamp(_v)
+                if _corr is None:
+                    continue
+                _c_bias, _c_score, _c_cert = _corr
+                if t.direction.bias == "block" and _c_bias == "block":
+                    continue
+                log.info("SHADOW_PROFILE %s/%s live=%s/%+.3f/%.2f corr=%s/%+.3f/%.2f ts=%s",
+                         t.pair, t.session,
+                         t.direction.bias, t.direction.score, t.direction.certainty,
+                         _c_bias, _c_score, _c_cert, now.isoformat())
 
         if trade_ticket is None:
             return

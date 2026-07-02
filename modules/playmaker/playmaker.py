@@ -51,6 +51,7 @@ _PM_DEFAULTS = {
     "min_dir_certainty":   0.30,
     "min_mom_certainty":   0.25,
     "cooldown_after_sl_min": 0.0,
+    "profile_shadow_enabled": True,
 }
 _PM_ACCT_DEFAULTS = {
     "margin_pct_per_trade":  0.005,   # fraction of BALANCE used as margin per trade
@@ -239,6 +240,14 @@ def pm_inverted_live_cells() -> frozenset:
 def pm_random_pick() -> bool:
     """True when pick_best randomizes among actionable candidates."""
     return bool(_pm_load().get("random_pick", False))
+
+def pm_profile_shadow_enabled() -> bool:
+    """True when the corrected-profile shadow dual-stamp logs SHADOW_PROFILE lines.
+
+    2026-07-02: engine stamps every scanned bar through a SECOND direction stack
+    built from the 2026-audit corrected profile assignment (mostly reversion) —
+    logging only, execution unchanged. See modules/signals/profile_shadow.py."""
+    return bool(_pm_load()["defaults"].get("profile_shadow_enabled", True))
 
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
 MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
