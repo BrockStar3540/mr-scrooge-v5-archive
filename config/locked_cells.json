@@ -23,9 +23,10 @@
         "dates": "06-22->06-30"
       },
       "snapshot": {
-        "taken": "2026-07-01T21:11:53.116695+00:00",
+        "taken": "2026-07-02T22:44:36.166360+00:00",
         "governance": {
           "inverted_live": true,
+          "inverted_directions": [],
           "disabled_long": false,
           "disabled_short": false,
           "session_enabled": true,
@@ -40,6 +41,8 @@
           "willr_range_short": null,
           "kc_up_range_long": null,
           "kc_up_range_short": null,
+          "aroon_range_long": null,
+          "aroon_range_short": null,
           "cooldown_after_sl_min": 0.0,
           "initial_sl_pips": 20.0
         },
@@ -64,9 +67,10 @@
         "dates": "06-22->06-24"
       },
       "snapshot": {
-        "taken": "2026-07-01T21:11:53.134959+00:00",
+        "taken": "2026-07-02T22:44:36.185570+00:00",
         "governance": {
           "inverted_live": false,
+          "inverted_directions": [],
           "disabled_long": false,
           "disabled_short": false,
           "session_enabled": true,
@@ -84,6 +88,8 @@
             -15.0,
             0.0
           ],
+          "aroon_range_long": null,
+          "aroon_range_short": null,
           "cooldown_after_sl_min": 0.0,
           "initial_sl_pips": 20.0
         },
@@ -108,10 +114,11 @@
         "dates": "06-22->06-26"
       },
       "snapshot": {
-        "taken": "2026-07-01T21:11:53.152778+00:00",
+        "taken": "2026-07-02T22:44:36.203803+00:00",
         "governance": {
-          "inverted_live": true,
-          "disabled_long": true,
+          "inverted_live": false,
+          "inverted_directions": [],
+          "disabled_long": false,
           "disabled_short": false,
           "session_enabled": true,
           "min_direction_score": 0.25,
@@ -125,6 +132,8 @@
           "willr_range_short": null,
           "kc_up_range_long": null,
           "kc_up_range_short": null,
+          "aroon_range_long": null,
+          "aroon_range_short": null,
           "cooldown_after_sl_min": 0.0,
           "initial_sl_pips": 20.0
         },
@@ -149,9 +158,10 @@
         "dates": "06-25->06-26"
       },
       "snapshot": {
-        "taken": "2026-07-01T21:11:53.171057+00:00",
+        "taken": "2026-07-02T22:44:36.222868+00:00",
         "governance": {
           "inverted_live": false,
+          "inverted_directions": [],
           "disabled_long": false,
           "disabled_short": false,
           "session_enabled": true,
@@ -169,6 +179,8 @@
             -15.0,
             0.0
           ],
+          "aroon_range_long": null,
+          "aroon_range_short": null,
           "cooldown_after_sl_min": 0.0,
           "initial_sl_pips": 20.0
         },
@@ -193,9 +205,10 @@
         "dates": "06-25->06-26"
       },
       "snapshot": {
-        "taken": "2026-07-01T21:11:53.189159+00:00",
+        "taken": "2026-07-02T22:44:36.241070+00:00",
         "governance": {
           "inverted_live": true,
+          "inverted_directions": [],
           "disabled_long": false,
           "disabled_short": false,
           "session_enabled": true,
@@ -210,6 +223,8 @@
           "willr_range_short": null,
           "kc_up_range_long": null,
           "kc_up_range_short": null,
+          "aroon_range_long": null,
+          "aroon_range_short": null,
           "cooldown_after_sl_min": 0.0,
           "initial_sl_pips": 20.0
         },
@@ -234,10 +249,11 @@
         "dates": "06-22->07-01"
       },
       "snapshot": {
-        "taken": "2026-07-01T21:11:53.206961+00:00",
+        "taken": "2026-07-02T22:44:36.259057+00:00",
         "governance": {
           "inverted_live": false,
-          "disabled_long": false,
+          "inverted_directions": [],
+          "disabled_long": true,
           "disabled_short": false,
           "session_enabled": true,
           "min_direction_score": 0.25,
@@ -251,6 +267,8 @@
           "willr_range_short": null,
           "kc_up_range_long": null,
           "kc_up_range_short": null,
+          "aroon_range_long": null,
+          "aroon_range_short": null,
           "cooldown_after_sl_min": 0.0,
           "initial_sl_pips": 20.0
         },
@@ -262,5 +280,24 @@
     }
   ],
   "lock_ts": "2026-07-01T06:29:20Z",
-  "overrides": []
+  "overrides": [
+    {
+      "pair": "USD_JPY",
+      "session": "london",
+      "field": "inverted_live",
+      "value": false,
+      "approved_by": "brock",
+      "date": "2026-07-03",
+      "note": "Brock explicit override (ok, do both): restore natural direction; inverted live -24.4p/5 vs +7.06p natural backtest; baseline was cross-regime contaminated"
+    },
+    {
+      "pair": "USD_JPY",
+      "session": "london",
+      "field": "disabled_long",
+      "value": false,
+      "approved_by": "brock",
+      "date": "2026-07-03",
+      "note": "Brock explicit override (ok, do both): restore natural direction; inverted live -24.4p/5 vs +7.06p natural backtest; baseline was cross-regime contaminated"
+    }
+  ]
 }
