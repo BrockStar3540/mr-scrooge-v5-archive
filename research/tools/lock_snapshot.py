@@ -45,6 +45,14 @@ def _build_snapshot(cell: dict, pm: dict) -> dict:
     ilc = pm.get("inverted_live_cells", frozenset())
     inverted_live = (pair, session) in ilc
 
+    # inverted_directions: list of native directions direction-inverted for this cell
+    # Captures which native directions in (pair, session) are in inverted_live_directions.
+    # Stored as a list (JSON-serialisable); pick_best locked branch reads gov["inverted_directions"].
+    ild = pm.get("inverted_live_directions", frozenset())
+    inverted_directions = sorted(
+        d for d in ("long", "short") if (pair, session, d) in ild
+    )
+
     # disabled_long / disabled_short by native direction
     dc = pm.get("disabled_cells", frozenset())
     disabled_long  = (pair, session, "long")  in dc
@@ -89,12 +97,21 @@ def _build_snapshot(cell: dict, pm: dict) -> dict:
     kc_up_range_long  = list(_kl) if _kl is not None else None
     kc_up_range_short = list(_ks) if _ks is not None else None
 
+    # per_cell_aroon_range: keyed (pair, session, direction)
+    # 2026-07-02: new field. Null if no aroon gate configured for this cell.
+    pcar = pm.get("per_cell_aroon_range", {})
+    _al  = pcar.get((pair, session, "long"))
+    _as_ = pcar.get((pair, session, "short"))
+    aroon_range_long  = list(_al)  if _al  is not None else None
+    aroon_range_short = list(_as_) if _as_ is not None else None
+
     # initial_sl_pips from exit_config for this pair
     exit_cfg      = _exit_load(pair)
     initial_sl_pips = float(exit_cfg["initial_sl_pips"])
 
     governance = {
         "inverted_live":        inverted_live,
+        "inverted_directions":  inverted_directions,
         "disabled_long":        disabled_long,
         "disabled_short":       disabled_short,
         "session_enabled":      session_enabled,
@@ -109,6 +126,8 @@ def _build_snapshot(cell: dict, pm: dict) -> dict:
         "willr_range_short":    willr_range_short,
         "kc_up_range_long":     kc_up_range_long,
         "kc_up_range_short":    kc_up_range_short,
+        "aroon_range_long":     aroon_range_long,
+        "aroon_range_short":    aroon_range_short,
         "cooldown_after_sl_min": cooldown_after_sl,
         "initial_sl_pips":      initial_sl_pips,
     }

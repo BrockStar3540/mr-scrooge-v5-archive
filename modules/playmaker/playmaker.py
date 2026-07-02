@@ -75,6 +75,14 @@ def _pm_load() -> dict:
         # is FLIPPED before execution (long signal → short trade, short signal → long).
         ilc_raw = raw.get("inverted_live_cells") or []
         ilc = frozenset(tuple(x) for x in ilc_raw if len(x) == 2)
+        # inverted_live_directions: list of [pair, session, native_direction] triples →
+        # frozenset of tuples.  When the winning candidate's (pair, session, NATIVE bias)
+        # is in this set, the executed trade direction is flipped — exactly like cell-level
+        # inversion but scoped to one native direction.
+        # Interaction rule: effective_inverted = cell_level_inverted XOR direction_level_inverted.
+        # In practice these should not be combined on the same (pair, session).
+        ild_raw = raw.get("inverted_live_directions") or []
+        ild = frozenset(tuple(x) for x in ild_raw if len(x) == 3)
         # random_pick: when True, pick_best randomizes among actionable candidates
         # instead of ranking by |composite_score|. Used to spread fire rate across
         # cells while we collect per-cycle ticket data to evaluate alternative rankings.
@@ -132,6 +140,16 @@ def _pm_load() -> dict:
             parts = k.split("/")
             if len(parts) == 3 and isinstance(v, (list, tuple)) and len(v) == 2:
                 per_cell_kc_up_range[tuple(parts)] = (float(v[0]), float(v[1]))
+        # per_cell_aroon_range: dict of "pair/session/direction" -> [min, max] on aroonosc_h1.
+        # 2026-07-02 backtest finding (USD_CAD/london/short): aroonosc_h1 <= -85 separates
+        # dead trade 9724 (aroon -57) from winners (aroon -86); [lo, hi] gate mirrors
+        # per_cell_willr_range exactly (same JSON encoding, same gate placement).
+        pcar_raw = raw.get("per_cell_aroon_range") or {}
+        per_cell_aroon_range = {}
+        for k, v in pcar_raw.items():
+            parts = k.split("/")
+            if len(parts) == 3 and isinstance(v, (list, tuple)) and len(v) == 2:
+                per_cell_aroon_range[tuple(parts)] = (float(v[0]), float(v[1]))
         return {
             "account":         {**_PM_ACCT_DEFAULTS, **acct},
             "defaults":        {**_PM_DEFAULTS,      **(raw.get("defaults") or {})},
@@ -139,6 +157,7 @@ def _pm_load() -> dict:
             "disabled_cells":  dc,
             "inverted_shadow_cells": isc,
             "inverted_live_cells":   ilc,
+            "inverted_live_directions": ild,
             "random_pick":     random_pick,
             "per_cell_mom_cert_max": per_cell_mom_cert_max,
             "per_cell_mom_cert_min": per_cell_mom_cert_min,
@@ -146,19 +165,22 @@ def _pm_load() -> dict:
             "per_cell_dir_cert_max": per_cell_dir_cert_max,
             "per_cell_willr_range":  per_cell_willr_range,
             "per_cell_kc_up_range":  per_cell_kc_up_range,
+            "per_cell_aroon_range":  per_cell_aroon_range,
         }
     except Exception:
         return {"account": dict(_PM_ACCT_DEFAULTS), "defaults": dict(_PM_DEFAULTS),
                 "per_pair": {}, "disabled_cells": frozenset(),
                 "inverted_shadow_cells": frozenset(),
                 "inverted_live_cells":   frozenset(),
+                "inverted_live_directions": frozenset(),
                 "random_pick":     False,
                 "per_cell_mom_cert_max": {},
                 "per_cell_mom_cert_min": {},
                 "per_cell_dir_cert_min": {},
                 "per_cell_dir_cert_max": {},
                 "per_cell_willr_range":  {},
-                "per_cell_kc_up_range":  {}}
+                "per_cell_kc_up_range":  {},
+                "per_cell_aroon_range":  {}}
 
 def _pm_for_pair(cfg: dict, pair: str) -> dict:
     eff = dict(cfg["defaults"])
@@ -437,6 +459,29 @@ def pick_best(
                 if _kc < _kc_rng[0] or _kc > _kc_rng[1]:
                     continue
 
+        # aroonosc_h1 range gate (per pair/session/direction)
+        # 2026-07-02 MAE-flip doctrine (USD_CAD/london/short): aroon <= -85 separates
+        # dead trade 9724 (aroon -57) from winners (aroon -86); rival separators
+        # kc_up <= -32, efi <= -0.9 tracked. Mirrors per_cell_willr_range exactly.
+        if gov is not None:
+            _gov_aroon = gov.get(f"aroon_range_{t.direction.bias}")  # [lo, hi] or null
+            _live_aroon = pm.get("per_cell_aroon_range", {}).get((t.pair, t.session, t.direction.bias))
+            _live_aroon_l = list(_live_aroon) if _live_aroon is not None else None
+            if _gov_aroon != _live_aroon_l:
+                lock_guard.log_drift(t.pair, t.session, f"aroon_range_{t.direction.bias}",
+                                     _live_aroon_l, _gov_aroon)
+            if _gov_aroon is not None:
+                _aroon = getattr(t, "aroonosc_h1", 0.0)
+                if _aroon < _gov_aroon[0] or _aroon > _gov_aroon[1]:
+                    continue
+        else:
+            _pcar = pm.get("per_cell_aroon_range", {})
+            _aroon_rng = _pcar.get((t.pair, t.session, t.direction.bias))
+            if _aroon_rng is not None:
+                _aroon = getattr(t, "aroonosc_h1", 0.0)
+                if _aroon < _aroon_rng[0] or _aroon > _aroon_rng[1]:
+                    continue
+
         # Cooldown gate
         if gov is not None:
             _gov_cd = float(gov.get("cooldown_after_sl_min", 0) or 0)
@@ -492,17 +537,33 @@ def pick_best(
         else:
             cand = max(pool, key=_edge_rank)
             pick_method = "edge_rank"
-        # Step 4: per-cell live inversion — locked cells use frozen inverted_live flag
+        # Step 4: inversion — resolve cell-level and direction-level inversions.
+        # effective_inverted = cell_level_inverted XOR direction_level_inverted.
+        # In practice they should not be combined on the same (pair, session).
         signal_dir = cand.direction.bias
         cand_gov = lock_guard.locked_governance(cand.pair, cand.session)
         if cand_gov is not None:
+            # Locked branch: use frozen governance for both inversion fields.
             _gov_inv = cand_gov.get("inverted_live", False)
             _live_inv = (cand.pair, cand.session) in pm.get("inverted_live_cells", frozenset())
             if _gov_inv != _live_inv:
                 lock_guard.log_drift(cand.pair, cand.session, "inverted_live", _live_inv, _gov_inv)
-            inverted = _gov_inv
+            cell_inv = _gov_inv
+            # inverted_directions: list of native dirs frozen direction-inverted for this cell
+            _gov_inv_dirs = cand_gov.get("inverted_directions", [])  # [] if key absent (old snapshot)
+            _live_inv_dirs = [d for d in [signal_dir]
+                              if (cand.pair, cand.session, d) in pm.get("inverted_live_directions", frozenset())]
+            _gov_inv_dirs_set = set(_gov_inv_dirs)
+            if _gov_inv_dirs_set != set(_live_inv_dirs):
+                lock_guard.log_drift(cand.pair, cand.session, "inverted_directions",
+                                     _live_inv_dirs, _gov_inv_dirs)
+            dir_inv = signal_dir in _gov_inv_dirs_set
         else:
-            inverted = (cand.pair, cand.session) in pm.get("inverted_live_cells", frozenset())
+            # Unlocked branch: use live config for both inversion fields.
+            cell_inv = (cand.pair, cand.session) in pm.get("inverted_live_cells", frozenset())
+            dir_inv  = (cand.pair, cand.session, signal_dir) in pm.get("inverted_live_directions", frozenset())
+        # XOR: if both are set, they cancel out (no net flip)
+        inverted = cell_inv != dir_inv
         trade_dir = ("short" if signal_dir == "long" else "long") if inverted else signal_dir
 
         # Step 5: THROTTLE — locked cells cap opens per session-instance.
@@ -526,6 +587,16 @@ def pick_best(
         break
     if best is None:
         return None
+    # Determine annotation for inversion type in reads
+    if inverted:
+        if cell_inv and not dir_inv:
+            _inv_type = "INVERTED_CELL"
+        elif dir_inv and not cell_inv:
+            _inv_type = "INVERTED_DIR"
+        else:
+            _inv_type = "INVERTED_XOR"  # both set, shouldn't happen in practice
+    else:
+        _inv_type = None
     return TradeTicket(
         pair=best.pair,
         session=best.session,
@@ -541,6 +612,7 @@ def pick_best(
             "momentum":  best.momentum.reads,
             "signal_direction": signal_dir,  # what the engine SAW pre-inversion
             "pick_method":      pick_method, # "random" or "edge_rank"
+            "inversion_type":   _inv_type,   # INVERTED_CELL / INVERTED_DIR / None
         },
         rivals=len(candidates) - 1,
         inverted_live=inverted,

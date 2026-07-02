@@ -137,6 +137,8 @@ URL modes for streaming:
 | `per_cell_dir_cert_min/max` | dict pair/session → float   | direction certainty floor/ceiling — same logic on the direction module |
 | `per_cell_willr_range`      | dict pair/session/dir → [lo, hi] | cell only profitable in a specific willr_m5 window |
 | `per_cell_kc_up_range`      | dict pair/session/dir → [lo, hi] | cell only profitable when distance to upper Keltner is in a window |
+| `per_cell_aroon_range`      | dict pair/session/dir → [lo, hi] | cell only profitable in a specific aroonosc_h1 window (MAE-flip doctrine separator) |
+| `inverted_live_directions`  | list of [pair, session, native_dir] | ONE native direction's signal is wired backwards (MAE >> MFE) — flip just that side; XOR with cell-level inversion |
 | `random_pick`               | bool                        | spread fire rate across all actionable cells instead of max-composite (for evaluating alternative rankings) |
 
 ### 🔒 LOCKED cells — security lock (2026-07-01)
