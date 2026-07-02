@@ -139,8 +139,8 @@
   },
   "per_cell_willr_range": {
     "EUR_JPY/ny/short": [
-      -85.0,
-      -7.0
+      -100.0,
+      -75.0
     ]
   },
   "per_cell_kc_up_range": {
@@ -169,5 +169,6 @@
       -85.0
     ]
   },
-  "_note_2026-07-02": "2026-07-02 Brock MAE-flip doctrine: london longs flipped to short (MAE 32p vs MFE 2.8p, n=2); aroon<=-85 floor on native london shorts (separates dead 9724 aroon -57 from winners -86; rival separators kc_up<=-32, efi<=-0.9 tracked)"
+  "_note_2026-07-02": "2026-07-02 Brock MAE-flip doctrine: london longs flipped to short (MAE 32p vs MFE 2.8p, n=2); aroon<=-85 floor on native london shorts (separates dead 9724 aroon -57 from winners -86; rival separators kc_up<=-32, efi<=-0.9 tracked)",
+  "_note_eurjpy_willr": "2026-07-02 Brock MAE-flip doctrine: ny/short willr KEEP window [-85,-7]->[-100,-75] (exhaustion-only for the INVERTED regime; live n=6 split: willr<=-80 -> +16.4p combined, willr -30..-49 -> three full -20p stops; rival separator efi<=-15 tracked; old window was fit pre-inversion on native backtests)"
 }
