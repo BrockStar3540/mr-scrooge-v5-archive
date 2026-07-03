@@ -250,6 +250,13 @@ def pm_profile_shadow_enabled() -> bool:
     logging only, execution unchanged. See modules/signals/profile_shadow.py."""
     return bool(_pm_load()["defaults"].get("profile_shadow_enabled", True))
 
+def pm_calibration_log_enabled() -> bool:
+    """True when CAL lines are emitted each scan cycle (kill-switch, hot-reload).
+
+    Logging only -- no gating, no change to entries or exits.
+    See modules/signals/calibration.py and config/cell_calibration.json."""
+    return bool(_pm_load()["defaults"].get("calibration_log_enabled", True))
+
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
 MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
 MIN_DIR_CERTAINTY   = 0.30   # direction.certainty minimum

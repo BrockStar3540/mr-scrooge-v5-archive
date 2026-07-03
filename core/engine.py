@@ -19,8 +19,10 @@ from config.pairs import PAIRS, PIP
 from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
 from modules.signals import profile_shadow
+from modules.signals import calibration as _calibration
 from modules.playmaker.playmaker import (pick_best, TradeTicket, pm_margin_pct,
-                                          pm_inverted_shadow_cells, pm_profile_shadow_enabled)
+                                          pm_inverted_shadow_cells, pm_profile_shadow_enabled,
+                                          pm_calibration_log_enabled)
 from modules.playmaker import lock_guard
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
@@ -308,6 +310,58 @@ class Engine:
                          t.pair, t.session,
                          t.direction.bias, t.direction.score, t.direction.certainty,
                          _c_bias, _c_score, _c_cert, now.isoformat())
+
+        # -- Per-cell calibration log (LOG-ONLY, no gating) -------------------------
+        # Compares artifact projected_mfe vs live expected_pips and dead-risk flags
+        # on every pair/session where calibration exists and pair is not killed.
+        # One CAL line per pair per cycle when the pair ticket is non-block in that
+        # direction OR the two estimates disagree by >2x.  Kill-switch:
+        # defaults.calibration_log_enabled in playmaker_config.json (hot-reload).
+        # Scorer: research/tools/calibration_score.py --since YYYY-MM-DD.
+        if pm_calibration_log_enabled() and _calibration.is_enabled():
+            for t in tickets:
+                _v = next((v for v in views if v.pair == t.pair), None)
+                _atr = getattr(_v, "atr_1h", 0.0) if _v else 0.0
+                for _dir in ("long", "short"):
+                    _proj = _calibration.projected_mfe(t.pair, t.session, _dir, _atr)
+                    if _proj is None:
+                        continue  # cell not in artifact or pair is killed
+                    _dr = _calibration.dead_risk(t.pair, t.session, _dir, _v)
+                    _base_dead = _dr["base_rate"] if _dr else 0.0
+                    # top separator conditional rate, or base_rate if feature unreadable
+                    _dead_now = _base_dead
+                    if _dr and _dr["separator_states"]:
+                        _s0 = _dr["separator_states"][0]
+                        if _s0.get("conditional_rate") is not None:
+                            _dead_now = _s0["conditional_rate"]
+                    # direction lean label
+                    _lean_cell = _calibration.cal_for(t.pair, t.session, _dir)
+                    _lean = "none"
+                    if _lean_cell:
+                        _dl = _lean_cell.get("direction_lean") or {}
+                        _lf = _dl.get("feature")
+                        _ls = _dl.get("sign")
+                        if _lf and _ls:
+                            _lv = getattr(_v, _lf, None) if _v else None
+                            _lean = ("%s:%+.3f" % (_lf, _lv)) if _lv is not None else ("%s:?" % _lf)
+                    # live expected_pips for this direction (from momentum stamp)
+                    _exp_pips_live = (t.momentum.expected_pips
+                                      if t.direction.bias == _dir else 0.0)
+                    # Log when ticket is non-block in this direction OR estimates
+                    # disagree by >2x (keeps noise bounded for the opposite direction)
+                    _ticket_nonblock = (t.direction.bias == _dir
+                                        and t.direction.bias != "block")
+                    _exp_nonzero = _exp_pips_live > 0.0
+                    _big_disagree = (_exp_nonzero
+                                     and (_proj / _exp_pips_live > 2.0
+                                          or _exp_pips_live / _proj > 2.0))
+                    if _ticket_nonblock or _big_disagree:
+                        log.info(
+                            "CAL %s/%s/%s proj_mfe=%.1fp exp_pips_live=%.1fp"
+                            " dead_base=%.2f dead_now=%.2f lean=%s",
+                            t.pair, t.session, _dir,
+                            _proj, _exp_pips_live, _base_dead, _dead_now, _lean,
+                        )
 
         if trade_ticket is None:
             return

@@ -11,7 +11,8 @@
     "min_dir_certainty": 0.3,
     "min_mom_certainty": 0.25,
     "cooldown_after_sl_min": 0.0,
-    "profile_shadow_enabled": true
+    "profile_shadow_enabled": true,
+    "calibration_log_enabled": true
   },
   "per_pair": {
     "USD_CHF": {
@@ -149,5 +150,6 @@
   "_note_2026-07-02_profile_shadow": "2026-07-02 profile_shadow: defaults.profile_shadow_enabled=true \u2014 engine stamps every scanned bar through a SECOND direction stack built from the 2026-audit corrected profile assignment (research/sessions/2026-06-21_v5_2026_audit/data/config_2026_per_cell.json, most cells -> reversion; 6-month retrospective replay won 6/6 months, +2.3-3.2p mean fwd/call) and logs one SHADOW_PROFILE line per pair per cycle on bias-disagreement-or-either-nonblock. LOGGING ONLY \u2014 execution unchanged; locked cells unaffected. Scorer: research/tools/profile_shadow_score.py --since YYYY-MM-DD. Set false to skip entirely (hot-reload via _pm_load, no restart).",
   "_note_2026-07-03_usdjpy_london": "2026-07-03 Brock EXPLICIT lock override (\"ok, do both\"): USD_JPY/london un-inverted + native long re-enabled = natural direction restored. Basis: live inverted -24.4p/5 vs natural backtest +7.06p/65.8pct; lock baseline was cross-regime contaminated (2 of 4 trades pre-inversion); biggest replay mover under corrected profiles (+4.57p/call). mom_cert_min 0.50 kept. Panel-unanimous.",
   "_note_2026-07-03_audusd_ny": "2026-07-03 taint repair: AUD_USD/ny long+short RE-ENABLED. The disable (06-21) rested solely on tainted ML dAUC -0.032 from leaky parquets with zero live trades; clean re-derivation shows dAUC -0.0022 = noise. Evidence-gone -> cell returns to default enabled state, judged forward on broker truth (n>=20 constitution).",
-  "_note_2026-07-03_hygiene": "2026-07-03: removed stale USD_CHF/london inversion entry (pair killed 07-01 via enabled=false; entry was dead code, flagged by conformance sweep)"
+  "_note_2026-07-03_hygiene": "2026-07-03: removed stale USD_CHF/london inversion entry (pair killed 07-01 via enabled=false; entry was dead code, flagged by conformance sweep)",
+  "_note_2026-07-03_calibration": "2026-07-03 per-cell calibration LOG-ONLY wiring: modules/signals/calibration.py loaded from config/cell_calibration.json (48 cells, 8 pairs). Engine emits CAL lines once per pair/session per scan cycle for cells not killed, comparing artifact projected_mfe vs live expected_pips + dead-risk separators. Kill-switch: defaults.calibration_log_enabled (hot-reload, no restart). NO gating, NO change to entries or exits -- observation window only."
 }
