@@ -53,11 +53,42 @@ PAIR_TUNING: dict[str, dict] = {
 }
 
 # === (pair, session, direction) → (profile_name, evidence) — 48 cells ===
+#
+# ── 2026-07-03 AUDIT: THREE PROFILES PERMANENTLY BROKEN ──────────────────────
+# london_exhaustion, ny_volatility, ny_volatility_strict all gate on
+#   atr_conc >= atr_conc_floor × strictness
+# where atr_conc_floor ∈ [4.0, 5.0] (PAIR_TUNING) and strictness ∈ [1.0, 1.4].
+# But atr_conc = atr_5m / atr_1h (core/feed/oanda.py:396) lives in (0, ~1.0) in
+# production — the condition is mathematically impossible and cert_boost is always
+# 0.0 → m_cert=0 → cells can never fire natively.
+# Journal proof: zero fires of these profiles ever recorded (only default +
+# asia_volume_rev appear in SIGNAL logs since V5 went live 2026-06-18).
+#
+# FIX (2026-07-03): ALL cells previously mapped to these three profiles are
+# reassigned to "default" here. Do NOT reassign to the broken profiles until
+# their atr_conc floors are re-derived on clean data.
+#
+# Reassigned cells (14 total):
+#   AUD_JPY / london / long        (was london_exhaustion BAD)
+#   EUR_JPY / london / long        (was london_exhaustion WEAK)
+#   EUR_JPY / london / short       (was london_exhaustion BAD)
+#   EUR_JPY / ny     / long        (was ny_volatility WEAK)
+#   EUR_USD / london / short       (was london_exhaustion MEDIUM)
+#   EUR_USD / ny     / short       (was ny_volatility_strict BAD)
+#   GBP_USD / london / long        (was london_exhaustion MEDIUM)
+#   GBP_USD / london / short       (was london_exhaustion STRONG)
+#   GBP_USD / ny     / short       (was ny_volatility_strict BAD)
+#   USD_CAD / ny     / long        (was ny_volatility MEDIUM)
+#   USD_CHF / london / long        (was london_exhaustion STRONG)
+#   USD_CHF / ny     / long        (was ny_volatility_strict BAD)
+#   USD_JPY / ny     / long        (was ny_volatility WEAK)
+#   USD_JPY / ny     / short       (was ny_volatility WEAK)
+# ─────────────────────────────────────────────────────────────────────────────
 PROFILE_ASSIGNMENT: dict[tuple[str, str, str], tuple[str, str]] = {
     # AUD_JPY
     ("AUD_JPY","asia","long"):    ("default",             "NO_DATA"),
     ("AUD_JPY","asia","short"):   ("asia_volume_rev",     "STRONG"),
-    ("AUD_JPY","london","long"):  ("london_exhaustion",   "BAD"),
+    ("AUD_JPY","london","long"):  ("default",             "NO_DATA"),  # was london_exhaustion BAD — broken profile (2026-07-03)
     ("AUD_JPY","london","short"): ("default",             "WEAK"),
     ("AUD_JPY","ny","long"):      ("default",             "NO_DATA"),
     ("AUD_JPY","ny","short"):     ("default",             "NO_DATA"),
@@ -71,45 +102,45 @@ PROFILE_ASSIGNMENT: dict[tuple[str, str, str], tuple[str, str]] = {
     # EUR_JPY
     ("EUR_JPY","asia","long"):    ("default",             "NO_DATA"),
     ("EUR_JPY","asia","short"):   ("default",             "NO_DATA"),
-    ("EUR_JPY","london","long"):  ("london_exhaustion",   "WEAK"),
-    ("EUR_JPY","london","short"): ("london_exhaustion",   "BAD"),
-    ("EUR_JPY","ny","long"):      ("ny_volatility",       "WEAK"),
+    ("EUR_JPY","london","long"):  ("default",             "NO_DATA"),  # was london_exhaustion WEAK — broken profile (2026-07-03)
+    ("EUR_JPY","london","short"): ("default",             "NO_DATA"),  # was london_exhaustion BAD — broken profile (2026-07-03)
+    ("EUR_JPY","ny","long"):      ("default",             "NO_DATA"),  # was ny_volatility WEAK — broken profile (2026-07-03)
     ("EUR_JPY","ny","short"):     ("default",             "NO_DATA"),
     # EUR_USD
     ("EUR_USD","asia","long"):    ("default",             "NO_DATA"),
     ("EUR_USD","asia","short"):   ("default",             "NO_DATA"),
     ("EUR_USD","london","long"):  ("default",             "NO_DATA"),
-    ("EUR_USD","london","short"): ("london_exhaustion",   "MEDIUM"),
+    ("EUR_USD","london","short"): ("default",             "NO_DATA"),  # was london_exhaustion MEDIUM — broken profile (2026-07-03)
     ("EUR_USD","ny","long"):      ("default",             "NO_DATA"),
-    ("EUR_USD","ny","short"):     ("ny_volatility_strict","BAD"),
+    ("EUR_USD","ny","short"):     ("default",             "NO_DATA"),  # was ny_volatility_strict BAD — broken profile (2026-07-03)
     # GBP_USD
     ("GBP_USD","asia","long"):    ("default",             "NO_DATA"),
     ("GBP_USD","asia","short"):   ("default",             "NO_DATA"),
-    ("GBP_USD","london","long"):  ("london_exhaustion",   "MEDIUM"),
-    ("GBP_USD","london","short"): ("london_exhaustion",   "STRONG"),
+    ("GBP_USD","london","long"):  ("default",             "NO_DATA"),  # was london_exhaustion MEDIUM — broken profile (2026-07-03)
+    ("GBP_USD","london","short"): ("default",             "NO_DATA"),  # was london_exhaustion STRONG — broken profile (2026-07-03)
     ("GBP_USD","ny","long"):      ("default",             "NO_DATA"),
-    ("GBP_USD","ny","short"):     ("ny_volatility_strict","BAD"),
+    ("GBP_USD","ny","short"):     ("default",             "NO_DATA"),  # was ny_volatility_strict BAD — broken profile (2026-07-03)
     # USD_CAD
     ("USD_CAD","asia","long"):    ("default",             "NO_DATA"),
     ("USD_CAD","asia","short"):   ("default",             "NO_DATA"),
     ("USD_CAD","london","long"):  ("default",             "NO_DATA"),
     ("USD_CAD","london","short"): ("default",             "NO_DATA"),
-    ("USD_CAD","ny","long"):      ("ny_volatility",       "MEDIUM"),
+    ("USD_CAD","ny","long"):      ("default",             "NO_DATA"),  # was ny_volatility MEDIUM — broken profile (2026-07-03)
     ("USD_CAD","ny","short"):     ("default",             "NO_DATA"),
     # USD_CHF
     ("USD_CHF","asia","long"):    ("default",             "NO_DATA"),
     ("USD_CHF","asia","short"):   ("default",             "NO_DATA"),
-    ("USD_CHF","london","long"):  ("london_exhaustion",   "STRONG"),
+    ("USD_CHF","london","long"):  ("default",             "NO_DATA"),  # was london_exhaustion STRONG — broken profile (2026-07-03)
     ("USD_CHF","london","short"): ("default",             "NO_DATA"),
-    ("USD_CHF","ny","long"):      ("ny_volatility_strict","BAD"),
+    ("USD_CHF","ny","long"):      ("default",             "NO_DATA"),  # was ny_volatility_strict BAD — broken profile (2026-07-03)
     ("USD_CHF","ny","short"):     ("default",             "NO_DATA"),
     # USD_JPY
     ("USD_JPY","asia","long"):    ("asia_volume_rev",     "WEAK"),
     ("USD_JPY","asia","short"):   ("asia_volume_rev",     "MEDIUM_STRICT"),
     ("USD_JPY","london","long"):  ("default",             "NO_DATA"),
     ("USD_JPY","london","short"): ("default",             "NO_DATA"),
-    ("USD_JPY","ny","long"):      ("ny_volatility",       "WEAK"),
-    ("USD_JPY","ny","short"):     ("ny_volatility",       "WEAK"),
+    ("USD_JPY","ny","long"):      ("default",             "NO_DATA"),  # was ny_volatility WEAK — broken profile (2026-07-03)
+    ("USD_JPY","ny","short"):     ("default",             "NO_DATA"),  # was ny_volatility WEAK — broken profile (2026-07-03)
 }
 
 
@@ -150,6 +181,19 @@ def profile_asia_volume_rev(view, tuning, strictness):
     return dict(gates_passed=gates_passed, cert_boost=cert_boost,
                 scaler_mult=0.85, reasons=reasons, profile="asia_volume_rev")
 
+
+# ── BROKEN PROFILES — DO NOT ASSIGN ──────────────────────────────────────────
+# The three profile functions below (profile_london_exhaustion, profile_ny_volatility,
+# profile_ny_volatility_strict) all gate on:
+#   atr_conc >= atr_conc_floor × strictness
+# where atr_conc_floor ∈ [4.0, 5.0] (PAIR_TUNING) and atr_conc = atr_5m / atr_1h
+# which lives in (0, ~1.0) in production.  This condition can never be True.
+# cert_boost is always 0.0 → m_cert=0 → cells using these profiles can never fire.
+# Confirmed by zero SIGNAL log entries since V5 live date (2026-06-18).
+# Status: INERT — profile code kept for reference; do not assign in PROFILE_ASSIGNMENT
+# until atr_conc_floor values are re-derived on clean data.
+# (2026-07-03 audit)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def profile_london_exhaustion(view, tuning, strictness):
     reasons = []

@@ -38,7 +38,7 @@ _FALLBACK_LOW  = 3.0
 _FALLBACK_HIGH = 6.0
 _FALLBACK_EXT  = 10.0
 
-ATR_CONC_CHAOS_CEILING = 15.0
+ATR_CONC_CHAOS_CEILING = 15.0  # INERT (2026-07-03): atr_conc = atr_5m/atr_1h ∈ (0, ~1.0) in production; ceiling 15.0 can never fire. Code path kept (harmless); re-derive threshold on clean data before re-activating.
 WALL_FRAC_AMP_THRESHOLD = 5.0
 WALL_FRAC_AMP_MULT      = 1.3
 

@@ -130,8 +130,15 @@ class PairTicket:
 
     @property
     def is_actionable(self) -> bool:
+        # dir certainty > 0.10: bootstrap sanity floor only — eliminates pure-noise
+        # signals before playmaker. Real floors live in playmaker config (global
+        # min_dir_certainty=0.30 + per-pair overrides). This was 0.25 which was
+        # redundant with playmaker floors and created a boundary conflict for
+        # USD_CAD whose per-pair floor is exactly 0.25 (equality excluded it).
+        # Lowered to 0.10 (2026-07-03). Note: act=T counts in CYCLE logs will
+        # rise cosmetically — playmaker floors remain the effective gate.
         return (
             self.direction.bias != "block"
-            and self.direction.certainty > 0.25
+            and self.direction.certainty > 0.10
             and self.momentum.vol_regime != "extreme"
         )

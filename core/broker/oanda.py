@@ -18,9 +18,12 @@ from config.pairs import PIP
 
 log = logging.getLogger("v5.broker")
 
-# Hard initial stop on OANDA server — ratchet engages at 60min but we still
-# need a backstop for the first 60 minutes before the ratchet floor is set.
-DEFAULT_INITIAL_SL_PIPS = 12  # 8yr sweep-validated risk-adjusted optimum (V3/V4 history)
+# Hard initial stop placed on OANDA server at trade entry — ultimate fallback
+# value used only when exit_config.json is missing/corrupt. The live value
+# comes from exit_config.json "initial_sl_pips" (currently 20.0) which is
+# hot-reloaded every trade via ratchet._load_config() and overrides this
+# constant on every call. Do NOT treat this constant as the operational default.
+DEFAULT_INITIAL_SL_PIPS = 12  # ultimate fallback only; overridden by exit_config.json every call
 # Default per-trade MARGIN commitment as a fraction of account balance (V1 model).
 MARGIN_PCT = 0.005   # fallback when playmaker_config.json missing
 RISK_PCT   = MARGIN_PCT  # back-compat alias for any code still importing this

@@ -244,15 +244,12 @@ PROFILE_ASSIGNMENT: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
 
 
 # ── aggregator amplifier rules (apply on top of base weights, direction-agnostic) ──
+# NOTE (2026-07-03 audit): "atr_conc_amplifies_htf" rule DELETED.
+# It gated on atr_conc > 2.5 but atr_conc = atr_5m / atr_1h ∈ (0, ~1.0) in
+# production (core/feed/oanda.py:396) — condition can never fire. Same root
+# cause as the momentum_profiles.py floor mismatch. Removed rather than left
+# as dead code since AGGREGATOR_RULES is fingerprinted by lock_snapshot.
 AGGREGATOR_RULES = [
-    {
-        "name":           "atr_conc_amplifies_htf",
-        "condition":      lambda view: getattr(view, "atr_conc", 0) > 2.5,
-        "amplify":        ["htf_pct_20", "htf_pct_60", "h1_ret_4bar", "d_ret"],
-        "multiplier":     1.5,
-        "evidence":       "smoke v4 + 44-trade matrix",
-        "confidence":     "MODERATE",
-    },
     {
         "name":           "high_vol_regime_amplifies_reversion",
         "condition":      lambda view: getattr(view, "atr_h1_relative", 1.0) > 1.6,

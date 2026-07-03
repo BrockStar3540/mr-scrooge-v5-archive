@@ -1,23 +1,27 @@
 """modules/management/ratchet.py — Step-trail ratchet exit manager for V5.
 
-Matches the V4 "6-pip step trail" configuration (2026-06-17 era).
+ALL live knob values come from config/exit_config.json (hot-reloaded on every
+cadence check via _load_config()).  Defaults in _DEFAULTS are the ultimate
+fallback used only when the JSON is missing or corrupt.
 
-Lock ladder (default config):
-  Peak < 10p  →  SL stays at initial (-15p from entry)
-  Peak = 10p  →  SL → +4p   (breakeven + 4p guaranteed)
-  Peak = 15p  →  SL → +9p
-  Peak = 20p  →  SL → +14p
-  Peak = 25p  →  SL → +19p
-  ...         →  SL → peak_level - 6p  (always 6p behind nearest 5p step)
+Live values as of 2026-07-03 (from config/exit_config.json "defaults"):
+  initial_sl_pips  = 20.0   — hard server-side SL placed at entry (pips from entry)
+  step_engage_min  =  0.0   — minutes after entry before first cadence check (0 = immediate)
+  step_cadence_min =  0.5   — minutes between SL evaluation checks (~every 30s)
+  step_trigger_pips=  7.5   — peak MFE required before first SL movement
+  step_trail_pips  =  2.5   — SL parks this many pips behind the step level
+  step_size_pips   =  2.5   — ratchet step size (new SL level every N pips above trigger)
+  tp1_enabled      = false  — partial-close at TP1 (disabled)
+  tp2_enabled      = false  — partial-close at TP2 (disabled)
 
-Config is live-editable — reads config/exit_config.json each cadence check.
-Defaults (used if JSON missing/corrupt) match the JSON values.
+Per-pair overrides in exit_config.json "per_pair" are merged on top of defaults.
 
 How stops work:
-  1. Entry: broker places hard SL at DEFAULT_INITIAL_SL_PIPS (-15p) server-side
-  2. Every 20 min: if peak ≥ trigger (10p), compute step level and lock SL
+  1. Entry: broker places hard SL at initial_sl_pips server-side (OANDA order)
+  2. Every step_cadence_min: if peak ≥ step_trigger_pips, compute step level and lock SL
   3. SL only ever moves in the profitable direction (never backwards)
   4. OANDA executes the stop server-side — engine polls open_positions() for exits
+  5. Belt-and-suspenders: update() also returns ExitSignal if price crosses locked SL
 """
 from __future__ import annotations
 import json

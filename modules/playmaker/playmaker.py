@@ -31,6 +31,7 @@ BEST-EDGE PRIORITY when multiple pairs pass all gates simultaneously:
   signal with middling certainties, which is the correct preference.
 """
 from __future__ import annotations
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -255,11 +256,20 @@ MIN_DIR_CERTAINTY   = 0.30   # direction.certainty minimum
 MIN_MOM_CERTAINTY   = 0.25   # momentum.certainty minimum
 
 # ── Position and spread limits ───────────────────────────────────────────────
-MAX_OPEN_POSITIONS = 3
+# MAX_OPEN_POSITIONS deleted 2026-07-03 — was unused; position limit is
+# max_concurrent_trades in playmaker_config.json / _PM_ACCT_DEFAULTS["max_concurrent_trades"].
+# Confirmed zero references in repo before deletion.
 
 # Maximum spread to accept a trade (pips).  Above these levels the spread
-# consumes too much of the expected edge.  0.0 in the ticket = feed not yet
-# wired → skip the spread gate (fail-open until feed is live).
+# consumes too much of the expected edge.
+# GATE SEMANTICS (2026-07-03 fix): spread_pips <= 0 means a pricing hiccup
+# (bid==ask or feed glitch) — treated as GATE FAILURE (candidate skipped) so a
+# zero-spread anomaly cannot bypass the protection. The feed (core/feed/oanda.py)
+# always populates spread_pips = (ask-bid)/pip from a live OANDA pricing call;
+# 0.0 only occurs if OANDA returns identical bid/ask, which is a bad tick.
+# Rate-limit tracker for spread=0 warnings (pair → last warning monotonic time)
+_SPREAD_WARN_TS: dict[str, float] = {}
+
 _MAX_SPREAD: dict[str, float] = {
     "EUR_USD": 2.5,
     "GBP_USD": 3.0,
@@ -305,10 +315,24 @@ def _passes_gates(t: PairTicket, pcfg: dict) -> bool:
         return False
     if m.certainty < float(pcfg["min_mom_certainty"]):
         return False
-    if t.spread_pips > 0.0:
-        max_spread = _MAX_SPREAD.get(t.pair, _DEFAULT_MAX_SPREAD)
-        if t.spread_pips > max_spread:
-            return False
+    # Spread gate: skip candidate on bad tick (spread_pips <= 0) or excessive spread.
+    # A zero/negative spread = pricing hiccup, not "feed not yet live" — the feed
+    # always provides a real spread from OANDA. Fail CLOSED on anomalies.
+    if t.spread_pips <= 0.0:
+        import logging as _logging
+        _spread_log = _logging.getLogger("v5.playmaker")
+        # Rate-limit: one warning per pair per 5 minutes (use module-level dict)
+        _now = time.monotonic()
+        _last = _SPREAD_WARN_TS.get(t.pair, 0.0)
+        if _now - _last >= 300.0:
+            _SPREAD_WARN_TS[t.pair] = _now
+            _spread_log.warning(
+                "spread=0 for %s — pricing hiccup? candidate skipped", t.pair
+            )
+        return False
+    max_spread = _MAX_SPREAD.get(t.pair, _DEFAULT_MAX_SPREAD)
+    if t.spread_pips > max_spread:
+        return False
     return True
 
 def _edge_rank(t: PairTicket) -> tuple:
