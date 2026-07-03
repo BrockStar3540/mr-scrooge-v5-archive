@@ -2,156 +2,159 @@
 
 Every substantive research session that informed a V5 change. Cross-referenced so future sessions can be **circumspect of existing findings** and **rigorously cross-check** new ones against the corpus already in here.
 
-## Methodology — before starting new research
+---
+
+## (a) CURRENT TRUTH — Post-2026-07-03 Foundation
+
+**The dividing line is 2026-07-03.** On that date the H1 look-ahead leak was discovered and repaired: previous research corpus joins used open-time for H1 features, injecting up to 55 minutes of future bar data. All headline numbers from sessions whose primary evidence came from H1-parquet features before this fix are **upper bounds, not ground truth**. The clean anchors are: broker-trade measurements, M5-based features, and any corpus rebuilt post-fix.
+
+### Authoritative session directories
+
+| Session dir | What it contains | Status |
+|---|---|---|
+| `sessions/2026-07-03_truth_matrix_envelope/` | **The Week's Truth Ledger.** Eight study reports embedded: TRUTH_MATRIX_REPORT (per-bar dual-direction fwd MFE/MAE 60m/240m, 8 pairs × 8yr, broker-anchored r=0.84–0.90), CALIBRATION_REPORT (48-cell artifact, MFE quantiles + ATR regression), LEAK_REPAIR_REPORT (H1 leak confirmed + fixed, parquets rebuilt), RATCHET_EV_REPORT (90-config geometry sweep), v5_mfe_study, v5_rederivation, v5_atrrel_confirm, NOTES (narrative + 07-03 trades). Raw Mini artifacts: ~/v5-truth-matrix/, ~/v5-ratchet-ev/, ~/v5-exit-sweep/, ~/v5-taint-rederivation/, ~/v5-cell-calibration/, ~/v5-discovery-v2/, ~/v5-atrrel-confirm/, ~/v5-mfe-study/ | **CURRENT TRUTH** |
+| `sessions/2026-07-02_panel_and_5pair_sweep/` | 3-model panel (Opus/Sonnet/Haiku) + 7-pair broker-truth MAE/MFE sweep. Produced: two-layer-failure diagnosis (signal=wrong 2026 profiles, governance=winner-curse on n<10), constitution (n>=20 gate, inversion deprecated, locks provisional), shipped de-inversions + exposure cap + SHADOW_PROFILE. Mini replay gate: corrected profiles win 6/6 months 2026 +2.3-3.2p/call. All evidence: clean broker-trade lineage only. | **CURRENT TRUTH** |
+| `sessions/2026-07-02_usdcad_deep_dive/` | USD_CAD per-trade MAE-flip analysis using broker fills. Produced aroon gate + per-direction inversion (MAE-flip doctrine first full wiring). | **CURRENT TRUTH** |
+| `sessions/2026-07-01_cell_audit_throughput/` | USD_CHF/ny un-invert audit, USD_JPY/london LONG-ONLY wiring, engine multi-open fix, session widening; OANDA 72-trade broker audit (vs journal 56). All from OANDA API fills. | **CURRENT TRUTH** (broker-lineage) |
+| `sessions/2026-07-01_full_audit_lock_guard/` | Lock guard enforcement design + USD_CHF kill + Mini cron defect fixes. | **CURRENT TRUTH** |
+
+### Validation protocol (applies to all future research promoting to live config)
+
+1. **Clean corpus only (2026-07-03+):** feature parquets rebuilt post-leak-fix (Mini `~/v5-parquets-clean/` or equivalent). Any H1-feature number from a pre-fix parquet is an upper bound; treat as directional, not precise.
+2. **2026-fit promotes:** per-cell findings must show positive signal in the current 2026 window, not just 8yr average (regime shift: 2026 is mean-reverting vs trending 8yr average).
+3. **Live vetoes:** broker-confirmed losing pattern (n>=5, consistent) overrides any backtest result. OANDA API is ground truth; bot journal is intent-only.
+4. **Drift labels mandatory:** any per-cell lean must be tagged PERSISTENT (sign-stable across 6+ month window), REGIME (in-sample only), or FLICKER (EFI-class: highest corr, unstable). Only PERSISTENT ships to config.
+5. **Plateau ranges:** for entry filter features, measure the width of the profitable plateau, not the peak. A narrow peak is an overfit relic.
+6. **n >= 20 per cell, same-engine:** no per-cell governance action (disable/invert/gate) on fewer than 20 same-engine (v2/v3 module) trades from that cell. Thinner samples = watch only.
+
+---
+
+## (b) VALID LEGACY — Clean-Lineage Findings That Stand
+
+These findings used M5 features, broker fills, or walk-forward methods not affected by the H1 look-ahead leak. They remain valid input to cell decisions.
+
+| Finding | Session(s) | Summary | Caveat |
+|---|---|---|---|
+| **NY-fade (percell_exhaustion)** | `2026-06-21_percell_exhaustion/` | NY is a momentum-FADE session for ALL 8 pairs, walk-forward stable (train<2024, test>=2024). In NY, momentum signal direction tends to see the opposite 60m move. 8/8 pairs negative in both windows. | Per-cell magnitude varies; don't use NY-fade as a blanket INVERT rule — requires n>=20 per cell. The June inversion wave over-applied it. |
+| **Broker validation forward-pip method** | `2026-06-21_broker_validation/`, `2026-06-21_real_oanda_trades/` | OANDA API (not journal) is the only ground truth. Use 1H forward pip (fresh candles) as entry-indicator evaluator, not realized P/L (which confounds exit choices). Manual closes must be included. Journal missed 70/120 trades. | Still valid; the OANDA API pull + forward-pip computation is the standard for any per-cell broker analysis (tool: `sessions/2026-06-23_aud_jpy_deep_dive/analyses/v5_pair_deep_dive.py`). |
+| **Master matrix live/broker columns** | `2026-06-21_master_matrix/`, `2026-06-21_broker_validation/` | Per-(pair × session × direction) matrix with broker forward pip means; identified confirmed winner cells (USD_CAD/ny/long, EUR_USD/london/short) and disabled cells. | N was 5-9 trades per cell at time of derivation; those specific conclusions are early-era evidence. The METHOD (broker fwd pip per cell) is valid and is used in 07-02 and 07-03 work. |
+| **Ratchet exit assessment** | `2026-06-23_ratchet_exit_assessment/` | Step-trail ratchet captures 73% of MFE on winners. Tighter bands (SL−4 @ MFE+4) would cost −36.9p across the live sample by converting 5 wobble-then-run winners to losers. Current ratchet bands validated on live filled trades (MFE/MAE reconstructed from OANDA M1). | n=14 inverted-live trades. Confirmed by 07-03 geometry sweep (90 configs, tighter exits +3.3p unconditional but population-mismatch on real fired entries). |
+| **Entry-indicators vs MFE per-cell analysis** | `2026-06-23_entry_indicators_vs_mfe/` | Vortex_diff_h1 positive on 11/11 winners, negative on 3/3 losers in the 14-trade set. willr/aroonosc/kc_up_dist_pips identified as structural separators at per-cell level (shipped to live config). | n=14, all inverted-live trades. Direction of effect confirmed; magnitude and universality subject to per-cell re-measurement with larger n. |
+| **Per-cell tightening LIVE-trade-derived gates** | `2026-06-23_per_cell_tightening/`, `2026-06-23_aud_jpy_deep_dive/`, `2026-06-30_usdjpy_audjpy_asia/` | Gates derived purely from broker fills: m_cert ceilings, d_cert floors/ceilings, willr_range, kc_up_range, aroon_range. Each derived from live per-trade MFE/MAE gap analysis (winners vs losers) without touching H1 parquets. | Individual gate thresholds were set on n=3-10 trades (Brock's intentional fast-feedback approach). Treat as provisional until n>=20 per cell confirms; monitor via locked_cell_monitor. |
+| **MAE-flip doctrine / USD_CAD aroon gate** | `2026-07-02_usdcad_deep_dive/` | Losing cell with MAE >> MFE = right signal, wrong wiring → flip entry. USD_CAD: per-direction inversion + aroonosc_h1 range gate as separator. First clean MAE-flip implementation. | Doctrine validated on USD_CAD specifically; apply the method (n>=3x MAE:MFE asymmetry, n>=6 trades) to other cells, do not copy the USD_CAD thresholds. |
+
+---
+
+## (c) SUPERSEDED / TAINTED — Sessions Using Pre-Fix H1 Parquet Features
+
+The following sessions used H1-feature parquets built with open-time joins (the pre-2026-07-03 leak). Their headline numbers are **upper bounds**; the leaky feature (especially `h1_ret_1bar`, `atr_h1_relative`, profile scores) was inflated relative to its true predictive power. Do NOT use their quantitative conclusions to set config thresholds. The sessions are retained for historical record and code reference.
+
+| Session dir | Tainted claim | Why tainted | Clean anchor |
+|---|---|---|---|
+| `sessions/2026-06-18_aggregator_sweep/` | h1_ret_1bar #1 universal; atr_conc magnitude penalty | H1 features (atr_conc, h1_ret_1bar, atr_h1_rel) were primary sweep variables; all fed from leaked parquets | The atr_conc SCALE bug (fixed 07-03) also invalidated the absolute threshold; aroonosc result directionally correct, magnitude upper bound |
+| `sessions/2026-06-20_qtl_8yr_per_cell/` | willr_m5 top-3 in 24/24 cells (mean ΔAUC +0.0052); aroon ±3.57 threshold magnitude | M5 willr result is clean (M5 features are tick-level, not H1); aroonosc_h1 threshold calibrated against leaked H1 rows | willr_m5 direction-of-effect confirmed by 07-03 discovery v2 (DIRECTION signals); aroon threshold must be re-derived on clean corpus |
+| `sessions/2026-06-20_qtl_indicator_discovery/` | kurtosis_m5/bbwp_m5 looked strong (Δ+40.9pp WR) | 44-trade matrix used for the first cut was later shown (real_oanda_trades) to have missed 70 trades; small-N + combined with H1 sweep context | Refuted: at 8yr scale both fell to importance #20-21 (qtl_8yr_per_cell, which is itself H1-partial but the relative ranking of M5 features holds) |
+| `sessions/2026-06-21_v5_2026_audit/` | 38/48 cells profile-mismatched (ΔAUC +0.0802); aggregator rule whitelist recommendations | The ΔAUC figures used the leaked H1 parquets; the +0.0802 headline was leak-fabricated (clean data shows the three weight profiles are near-indistinguishable, mean AUC lift ~0.011) | Panel session 07-02 confirmed direction of regime-shift finding (reversion > continuation in 2026) but magnitude is upper bound; the action (profile de-inversion + SHADOW_PROFILE) is grounded in 07-02 broker evidence |
+| `sessions/2026-06-21_master_matrix/` | Per-cell broker_fwd_1h_mean_pip values; matrix column ΔAUC lifted cells | Broker columns are clean (derived from OANDA fills); ΔAUC columns used leaked parquets; master_matrix_monthly.sh cron output was also pre-leak | Broker-forward columns remain valid per-cell evidence; ΔAUC columns are upper bounds; matrix is superseded by 07-03 truth matrix and CAL artifact |
+| `sessions/2026-06-21_percell_exhaustion/` | NY-fade magnitude figures (EUR_JPY/ny -1.31, USD_JPY/ny -0.96); session separation values | Walk-forward used per-cell M5 momentum separation (M5 features clean) but enriched with H1-feature-derived profile labels | Direction of finding (NY = fade, 8/8 pairs) is valid legacy (see §b above). Magnitude figures are H1-enriched upper bounds; re-derive from truth matrix if precise magnitude is needed |
+| `sessions/2026-06-23_per_cell_tightening/` — BACKTEST THRESHOLDS only | 2026 backtest threshold values for willr, kc_up, m_cert, d_cert gates | Backtest corpus used H1 parquets; specific pip-uplift numbers (e.g., "willr filter +8.48p/70.2%") are upper bounds | The gates themselves (the mechanism, the which-cell choice, the direction of the separator) were live-trade-derived and stand. Only the quantitative backtest confidence is an upper bound. |
+| `sessions/2026-06-21_cell_ruleset/` — PROFILE columns | Profile assignment recommendations (38 → reversion) | Profile scoring used leaked H1 feature AUC | Direction confirmed by panel; specific AUC deltas are upper bounds. Current live profiles are managed via SHADOW_PROFILE stamping and 07-02 de-inversion. |
+| `sessions/2026-07-01_full_audit_lock_guard/` — EXIT SWEEP CONDITIONED TABLES | Conditioned ratchet EV tables from exit sweep v1 | Exit sweep v1 (pre 07-03) used leaked H1 features for conditioning variables | 07-03 re-ran the exit geometry sweep (90 configs) on clean corpus + broker-anchored truth matrix (see RATCHET_EV_REPORT in 2026-07-03 session). |
+
+**See also:** `note_parquet_h1_leak_2026-07-03.md` in vault (memory key: `note_parquet_h1_leak`) — full technical details of the leak + fix + what it invalidates.
+
+---
+
+## (d) Mini Research Directories
+
+All heavy compute runs on the Mac Mini (`brock-mini-mac@[REDACTED-IP]`). Key directories:
+
+| Mini path | Contents | Notes |
+|---|---|---|
+| `~/v5-truth-matrix/` | Per-bar dual-direction fwd MFE/MAE excursion table, 8 pairs × 8yr, extended to 2026-07-03 | **Current ground truth.** Broker-anchored at r=0.84–0.90 on 155 V5 trades. |
+| `~/v5-cell-calibration/` | Source for `config/cell_calibration.json` — MFE quantiles, ATR regression fits, winner-MAE, dead rates | Refreshed monthly by `v5_monthly_refit.sh` cron (0 5 1 * *) |
+| `~/v5-ratchet-ev/` | 90-geometry exit sweep artifacts + ratchet_ev_cells.csv | 07-03 clean-corpus sweep; see RATCHET_EV_REPORT |
+| `~/v5-exit-sweep/` | Raw exit config sweep output (per-config P&L tables) | Subset of ratchet-ev work |
+| `~/v5-taint-rederivation/` | Rederivation of tainted sessions on clean corpus | See v5_rederivation_REPORT in 07-03 session dir |
+| `~/v5-mfe-study/` | MFE distribution study — excursion patterns by cell/session | See v5_mfe_study_REPORT |
+| `~/v5-atrrel-confirm/` | atr_h1_rel 2026-inversion confirmation (297k bars) | Confirmed aggregator rule retirement |
+| `~/v5-discovery-v2/` | 288-formula discovery sweep artifacts; 130 validated signals; DIRECTION 32 at AUC 0.58-0.61 | **Active research frontier** — next: range distillation + plateau tests + formula-x-geometry EV sim |
+| `~/v5-replay-gate/` | 07-02 corrected-profile replay (272K bars, 6/6 months 2026 positive) | Produced REPORT.md confirming profile de-inversion direction |
+| `~/qtl-discovery-8yr/` | 8yr per-pair M5/H1/D feature parquets (post-leak-fix) + master_matrix_archive/ | **Use post-07-03 parquets only** (`~/v5-parquets-clean/` symlink if present) |
+| `~/.venvs/quantalib/` | Python 3.12 venv: quantalib + xgboost + scipy (all research ML) | |
+| `~/.local/bin/v5_monthly_refit.sh` | Monthly refit cron: bars → leak-test → truth rebuild → calibration → anchor check → ship to EC2 | Runs 0 5 1 * * (first run: 2026-08-01) |
+
+---
+
+## Methodology — Before Starting New Research
 
 Read this section before running a new sweep, smoke test, or backtest. The same rules apply to humans and to agents.
 
 ### 1. Cross-check the corpus first
 
-The cells under `sessions/` are not isolated. Many questions have been asked before. Before launching anything substantive:
-
-- Search `sessions/*/README.md` for the question you're investigating.
-- Check `matrices/` for relevant per-trade data already captured.
-- Check `reference/` for Brock-curated reports from earlier V5 testing.
-- Read the most-recent matrix vault note (mirrored in vault `wiki/systems/note_scrooge_v5_findings_matrix_*.md`).
-
-If the question is already answered: link the prior session in your new session's README and update the matrix vault note with whatever incremental signal you found.
+Search `sessions/*/NOTES.md` for the question you're investigating. Check `matrices/` for prior per-trade data. Check `reference/` for Brock-curated dm04-dm09 reports. Many questions have already been asked — confirm against §b (Valid Legacy) and §c (Tainted) before re-running.
 
 ### 2. Document what + why + outcome
 
-Every session folder has a `README.md` with three sections at minimum:
-
-- **What** — what you ran, with concrete file paths and commit hashes.
-- **Why** — the question you were trying to answer.
-- **Findings + outcome** — what you concluded, what you did with it (config change? new module? noted for later?), and what the next question is.
-
-If a session changes the live trader, link to the relevant [CHANGELOG.md](../CHANGELOG.md) entry.
+Every session folder has a `NOTES.md` with three sections at minimum: **What** (files + commit hashes), **Why** (the question), **Findings + outcome** (conclusion + what shipped + next question). If a session changes the live trader, link the CHANGELOG.md entry.
 
 ### 3. Sample size honesty
 
-Most sessions have small N (10-50 trades). For any per-cell finding, state the cell sample size next to the claim. Don't extrapolate single-cell wins to global rules — that's the trap we hit multiple times in early 2026-06 work (see [feedback_no_defer_when_asked](../research/sessions/2026-06-19_per_direction_extension/README.md) for the lessons).
+Most sessions have small N (10-50 trades). State the cell sample size next to every claim. The governance constitution (07-02) requires n >= 20 same-engine trades for per-cell config action.
 
 ### 4. Scope claims to method + data
 
-Findings that hold in one cell at one sample size may not generalize. Note the corpus (live vs corpus vs broker-cross-validated), the time window, and the pair-session breakdown. Don't claim "universal" unless 8+ cells across 2+ sessions concur.
+Note the corpus (live vs corpus vs broker-cross-validated), time window, and pair-session breakdown. Do not claim "universal" unless 8+ cells across 2+ sessions concur with walk-forward evidence. Use drift labels: PERSISTENT / REGIME / FLICKER.
 
 ### 5. Cross-broker / multi-source confirmation
 
-For Tier 1 findings (universal claims):
-- Confirm on the 7.5yr OANDA corpus.
-- Spot-check on a second broker (forexsb.com H1 data is in [research/reference/](reference/) — or fresh fetch if older).
-- Confirm in live smoke (at least 10 trades).
+Tier 1 findings (universal claims): confirm on 8yr OANDA corpus (post-fix), spot-check broker fills (>= 20 live trades), and walk-forward validate (train<2024, test>=2024). If only one of three confirms, it is Tier 2 (cell-conditional) — state the cell range.
 
-If only one of three confirms, the finding is Tier 2 (cell-conditional) and the cell range must be stated.
+---
 
-## Folder layout
+## Folder Layout
 
 ```
 research/
-├── README.md            this file
+├── README.md            this file (master index + methodology + truth/tainted labeling)
 ├── reference/           Brock-curated reports (dm05-dm09 + factor_sweep)
 ├── sessions/            chronological — one folder per research session
-├── matrices/            live-trade matrices that drove decisions
-└── live-smoke/          nightly cron output (./data/v5-smoke-history/ mirror)
+│   ├── 2026-06-18_aggregator_sweep/     (TAINTED — H1 leak)
+│   ├── 2026-06-19_live_smoke_v1-v5/
+│   ├── 2026-06-19_matrix_compilation/
+│   ├── 2026-06-19_per_direction_extension/
+│   ├── 2026-06-20_qtl_8yr_per_cell/     (PARTIAL — willr M5 direction valid; thresholds tainted)
+│   ├── 2026-06-20_qtl_indicator_discovery/  (SUPERSEDED by 8yr replication failure)
+│   ├── 2026-06-20_quantalib_eval/       (clean — library validation)
+│   ├── 2026-06-21_app_config_test/      (clean — MTF alignment has zero 1H edge)
+│   ├── 2026-06-21_broker_validation/    (VALID LEGACY — broker fwd pip method)
+│   ├── 2026-06-21_cell_ruleset/         (PARTIAL — profile columns tainted; gate directions valid)
+│   ├── 2026-06-21_indicator_sweep/      (clean — standalone indicator structure)
+│   ├── 2026-06-21_master_matrix/        (PARTIAL — broker cols valid; ΔAUC tainted)
+│   ├── 2026-06-21_percell_exhaustion/   (VALID LEGACY — NY-fade direction; magnitudes tainted)
+│   ├── 2026-06-21_real_oanda_trades/    (VALID LEGACY — broker truth methodology)
+│   ├── 2026-06-21_v4_bucket_test/       (clean — ALIGN resolution, walk-forward)
+│   ├── 2026-06-21_v5_2026_audit/        (TAINTED — ΔAUC +0.0802 was leak-fabricated)
+│   ├── 2026-06-22_inverted_live_test/   (context only — inversions mostly reverted)
+│   ├── 2026-06-23_aud_jpy_deep_dive/    (VALID LEGACY — broker per-trade method)
+│   ├── 2026-06-23_entry_indicators_vs_mfe/  (VALID LEGACY — live trade separators)
+│   ├── 2026-06-23_per_cell_tightening/  (PARTIAL — gates valid; backtest thresholds tainted)
+│   ├── 2026-06-23_random_pick_cycle_log/
+│   ├── 2026-06-23_ratchet_exit_assessment/  (VALID LEGACY — live MFE/MAE)
+│   ├── 2026-06-30_usdjpy_audjpy_asia/   (VALID LEGACY — broker fills)
+│   ├── 2026-07-01_cell_audit_throughput/  (CURRENT TRUTH — broker fills)
+│   ├── 2026-07-01_full_audit_lock_guard/  (CURRENT TRUTH — exit sweep v1 partial)
+│   ├── 2026-07-02_panel_and_5pair_sweep/  (CURRENT TRUTH)
+│   ├── 2026-07-02_usdcad_deep_dive/     (CURRENT TRUTH)
+│   └── 2026-07-03_truth_matrix_envelope/  (CURRENT TRUTH — the primary reference)
+├── matrices/            live-trade matrices that drove decisions (pre-07-03; use CAL artifact now)
+├── tools/               shared analysis tools (cell_audit.py, lock_snapshot.py, calibration_score.py, profile_shadow_score.py)
+└── live-smoke/          nightly cron output (mirror of /data/v5-smoke-history/)
 ```
 
-## Index of sessions
+## Active Research Frontier (post 2026-07-03)
 
-| Date | Session | What it produced | Outcome |
-|---|---|---|---|
-| 2026-06-13 → 06-18 | Direction signal + ratchet amplification analysis (`docs/EDGE_REPORT.md`) | dm04 calibration, edge map | V5 v1 modules + ratchet shipped |
-| 2026-06-18 | [aggregator_sweep](sessions/2026-06-18_aggregator_sweep/) | 24 per-cell XGB models, matrix of which V3 aggregators contribute edge | h1_ret_1bar #1 universal; atr_conc Q4 magnitude penalty universal; wall_frac amplifier; matrix vault note |
-| 2026-06-19 | [matrix_compilation](sessions/2026-06-19_matrix_compilation/) | 44-trade live matrix with 24 → 36 features per trade | Per-session correlations driving v2/v3 cell assignments |
-| 2026-06-19 | [live_smoke_v1-v5](sessions/2026-06-19_live_smoke_v1-v5/) | Per-bucket aggregator amplification on live trades | Per-session predictor rankings; ratchet retune diagnosis |
-| 2026-06-19 | [per_direction_extension](sessions/2026-06-19_per_direction_extension/) | direction_v2 + momentum_v3 promoted to (pair × session × direction) | 48-cell modules staged |
-| 2026-06-20 | [quantalib_eval](sessions/2026-06-20_quantalib_eval/) | QuanTAlib lib validated vs V5 hand-codes + 53 candidate indicators + speed bench | EMA/SMA/BB bit-exact; qtl ~3x faster; reference for new research |
-| 2026-06-20 | [qtl_indicator_discovery](sessions/2026-06-20_qtl_indicator_discovery/) | 31 qtl indicators on 44-trade matrix | kurtosis_m5/bbwp_m5 looked strong (later refuted at 8yr scale) |
-| 2026-06-20 | [qtl_8yr_per_cell](sessions/2026-06-20_qtl_8yr_per_cell/) | 8yr per-(pair x session) XGB, 4.4M bars, willr/Aroon candidates | willr top-3 in 24/24 cells (8yr avg - later shown regime-specific) |
-| 2026-06-21 | [v5_2026_audit](sessions/2026-06-21_v5_2026_audit/) | Profiles + aggregators + qtl re-audited on 2026 only; year/month drift | 38/48 cells profile-mismatched on 2026; atr_conc rule DEAD; drift is real |
-| 2026-06-21 | [master_matrix](sessions/2026-06-21_master_matrix/) | 48-cell x all-evidence matrix + live replay + indicator roles | Live replay killed qtl-as-binary-rules; 5 cells disabled |
-| 2026-06-21 | [real_oanda_trades](sessions/2026-06-21_real_oanda_trades/) | **Pulled ACTUAL 120 trades from OANDA API (journal missed 70)** | Journal-derived matrix was wrong; broker is ground truth |
-| 2026-06-21 | [broker_validation](sessions/2026-06-21_broker_validation/) | Fresh OANDA candles per trade then 1H forward pip; matrix+broker disable | Realized P/L matches fwd dir only 68%; 6 then 10 cells disabled |
-| 2026-06-21 | [app_config_test](sessions/2026-06-21_app_config_test/) | 8 RSI/EMA/StochRSI MTF configs, 910k signals, 8yr | ZERO 1H edge; MTF alignment is decorative; RSI cross slightly anti-predicts |
-| 2026-06-21 | [indicator_sweep](sessions/2026-06-21_indicator_sweep/) | 46 RSI/EMA/StochRSI variants x TF as standalone + aggregator/verifier | No param rescues standalone; fast=exhaustion, slow=confirm; session-signed |
-| 2026-06-21 | [percell_exhaustion](sessions/2026-06-21_percell_exhaustion/) | Per-cell momentum fade/trend, walk-forward + inversion test | **NY = momentum FADE, 8/8 pairs walk-forward**; explains broker losses |
-| 2026-06-21 | [v4_bucket_test](sessions/2026-06-21_v4_bucket_test/) | V4-era ALIGN/bucket claims tested on 8yr; align resolution | ALIGN climbs (ny_open steepest); RSI-extreme-only-aligned confirmed; align sign flips by session |
-| 2026-06-21 | [cell_ruleset](sessions/2026-06-21_cell_ruleset/) | **Consolidated 48-cell module spec** from 6 validated tests | ~5 confirmed winners; conflicts prove per-cell modules needed |
-| 2026-06-23 | [aud_jpy_deep_dive](sessions/2026-06-23_aud_jpy_deep_dive/) | **Per-trade deep-dive utility** — joins journal SIGNAL + recomputed indicators + MFE/MAE per trade; parameterized for any pair | AUD_JPY/asia reverted from inverted (5 trades -46p); per-trade pattern-finding became the new mode |
-| 2026-06-23 | [per_cell_tightening](sessions/2026-06-23_per_cell_tightening/) | 4 new per-cell mechanisms + first uses (m_cert max/min, willr_range, kc_up_range); 2026 backtest framework | AUD_JPY/asia m_cert ceiling 0.50, GBP_USD/ny m_cert floor 0.40, USD_JPY/london m_cert floor 0.50, EUR_JPY/ny/short willr [-85, -7], AUD_USD/london/short kc_up [-15, 0] |
-| 2026-06-24 | dashboard_rebuild (commit [01d066b](https://github.com/BrockStar3540/mr-scrooge-v5/commit/01d066b) -> [c4076fc](https://github.com/BrockStar3540/mr-scrooge-v5/commit/c4076fc)) | 5-pass dashboard rebuild (panel.html + server.py): governance + features + daily P/L; CELLS + INDICATORS tabs; streaming pack (overlay, GIGA ticker, equity curve, cell mosaic, decision ticker, confetti, sound) | New dashboard 122KB; URL modes `?stream=1` + `?mode=overlay`; vault note `wiki/systems/note_v5_dashboard_rebuild_2026-06-24.md` |
-| 2026-06-25 | per-trade deep-dive trio + d_cert mechanisms (commits [0f3f085](https://github.com/BrockStar3540/mr-scrooge-v5/commit/0f3f085) / [b571c2e](https://github.com/BrockStar3540/mr-scrooge-v5/commit/b571c2e) / [d91b643](https://github.com/BrockStar3540/mr-scrooge-v5/commit/d91b643) / [8aa8c54](https://github.com/BrockStar3540/mr-scrooge-v5/commit/8aa8c54)) | EUR_JPY + AUD_USD + GBP_USD + USD_CHF deep-dives; NEW per_cell_dir_cert_min/max mechanisms; recompute helper for pre-SIGNAL trades using `core.feed.oanda._compute_features` + v2/v3 modules | EUR_JPY/ny blanket flip to inverted_live; AUD_USD/london m_cert <= 0.50; GBP_USD/ny d_cert >= 0.52; USD_CHF/ny+london un-inverted + d_cert in [0.35, 0.55] |
-
-## Methodology learnings - the 2026-06-20/21 weekend (read before any trade analysis)
-
-This weekend overhauled how we measure Scrooge. The hard-won rules:
-
-1. **Pull from OANDA API, not the bot journal.** The journal captures V5's INTENT (SIGNAL/ENTERED markers); only the broker has actual fills, manual closes, spread costs, realized P/L. The 44-trade journal matrix missed 70 of the actual 120 trades. Use the transactions/idrange endpoint. (`sessions/2026-06-21_real_oanda_trades/`)
-
-2. **Use 1H FORWARD PIP for entry-indicator decisions, NOT realized P/L.** Exit logic (ratchet/SL/manual) is tuned constantly and flips 32% of trades from the actual market direction. Realized P/L confounds entry quality with exit choices. Compute forward pip from fresh OANDA candles: (close[t+12]-close[t])/pip * dir_sign. (`sessions/2026-06-21_broker_validation/`)
-
-3. **Include manual-closed trades in forward analysis.** A manual close affects realized P/L only - NEVER the entry-bar indicators or the 1H forward market direction. Filtering them out discards real data. (caught + fixed in broker_validation)
-
-4. **Walk-forward everything.** Train < 2024, test >= 2024. The "overlap trends" claim was strongly positive in-sample but FLIPPED negative out-of-sample. Only walk-forward-stable findings (e.g. NY fade, 8/8 pairs) are trustworthy. (`sessions/2026-06-21_percell_exhaustion/`)
-
-5. **Per-(pair x session x direction), never global.** The same indicator/momentum/alignment has OPPOSITE sign in different cells: momentum fades in NY but trends in overlap; willr +0.57 corr in USD_CAD/ny but -0.57 in EUR_USD/london. Validated four independent ways (broker P/L + broker forward + 8yr walk-forward + align resolution). The cells genuinely disagree, so each needs its own rules. (`sessions/2026-06-21_cell_ruleset/`)
-
-6. **App-confluence visual != forward-price edge.** Multi-timeframe RSI/EMA/StochRSI confluence has ZERO 1H edge at any parameter setting (910k signals). The MTF alignment that looks authoritative is decorative. Only "scan every occurrence, measure the forward move" tells the truth. (`sessions/2026-06-21_app_config_test/`)
-
-7. **Per-trade deep-dives are the unit of decision (2026-06-23 onward).** Once V5 is producing meaningful per-cell trade volume (~5-15 trades per cell per week), small-N pattern-finding on the actual trades drives most config tuning. Workflow: `python3 research/sessions/2026-06-23_aud_jpy_deep_dive/analyses/v5_pair_deep_dive.py PAIR --since DATE` — pulls broker truth + recomputes indicators at entry + MFE/MAE. Sort by MAE or MFE, find separators across wins vs losses, ship the cleanest single-rule filter for that cell. n=3-10 losses is enough to commit when the indicator gap is structural (not threshold-tuned). Mechanisms shipped this way (m_cert min/max, dir_cert min/max, willr_range, kc_up_range) all hot-reload — easy to revert if the pattern doesn't hold on the next 10 fires. For trades pre-dating SIGNAL log enrichment (pre 2026-06-23), recompute V5 module outputs via `core.feed.oanda._compute_features` + direction_v2/momentum_v3 stamps against historical OANDA candles (caveat: uses today's module logic, not what fired then).
-
-8. **m_cert reframe (Brock 2026-06-23):** m_cert is a MOVE-MAGNITUDE predictor, not a quality filter. Low m_cert = big directional move expected; high m_cert = small contained move. For cells whose edge IS the big-move tail (ratchet-engaged trades), use `per_cell_mom_cert_max`. For cells where high cert correlates with bigger MFE, use `per_cell_mom_cert_min`. Same reframe holds for d_cert (`per_cell_dir_cert_min/max`).
-
-### Key live-trader facts established this weekend
-- V5 has been LOSING: -$6,114 over 120 trades (V4+V5), -$2,234 V5-era 36 trades. Edge is concentrated in ~5 cells; the bot trades the whole 48-cell grid including fade cells.
-- **NY is a momentum-FADE session** (8/8 pairs, walk-forward, broker-corroborated). V5 trend-follows h1_ret (its #1 factor) into a fade regime, producing the NY losses.
-- **Confirmed winner cells:** USD_CAD/ny/long (+6.61p, n=7), EUR_USD/london/short (+6.31p, n=7), AUD_JPY/asia long+short (trend).
-- **10 cells disabled** (config/playmaker_config.json disabled_cells); 2 cells (GBP_USD/ny, EUR_JPY/ny) shadow-logging inverted direction.
-- **ALIGN (HTF agreement) is live** in V5 (htf_pct_20/60 + trend_4h non-zero) - the V4-era freeze is fixed; align CAN be wired now, but session-signed (confirm in overlap, fade in NY/london).
-- Architectural refinement flagged: V5's ny session (13-21 UTC) lumps trend-y overlap (13-14) with fade-y late-ny (15-21) - split for coherent per-module regime.
-
-### The 8yr corpus + Mini compute (all heavy work runs HERE)
-- Per-pair M5/H1/D parquets: /Volumes/Alien Device/direction_ml/raw_bars/ (8 pairs, ~553k M5 bars each, 2019-2026)
-- Computed feature parquets: ~/qtl-discovery-8yr/features/<PAIR>_features.parquet (84 features incl. fwd_ret_pips)
-- Python venv with quantalib + xgboost + scipy: ~/.venvs/quantalib/ (Python 3.12)
-- Monthly Master Matrix cron: ~/.local/bin/master_matrix_monthly.sh (1st of month, 04:00)
-- All scripts reproducible - see each session's analyses/. Device serial check (CPYQTH294R) guards every heavy script.
-
-## Index of matrices
-
-| File | Trades | Columns | Built by |
-|---|---:|---:|---|
-| `matrices/v5_trade_matrix_44trades_base.csv` | 44 | 14 | `sessions/2026-06-19_matrix_compilation/analyses/v5_trade_matrix.py` |
-| `matrices/v5_full_matrix_44trades.csv` | 44 | 24 | `sessions/2026-06-19_matrix_compilation/analyses/v5_full_matrix.py` |
-| `matrices/v5_full_matrix_v2_36cols.csv` | 44 | 36 | `sessions/2026-06-19_matrix_compilation/analyses/v5_more_aggs.py` |
-
-## Index of reference reports (Brock-curated, Dropbox `/SCROOGE V5/Test Data/`)
-
-| File | Size | Topic |
-|---|---:|---|
-| `reference/factor_sweep.txt` | 87KB | Full factor × bucket sweep — per-cell aggregator behavior |
-| `reference/direction_ml_report.txt` | 22KB | Direction + momentum matrix from earlier V5 ML build |
-| `reference/dm05_ratchet_corr.txt` | 1.5KB | DM-05 ratchet label correlation |
-| `reference/dm06_validation.txt` | 27KB | DM-06 validation suite |
-| `reference/dm07_direction_split.txt` | 27KB | DM-07 direction-split factor sweep |
-| `reference/dm08_combo_sweep.txt` | 40KB | DM-08 combo sweep (2-factor 5×5) |
-| `reference/dm09_ratchet_sweep.txt` | 79KB | DM-09 indicator sweep — raw vs ratchet |
-
-These are the source-of-truth reports from earlier dm04-dm09 work that informed the original V5 modules. Read first when asking "did we test X already?"
-
-## Index of live data
-
-| File | Notes |
-|---|---|
-| `live-smoke/all_trades_per_feature_seed.csv` | First night's cron output, 9 trades from 2026-06-19 |
-| `live-smoke/2026-06-19_first_run.txt` | Per-day human-readable summary |
-
-Live data accumulates in `/data/v5-smoke-history/` on EC2 via the 23:30 UTC cron. Periodically snapshot fresh copies into this folder (and update the matrix vault note).
-
-## Vault cross-reference
-
-The matrix vault note `wiki/systems/note_scrooge_v5_findings_matrix_2026-06-18.md` is the **rolling synthesis** of all research findings. It supersedes individual session READMEs for "what do we currently believe is true." Sessions add to it; the note is the consolidated view.
-
-Other vault notes that cross-reference research:
-- `wiki/systems/cockpit.md` — V5 banner has the most-recent state
-- `wiki/systems/agent-activity-log.md` — chronological log of cross-agent activity (V5 entries chronicle research sessions)
-- `wiki/systems/quick-status.md` — live alerts/positions (auto-updated)
+- **Discovery v2 → promotion:** 130 validated formula-signals incl. 32 DIRECTION (AUC 0.58–0.61). Next steps: range distillation, plateau tests, feed extension (q_yzv/q_dc/q_bbwp/q_vwap), formula × geometry EV simulation. Mini `~/v5-discovery-v2/`.
+- **SHADOW_PROFILE stamping:** corrected-profile stack stamps live cycles alongside current profiles. When corrected > current on n>=20 same-engine per cell → promote (restart required). Scorer: `research/tools/profile_shadow_score.py`.
+- **CAL instrumentation:** `config/cell_calibration.json` vs live `expected_pips` per cycle. First-cycle data shows artifact projecting ~2× the global 0.30 multiplier — need live comparison on n>=10 per cell to diagnose gap. Scorer: `research/tools/calibration_score.py`.
+- **Monthly re-fit:** Mini cron `0 5 1 * *` (`v5_monthly_refit.sh`) — first autonomous run 2026-08-01. Output syncs calibration artifact + anchor check (r>=0.80) before shipping.
