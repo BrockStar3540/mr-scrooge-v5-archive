@@ -23,7 +23,7 @@
         "dates": "06-22->06-30"
       },
       "snapshot": {
-        "taken": "2026-07-03T06:54:50.264733+00:00",
+        "taken": "2026-07-03T07:50:16.344607+00:00",
         "governance": {
           "inverted_live": true,
           "inverted_directions": [],
@@ -49,7 +49,7 @@
         "throttle": {
           "max_opens_per_session": 2
         },
-        "code_fingerprint": "bf514de7a3aae461d8ebe3aa07e838b47e4bdf7e7e0695eae8424e3357d400af"
+        "code_fingerprint": "6d8cf4219be6d1b762b5b14e572d584af685aee9fc25f08d1b81ec248c1d3a5a"
       }
     },
     {
@@ -67,7 +67,7 @@
         "dates": "06-22->06-24"
       },
       "snapshot": {
-        "taken": "2026-07-03T06:54:50.283179+00:00",
+        "taken": "2026-07-03T07:50:16.374560+00:00",
         "governance": {
           "inverted_live": false,
           "inverted_directions": [],
@@ -96,7 +96,7 @@
         "throttle": {
           "max_opens_per_session": 2
         },
-        "code_fingerprint": "3189b9799e9f0ea9521f4d5ade7de2c3586d39969585d6b8781993178ab2becb"
+        "code_fingerprint": "7a5f17be3d2402c3bc1d31c178d12961d0cae4a2658d01e6a4ef0c022402f5f4"
       }
     },
     {
@@ -114,7 +114,7 @@
         "dates": "06-22->06-26"
       },
       "snapshot": {
-        "taken": "2026-07-03T06:54:50.300958+00:00",
+        "taken": "2026-07-03T07:50:16.397526+00:00",
         "governance": {
           "inverted_live": false,
           "inverted_directions": [],
@@ -140,7 +140,7 @@
         "throttle": {
           "max_opens_per_session": 2
         },
-        "code_fingerprint": "60c0804bacc5769295e144a4ca17659771f6b8fbd5489f514af8784268b3e448"
+        "code_fingerprint": "4ae2de1c4a795aed79cb6055bb112e378965a920c9b711a3ad7e3b9b43e433e8"
       }
     },
     {
@@ -158,7 +158,7 @@
         "dates": "06-25->06-26"
       },
       "snapshot": {
-        "taken": "2026-07-03T06:54:50.318842+00:00",
+        "taken": "2026-07-03T07:50:16.418469+00:00",
         "governance": {
           "inverted_live": false,
           "inverted_directions": [],
@@ -187,7 +187,7 @@
         "throttle": {
           "max_opens_per_session": 2
         },
-        "code_fingerprint": "3189b9799e9f0ea9521f4d5ade7de2c3586d39969585d6b8781993178ab2becb"
+        "code_fingerprint": "7a5f17be3d2402c3bc1d31c178d12961d0cae4a2658d01e6a4ef0c022402f5f4"
       }
     },
     {
@@ -205,7 +205,7 @@
         "dates": "06-25->06-26"
       },
       "snapshot": {
-        "taken": "2026-07-03T06:54:50.336671+00:00",
+        "taken": "2026-07-03T07:50:16.439812+00:00",
         "governance": {
           "inverted_live": true,
           "inverted_directions": [],
@@ -231,7 +231,7 @@
         "throttle": {
           "max_opens_per_session": 2
         },
-        "code_fingerprint": "3205ecfd95e02037d7309879f350ff4e2dd195c942134ec50f7b74bbb8cf1b31"
+        "code_fingerprint": "40606d1ef0f6d6953c9032190bd57f16faf31b113d68df911f1455b48c2d6bbb"
       }
     },
     {
@@ -249,7 +249,7 @@
         "dates": "06-22->07-01"
       },
       "snapshot": {
-        "taken": "2026-07-03T06:54:50.354383+00:00",
+        "taken": "2026-07-03T07:50:16.459663+00:00",
         "governance": {
           "inverted_live": false,
           "inverted_directions": [],
@@ -275,7 +275,7 @@
         "throttle": {
           "max_opens_per_session": 2
         },
-        "code_fingerprint": "db2783a3db601f10d40180233ceefa377d1134b720969ed396d5f278b594897e"
+        "code_fingerprint": "cca838ec811dec6a8890fd8a06a70a84dd7d3da4930cab74f1586476decf48f6"
       }
     }
   ],

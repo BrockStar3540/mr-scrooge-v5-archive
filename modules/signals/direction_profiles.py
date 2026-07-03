@@ -250,25 +250,22 @@ PROFILE_ASSIGNMENT: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
 # cause as the momentum_profiles.py floor mismatch. Removed rather than left
 # as dead code since AGGREGATOR_RULES is fingerprinted by lock_snapshot.
 AGGREGATOR_RULES = [
-    {
-        "name":           "high_vol_regime_amplifies_reversion",
-        "condition":      lambda view: getattr(view, "atr_h1_relative", 1.0) > 1.6,
-        "amplify":        ["ema20_dist_pct", "bb_pos", "zscore_5m", "ret_15m",
-                            "ema5_dist_pips", "ret_5m", "ret_30m", "close_pos_daily"],
-        "multiplier":     1.3,
-        "evidence":       "smoke v4",
-        "confidence":     "MODERATE",
-    },
-    {
-        "name":           "high_vol_regime_suppresses_htf",
-        "condition":      lambda view: getattr(view, "atr_h1_relative", 1.0) > 1.6,
-        "amplify":        ["htf_pct_20", "htf_pct_60", "trend_4h", "h1_ret_4bar",
-                            "pdh_dist_pips", "pdh_dist_atr_pct", "d_ret"],
-        "multiplier":     0.5,
-        "evidence":       "smoke v4",
-        "confidence":     "MODERATE",
-    },
+    # EMPTY as of 2026-07-03 — all three original amplifier rules retired:
+    #   - "atr_conc_amplifies_htf": deleted earlier 2026-07-03 (condition mathematically
+    #     impossible — atr_conc is a ratio < 1.0, threshold was 2.5).
+    #   - "high_vol_regime_amplifies_reversion" (x1.3) and
+    #     "high_vol_regime_suppresses_htf" (x0.5): REMOVED per the 2026 confirmation study
+    #     (Mini ~/v5-atrrel-confirm/, 297,952 bars Jan-Jun 2026). Findings: the 8yr
+    #     long-help/short-hurt asymmetry INVERTED in 2026 (regime flip; 8yr agreement
+    #     only 29%); direction-agnostic application was ALIGNED in 42% of cells and
+    #     MISMATCHED in 42% (self-canceling), with the 9 strongest mismatches all being
+    #     the cells the rules hurt most (up to -17.8 pip conditional delta).
+    #     Evidence basis was "smoke v4" (pre-V5, pre-regime). Per-cell whitelist NOT
+    #     wired yet: only 8 cells show stable 2026 signal (all JPY, short=KEEP/long=INVERT)
+    #     at a 1.6% trigger rate — flagged for a dedicated study on full-year 2026 data.
+    # Mechanism retained: rules may be re-added ONLY per-cell, 2026-fit, drift-labeled.
 ]
+
 
 
 # ── api ──
