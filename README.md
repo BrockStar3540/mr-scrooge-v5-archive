@@ -42,7 +42,7 @@ All per-cell governance mechanisms are hot-reloadable via config — no restart 
 ### Aggregator rules
 
 **AGGREGATOR_RULES is intentionally empty.** The two previously wired rules were retired on 2026-07-03:
-- `atr_conc > 4.0` — had a dead scale bug (live ratio lives in (0,1), never fired); retired with the atr_conc fix that revived 14 cells.
+- `atr_conc > 2.5` — had a dead scale bug (live ratio lives in (0,1), never fired); retired with the atr_conc fix that revived 14 cells (the 4.0-5.0 floors were the separate momentum-profile bug).
 - `atr_h1_rel > 1.6` — sign INVERTED in 2026 vs 8yr average (confirmed 297k-bar study). No new aggregator rules until clean-corpus derivation on post-07-03 parquets.
 
 ### Calibration instrumentation (LOG-ONLY, 2026-07-03)
