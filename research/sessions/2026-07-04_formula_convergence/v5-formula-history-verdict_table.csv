@@ -1,0 +1,12 @@
+combo_id,cell_key,horizon,geo_name,sl,trigger,trail,is_tier1,deep_label,n_pos_oos,n_total_oos,orig_ev_mayjun,orig_n_mayjun,seq_n_mayjun,seq_ev_mayjun,seq_wr_mayjun,seq_mdd_mayjun,seq_lls_mayjun,drift_label,sign_flips_6mo,pct_abs_diverge,overall_verdict
+1,USD_CHF/ny/long,240,best_cell,8.0,3.0,1.5,False,DEEP-FAIL,2,7,0.559,258,75,0.805,0.813,-27.6,2,UNSTABLE,3,[],FAIL-DEEP
+2,AUD_JPY/ny/short,60,low_pstar_sym,8.0,7.5,1.5,False,DEEP-FAIL,0,7,0.212,518,73,-4.919,0.219,-376.7,12,STABLE,0,[],FAIL-DEEP
+3,USD_CHF/ny/long,60,best_cell,8.0,3.0,1.5,False,DEEP-FAIL,0,7,1.83,46,13,-1.915,0.538,-48.3,4,UNSTABLE,3,[],FAIL-DEEP
+4,GBP_USD/ny/short,60,best_cell,12.0,3.0,1.5,True,DEEP-FAIL,0,7,0.914,954,214,-1.499,0.706,-386.4,5,STABLE,2,[],FAIL-DEEP
+5,USD_JPY/ny/long,60,best_cell,20.0,3.0,1.5,True,DEEP-FAIL,0,7,1.199,2366,322,-4.918,0.655,-1573.2,4,STABLE,2,[],FAIL-DEEP
+6,USD_JPY/ny/long,60,low_pstar_sym,8.0,7.5,1.5,True,DEEP-FAIL,0,7,0.752,2366,269,-4.24,0.26,-1145.9,16,STABLE,2,[],FAIL-DEEP
+7,GBP_USD/london/long,240,current,20.0,7.5,2.5,False,DEEP-PERSISTENT,7,7,0.018,2194,149,0.038,0.705,-199.0,5,STABLE,2,"[2019, 2022, 2023]",PASS-ALL
+8,GBP_USD/london/long,240,best_cell,12.0,10.0,1.5,False,DEEP-PERSISTENT,7,7,0.154,2194,165,0.35,0.545,-152.5,5,STABLE,2,"[2022, 2023]",PASS-ALL
+9,GBP_USD/london/long,240,low_pstar_sym,8.0,7.5,1.5,False,DEEP-PERSISTENT,7,7,0.219,2194,259,0.264,0.514,-113.2,7,STABLE,2,[2023],PASS-ALL
+10,AUD_USD/ny/short,60,best_cell,10.0,3.0,1.5,False,DEEP-FAIL,0,7,0.394,1206,143,-3.559,0.517,-517.8,6,STABLE,0,[],FAIL-DEEP
+11,AUD_JPY/ny/short,240,low_pstar_sym,8.0,7.5,1.5,False,DEEP-FAIL,1,7,1.938,91,18,4.55,0.722,-17.8,2,UNSTABLE,4,[],FAIL-DEEP
