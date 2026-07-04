@@ -1,0 +1,12 @@
+combo_id,label,class,monthly_metric,monthly_threshold,monthly_action,midmonth_metric,midmonth_threshold,midmonth_action,top_separator,sep_direction,notes
+1,USD_CHF/ny/long h240 [best_cell],ARTIFACT,N/A,N/A,DO NOT WIRE (suspend permanently),N/A,N/A,N/A,none,none,Sequential-negative in 2026 window; no live deployment
+2,AUD_JPY/ny/short h60 [low_pstar_sym],ARTIFACT,N/A,N/A,DO NOT WIRE (suspend permanently),N/A,N/A,N/A,none,none,Sequential-negative in 2026 window; no live deployment
+3,USD_CHF/ny/long h60 [best_cell],ARTIFACT,N/A,N/A,DO NOT WIRE (suspend permanently),N/A,N/A,N/A,none,none,Sequential-negative in 2026 window; no live deployment
+4,GBP_USD/ny/short h60 [best_cell],ARTIFACT,N/A,N/A,DO NOT WIRE (suspend permanently),N/A,N/A,N/A,none,none,Sequential-negative in 2026 window; no live deployment
+5,USD_JPY/ny/long h60 [best_cell],ARTIFACT,N/A,N/A,DO NOT WIRE (suspend permanently),N/A,N/A,N/A,none,none,Sequential-negative in 2026 window; no live deployment
+6,USD_JPY/ny/long h60 [low_pstar_sym],ARTIFACT,N/A,N/A,DO NOT WIRE (suspend permanently),N/A,N/A,N/A,none,none,Sequential-negative in 2026 window; no live deployment
+7,GBP_USD/london/long h240 [current],PERMANENT,atr_h1_relative,0.95408,keep; size-down 50% if EV < 0.0 for 2 consecutive months; suspend if 3 consecutive,last_20_live_ev,last_20_live_ev > -0.5,suspend if EV < -0.5 on last 20 stamps; re-enable at next monthly refit,atr_h1_relative,>,"ev_on=2.08, ev_off=0.21, n_months=27"
+8,GBP_USD/london/long h240 [best_cell],PERMANENT,rvol_5bar,1.13354,keep; size-down 50% if EV < 0.0 for 2 consecutive months; suspend if 3 consecutive,last_20_live_ev,last_20_live_ev > -0.5,suspend if EV < -0.5 on last 20 stamps; re-enable at next monthly refit,rvol_5bar,>,"ev_on=1.25, ev_off=0.31, n_months=27"
+9,GBP_USD/london/long h240 [low_pstar_sym],PERMANENT,q_chop_h1,85.92407,keep; size-down 50% if EV < 0.0 for 2 consecutive months; suspend if 3 consecutive,last_20_live_ev,last_20_live_ev > -0.5,suspend if EV < -0.5 on last 20 stamps; re-enable at next monthly refit,q_chop_h1,<,"ev_on=1.37, ev_off=0.51, n_months=27"
+10,AUD_USD/ny/short h60 [best_cell],ARTIFACT,N/A,N/A,DO NOT WIRE (suspend permanently),N/A,N/A,N/A,none,none,Sequential-negative in 2026 window; no live deployment
+11,AUD_JPY/ny/short h240 [low_pstar_sym],REGIME-CANDIDATE,atr_5m,2.83569,keep if atr_5m > 2.83569; suspend otherwise (regime OFF),last_20_live_ev,last_20_live_ev > -0.3,suspend if EV < -0.3 on last 20 stamps,atr_5m,>,"ev_on=2.88, ev_off=-1.06, n_months=30"
