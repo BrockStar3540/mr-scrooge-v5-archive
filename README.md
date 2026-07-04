@@ -37,6 +37,10 @@ All per-cell governance mechanisms are hot-reloadable via config — no restart 
 
 ---
 
+## Cell architecture migration (2026-07-04, in flight)
+
+The cell is becoming the first-class unit: `config/cells/<PAIR>.json` (evidence-generated, lineage on every threshold) + `modules/cells/` (CellModule/PairModule). **Currently shadow-only**: `CELL_EXECUTION_ENABLED=False`; the engine stamps `CELLSHADOW` lines each cycle while direction_v2 + momentum_v3 continue to drive all live execution unchanged. Cutover = Phase D after >=1 week of clean shadow (see `docs/CELL_ARCHITECTURE_PLAN.md` + `docs/CELL_ARCHITECTURE_SPEC.md`). Scorer: `research/tools/cell_setup_score.py`.
+
 ## Current Architecture (2026-07-03)
 
 ### Aggregator rules

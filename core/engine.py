@@ -23,10 +23,13 @@ from modules.signals import calibration as _calibration
 from modules.signals import formula_shadow as _formula_shadow
 from modules.playmaker.playmaker import (pick_best, TradeTicket, pm_margin_pct,
                                           pm_inverted_shadow_cells, pm_profile_shadow_enabled,
-                                          pm_calibration_log_enabled, pm_formula_shadow_enabled)
+                                          pm_calibration_log_enabled, pm_formula_shadow_enabled,
+                                          pm_cell_shadow_enabled)
 from modules.playmaker import lock_guard
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
+from modules.cells import PairModule
+from modules.cells import CELL_EXECUTION_ENABLED as _CELL_EXEC  # noqa: F401 — Phase-C gate
 
 log = logging.getLogger("v5.engine")
 
@@ -57,6 +60,18 @@ class Engine:
         self.recent_events:     collections.deque = collections.deque(maxlen=40)
         self.cycle_count:       int = 0
         self.last_cycle_time:   Optional[datetime] = None
+
+        # ── Cell pair modules (Phase C — shadow-only) ─────────────────────────
+        # Built lazily from config/cells/<PAIR>.json.  Missing files = cells absent.
+        # PairModule hot-reloads config on each call to active_cells().
+        from pathlib import Path as _Path
+        _cells_dir = _Path(__file__).resolve().parents[1] / 'config' / 'cells'
+        if not _cells_dir.exists():
+            log.warning('cells: config/cells/ directory absent — no cell configs loaded; '
+                        'cells will be absent until Phase B generates them')
+        self._pair_modules: dict[str, PairModule] = {
+            pair: PairModule(pair) for pair in PAIRS
+        }
 
         log.info("V5 engine ready | dry_run=%s | %d pairs | %d dir_mods | %d mom_mods",
                  dry_run, len(PAIRS), len(self.dir_mods), len(self.mom_mods))
@@ -387,6 +402,27 @@ class Engine:
                             _fe.target_sl, _fe.target_trigger, _fe.target_trail,
                             _fe.expected_ev, _fe.status, now.isoformat(),
                         )
+
+        # ── Cell shadow stamps (Phase C — CELL_EXECUTION_ENABLED=False) ────────
+        # Evaluate every active cell for each pair this cycle.  At Phase C,
+        # all setups stamp CELLSHADOW lines but return None (no execution change).
+        # Kill-switch: defaults.cell_shadow_enabled (hot-reload, no restart).
+        # CELL_EXECUTION_ENABLED is checked *inside* CellModule.evaluate();
+        # the places that flag is checked are:
+        #   1. modules/cells/__init__.py  (definition, False until Phase D)
+        #   2. modules/cells/cell.py      (CellModule.evaluate: _exec_enabled())
+        #   3. here (guard: only enter the loop when shadow enabled)
+        if pm_cell_shadow_enabled():
+            for _pair_mod in self._pair_modules.values():
+                _pview = next((v for v in views if v.pair == _pair_mod.pair), None)
+                if _pview is None:
+                    continue
+                for _cell in _pair_mod.active_cells(now):
+                    try:
+                        _cell.evaluate(_pview, now)  # stamps CELLSHADOW; returns None in Phase C
+                    except Exception as _ce:
+                        log.warning('cells: evaluate %s/%s raised: %s',
+                                    _pair_mod.pair, _cell.session, _ce)
 
         if trade_ticket is None:
             return

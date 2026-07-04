@@ -18,6 +18,8 @@ Every substantive change to Mr. Scrooge V5 — what changed, why, and what the o
 
 **MAE-flip + Lock Guard (2026-07-02):** 3-model panel diagnosis. Governance constitution (n>=20). USD_CAD MAE-flip with aroon gate. Per-currency exposure cap. SHADOW_PROFILE instrumentation. De-inversions.
 
+**Cellular Architecture Phase B+C (2026-07-04):** The cell becomes the first-class unit. 48 evidence-generated cell configs (1 ACTIVE / 12 SHADOW / 11 NO-SIDE / 3 DISABLED), CellModule/PairModule engine wired shadow-only (CELL_EXECUTION_ENABLED=False), per-trade exit params prepared. Direction/momentum modules unchanged and still driving execution until Phase D cutover.
+
 **Truth-Matrix Era + Leak Repair + Strategy Ledger (2026-07-03):** H1 look-ahead leak discovered and fixed. atr_conc scale bug fixed (14 dead cells revived). All aggregator rules retired. Truth matrix built (8yr broker-anchored). Per-cell calibration artifact wired. Monthly re-fit pipeline armed. Direction detector spec v2. Discovery v2 (130 validated signals).
 
 ---
@@ -134,6 +136,15 @@ Every substantive change to Mr. Scrooge V5 — what changed, why, and what the o
 - `d6d9f81` **EUR_JPY/ny/short willr window re-fit** [-85,-7] → [-100,-75] (exhaustion-only for inverted regime).
 - `b8422e8` **README: V5 is strategy-free** — direction + momentum/distance IS the strategy (Brock framing directive).
 - `e5367ad` **USD_JPY/london natural direction restored** (explicit Brock lock override).
+
+## 2026-07-04 — Cellular architecture Phase B+C (shadow-only)
+
+The migration approved in `docs/CELL_ARCHITECTURE_PLAN.md`: invert the hierarchy so the (pair × session) CELL owns its complete configuration. All of tonight's changes are shadow-only — live execution still flows through direction_v2 + momentum_v3 + playmaker, byte-identical, until Phase D cutover.
+
+- **Phase B — evidence-generated cell configs.** `research/tools/generate_cell_configs.py` (1.1k lines) emits `config/cells/<PAIR>.json` for all 8 pairs from the clean-corpus evidence CSVs; `research/tools/cell_config_validator.py` enforces the schema (lineage mandatory on every threshold, ranges never point values, percentile-form conditions carry resolved values). Book v1: **1 ACTIVE** (GBP_USD/london `rvol_low_240` — the sole deep-OOS-validated formula, rolling-percentile form, per-setup exit 12/10/1.5), **12 SHADOW** (LEAN + TIMING + CONTROL setups, stamps only), **11 NO-SIDE** (no validated setup = no trade — the honest consequence of the direction falsification), **3 DISABLED** (USD_CHF). Phase-A cert-gate re-derivations folded in: GBP_USD/ny willr [-50,0] short, USD_JPY/asia kc_up>=0 long (beats the old d_cert gate), AUD_JPY/asia NOT-RE-EXPRESSIBLE -> NO-SIDE, AUD_USD/london kc gate survives raw with m_cert dropped.
+- **Phase C — cell engine, shadow-wired.** `modules/cells/` (CellModule, PairModule, CellIntent, ExitParams). Engine evaluates every active cell each scan cycle and stamps `CELLSHADOW`; `CELL_EXECUTION_ENABLED=False` forces evaluate() to return None regardless of setup status. Kill-switch `defaults.cell_shadow_enabled` (hot-reload). `Position.exit_params` + RatchetManager override path prepared but dead code until cutover (verified byte-identical when None). Scorer: `research/tools/cell_setup_score.py`.
+- **Review catches (coordinator):** pair_module session table had drifted from `config/sessions.py` (london 07-16 vs canonical 07-13 — would have cross-stamped london cells into NY; now imports `coarse_session`, single source of truth); AUD_JPY/ny monthly tripwire direction inverted in spec (suspend fires when monthly-mean atr_5m <= 2.836 = regime OFF, not >=); 5 TIMING lean-confirmers were vacuous/price-level/feed-unreadable — dropped or converted to percentile form, rule codified in the generator (`LEAN_CONFIRMER_POLICY`).
+- Locked cells -> `priority_analysis` notes inside cell configs (lock semantics retire at Phase D per Brock's directive).
 
 ## 2026-07-03 — Truth matrix + leak repair + strategy ledger
 

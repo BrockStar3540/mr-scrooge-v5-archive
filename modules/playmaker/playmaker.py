@@ -264,6 +264,13 @@ def pm_formula_shadow_enabled() -> bool:
     See modules/signals/formula_shadow.py and research/tools/formula_shadow_score.py."""
     return bool(_pm_load()["defaults"].get("formula_shadow_enabled", True))
 
+def pm_cell_shadow_enabled() -> bool:
+    """True when CELLSHADOW stamps are emitted each scan cycle (kill-switch, hot-reload).
+
+    Logging only -- execution unchanged until CELL_EXECUTION_ENABLED=True.
+    See modules/cells/ and research/tools/cell_setup_score.py."""
+    return bool(_pm_load()["defaults"].get("cell_shadow_enabled", True))
+
 # ── Certainty floors (dm_04-derived, see module docstring) ──────────────────
 MIN_DIRECTION_SCORE = 0.25   # |direction.score| minimum
 MIN_DIR_CERTAINTY   = 0.30   # direction.certainty minimum

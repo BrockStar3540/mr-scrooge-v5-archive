@@ -144,6 +144,15 @@ class RatchetManager(TradeManager):
         self._update_peak(current_price)
 
         cfg             = _load_config(self.position.ticket.pair)
+        # Per-trade exit params (Phase C prepared, activated at Phase D cutover).
+        # When position.exit_params is set, override the three ratchet knobs.
+        # When absent, behaviour is byte-identical to the current exit_config path.
+        _ep = getattr(self.position, 'exit_params', None)
+        if _ep is not None:
+            cfg = dict(cfg)  # shallow copy — don't mutate the shared dict
+            cfg['initial_sl_pips']   = float(_ep.sl_pips)
+            cfg['step_trigger_pips'] = float(_ep.trigger_pips)
+            cfg['step_trail_pips']   = float(_ep.trail_pips)
 
         # TP1/TP2 partial-close ladder runs BEFORE the trail step. Both default
         # OFF — when disabled this is a no-op and the legacy ratchet-only path

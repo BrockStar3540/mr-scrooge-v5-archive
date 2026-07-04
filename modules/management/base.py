@@ -15,6 +15,10 @@ class Position:
     oanda_trade_id: str
     pip_size:       float
     initial_sl_price: float = 0.0  # OANDA SL at open; ratchet inits from this
+    # Per-trade exit params from cell setup (Phase C: prepared, unused until cutover)
+    # When present, RatchetManager reads these instead of exit_config.json.
+    # When absent (None), current exit_config behaviour is byte-identical.
+    exit_params: Optional[object] = None  # ExitParams from modules.cells (avoid circular import)
 
 
 @dataclass
