@@ -1,0 +1,11 @@
+cell,geometry,v1_filter,n,crude_ev_v1,validated_ev_net,validated_ev_gross,validated_wr_net,engage_rate,survivor_rate,avg_bars_held,closeMTM_ev_net
+AUD_JPY asia long,trail2.5_lock5,ema5 - 110.1788,4067,5.427,-2.147,1.853,0.754,0.754,0.026,12.6,-1.781
+AUD_JPY asia long,trail1.5_lock6,ema5 - 110.1788,4067,5.951,-1.931,2.069,0.754,0.754,0.026,12.5,-1.564
+USD_CAD london long,trail2.5_lock5,q_yzv_m5 + 0.0001,9505,4.173,-4.11,-1.11,0.672,0.672,0.134,22.9,-2.24
+USD_CAD london long,trail1.5_lock6,q_yzv_m5 + 0.0001,9505,4.58,-3.946,-0.946,0.672,0.672,0.132,22.6,-2.084
+EUR_USD london long,trail2.5_lock5,atr_1h + 12.0059,4139,5.051,-2.476,-0.076,0.691,0.691,0.047,15.1,-1.75
+EUR_USD london long,trail1.5_lock6,atr_1h + 12.0059,4139,5.533,-2.151,0.249,0.691,0.691,0.047,14.9,-1.427
+EUR_USD london short,trail2.5_lock5,atr_1h + 12.0059,4139,5.143,-2.559,-0.159,0.694,0.694,0.068,15.7,-1.728
+EUR_USD london short,trail1.5_lock6,atr_1h + 12.0059,4139,5.629,-2.377,0.023,0.694,0.694,0.067,15.5,-1.549
+EUR_JPY ny long,trail2.5_lock5,atr_5m + 5.7132,5644,5.814,-2.372,1.228,0.734,0.734,0.057,11.9,-1.56
+EUR_JPY ny long,trail1.5_lock6,atr_5m + 5.7132,5644,6.37,-2.005,1.595,0.734,0.734,0.057,11.8,-1.194
