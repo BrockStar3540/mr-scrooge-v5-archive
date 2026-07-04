@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import numpy as np
-from .base import MarketView, DirectionStamp
+from modules.signals.base import MarketView, DirectionStamp
 
 _CAL_PATH = Path(__file__).parent / "factor_sweep.json"
 _CAL: dict = {}

@@ -1,6 +1,6 @@
 {
   "pair": "GBP_USD",
-  "generated": "2026-07-04T06:50:32Z",
+  "generated": "2026-07-04T07:43:41Z",
   "generator": "generate_cell_configs.py-2026-07-04",
   "sessions": {
     "asia": {
@@ -18,7 +18,7 @@
           "id": "timing_lean_30",
           "side": "short",
           "class": "TIMING",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 30,
           "conditions": [
             {
@@ -53,7 +53,7 @@
           "notes": "SHADOW TIMING setup: 30m atr_5m band. Side from persistent lean trend_4h sign=negative (corr=-0.0750, AUC=0.4636). lean confirmer dropped (trend_4h [-1,1] = full feature range, always-true no-op); side=short retained from calibration lean, first-live-stamps will judge. atr_5m boundary p75=3.676957 (plateau_ok). Awaiting live CELLSHADOW stamps before promotion consideration."
         }
       ],
-      "notes": "0 ACTIVE, 1 SHADOW setups. Tier=2 ev_gross_long=-2.784 ev_gross_short=-1.803."
+      "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-2.784 ev_gross_short=-1.803."
     },
     "london": {
       "enabled": true,
@@ -121,7 +121,7 @@
           "id": "timing_lean_30",
           "side": "short",
           "class": "TIMING",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 30,
           "conditions": [
             {
@@ -156,7 +156,7 @@
           "notes": "SHADOW TIMING setup: 30m atr_5m band. Side from persistent lean ema5 sign=negative (corr=-0.0630, AUC=0.4820). lean confirmer dropped (ema5 = price level, AUC at noise floor); side=short retained from calibration lean, first-live-stamps will judge. atr_5m boundary p75=5.766878 (plateau_ok). Awaiting live CELLSHADOW stamps before promotion consideration."
         }
       ],
-      "notes": "1 ACTIVE, 1 SHADOW setups. Tier=1 ev_gross_long=0.403 ev_gross_short=-0.037."
+      "notes": "2 ACTIVE, 0 SHADOW setups. Tier=1 ev_gross_long=0.403 ev_gross_short=-0.037."
     },
     "ny": {
       "enabled": true,
@@ -211,7 +211,7 @@
           "id": "willr_recovery_short",
           "side": "short",
           "class": "LEAN",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 60,
           "conditions": [
             {
@@ -247,7 +247,7 @@
           "notes": "phaseA PARTIAL verdict: willr>=-50 replaces cert gate. m_cert>=0.40 DROPPED (never binding). Second loss (9636) not separable by any raw feature at n=7. Side short via inverted_live convention. was locked \ud83d\udd12 -> priority_analysis."
         }
       ],
-      "notes": "0 ACTIVE, 2 SHADOW setups. Tier=2 ev_gross_long=-2.789 ev_gross_short=-0.567. was locked \ud83d\udd12 -> priority_analysis."
+      "notes": "1 ACTIVE, 1 SHADOW setups. Tier=2 ev_gross_long=-2.789 ev_gross_short=-0.567. was locked \ud83d\udd12 -> priority_analysis."
     }
   }
 }

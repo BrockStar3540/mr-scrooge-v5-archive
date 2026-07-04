@@ -1,6 +1,6 @@
 {
   "pair": "AUD_USD",
-  "generated": "2026-07-04T06:50:32Z",
+  "generated": "2026-07-04T07:43:41Z",
   "generator": "generate_cell_configs.py-2026-07-04",
   "sessions": {
     "asia": {
@@ -31,7 +31,7 @@
           "id": "kc_up_short_lean",
           "side": "short",
           "class": "LEAN",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 240,
           "conditions": [
             {
@@ -66,7 +66,7 @@
           "notes": "phaseA: kc_up [-15,0] survives raw re-derivation; m_cert long gate dropped (both lock-era long wins would have passed \u2014 no regression). kc_up_dist_pips in [-15, 0] is broker-validated (6W1L) raw gate. Side: short. No vwap long setup emitted (q_vwap_dist_pips_m5 not on live feed). Log m_cert-equivalent stamps on every london long fire; re-derive after 10 longs."
         }
       ],
-      "notes": "0 ACTIVE, 1 SHADOW setups. Tier=2 ev_gross_long=-1.755 ev_gross_short=-3.158."
+      "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.755 ev_gross_short=-3.158."
     },
     "ny": {
       "enabled": true,

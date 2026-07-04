@@ -16,12 +16,12 @@ from pathlib import Path
 import numpy as np
 
 try:
-    from .base import MarketView, MomentumStamp
+    from modules.signals.base import MarketView, MomentumStamp
 except ImportError:
     from base import MarketView, MomentumStamp  # type: ignore
 
 try:
-    from .momentum_profiles import (
+    from modules.archive.signals_legacy.momentum_profiles import (
         PROFILE_ASSIGNMENT, PAIR_TUNING, EVIDENCE_STRICTNESS,
         PROFILE_TEMPLATES, evaluate_cell, get_profile_info,
     )

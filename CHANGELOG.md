@@ -137,6 +137,35 @@ Every substantive change to Mr. Scrooge V5 — what changed, why, and what the o
 - `b8422e8` **README: V5 is strategy-free** — direction + momentum/distance IS the strategy (Brock framing directive).
 - `e5367ad` **USD_JPY/london natural direction restored** (explicit Brock lock override).
 
+## 2026-07-04 — PHASE D CUTOVER: the cell engine IS the bot (Brock order)
+
+Brock: "i told you to archive the old shit that is obsolete now" + explicit three-step
+authorization. The shadow-week plan was superseded — cutover same night.
+
+- **CELL_EXECUTION_ENABLED = True.** core/engine.py rewritten: cells are the sole
+  strategy source (evaluate -> CellIntent -> modules/cells/portfolio.select_intent ->
+  order). SIGNAL/ENTERED lines carry engine=cell_v1 setup=<id>. Each trade ships its
+  setup's own exit block via Position.exit_params (GBP formula trades 12/10/1.5).
+- **Legacy stack ARCHIVED**: direction_v2, momentum_v3, both profile files,
+  profile_shadow, factor_sweep.json + pre-v2 versions -> modules/archive/signals_legacy/
+  (importable; rollback = tag pre-cell-cutover-2026-07-04 + restart). SHADOW_INVERT /
+  SHADOW_PROFILE / CAL instrumentation retired with it; FORMULA stamps retained.
+- **Portfolio layer** (modules/cells/portfolio.py): risk arithmetic only — one-per-pair,
+  max_concurrent, per-currency-direction, spread fail-closed, 60m post-loss cooldown;
+  ranks by measured ev_seq. Sizing stays on the margin model (per-setup risk_pct
+  normalization = flagged follow-up, not silently invented).
+- **Book promoted per Brock**: 9 SHADOW setups -> ACTIVE (4 LEAN/regime evidence-backed +
+  5 TIMING first-live-trades). The 3 CONTROL formulas stay SHADOW — they are negative-
+  expectation falsification instruments and are not tradeable by design.
+  Book: 10 ACTIVE / 3 SHADOW / 11 NO-SIDE / 3 DISABLED.
+- **ev_seq-null crash fixed** in cell.py (float(None) TypeError killed stamping AND
+  intent generation for every ev_seq:null setup — found by the dashboard build agent).
+- **Dashboard overhauled** (ops/): BOOK tab (8x3 cell grid, condition-proximity bars,
+  click-to-expand evidence), SHADOW tab (scoreboard + stamp feed), /api/cells +
+  /api/cellshadow + /api/cellscore, /api/state serializer hardened for cell-era tickets,
+  legacy exec-stack view behind a retirement toggle. cell_setup_score.py gains --json.
+- Cutover sanity: 8/8 (evaluate geometry, portfolio caps x4, ticket build, exit_params).
+
 ## 2026-07-04 — Cellular architecture Phase B+C (shadow-only)
 
 The migration approved in `docs/CELL_ARCHITECTURE_PLAN.md`: invert the hierarchy so the (pair × session) CELL owns its complete configuration. All of tonight's changes are shadow-only — live execution still flows through direction_v2 + momentum_v3 + playmaker, byte-identical, until Phase D cutover.

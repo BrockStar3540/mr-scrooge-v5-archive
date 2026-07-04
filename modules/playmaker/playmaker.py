@@ -319,6 +319,7 @@ class TradeTicket:
     reads:         dict    # direction.reads + momentum.reads for logging/debug
     rivals:        int = 0 # how many other candidates passed all gates this cycle
     inverted_live: bool = False  # True when direction was flipped by inverted_live_cells
+    cell:          object = None  # CellIntent when engine=cell_v1 (Phase D); None on recovery stubs
 
 
 def _passes_gates(t: PairTicket, pcfg: dict) -> bool:

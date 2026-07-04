@@ -1,6 +1,6 @@
 {
   "pair": "USD_JPY",
-  "generated": "2026-07-04T06:50:32Z",
+  "generated": "2026-07-04T07:43:41Z",
   "generator": "generate_cell_configs.py-2026-07-04",
   "sessions": {
     "asia": {
@@ -18,7 +18,7 @@
           "id": "kc_breakout_long",
           "side": "long",
           "class": "LEAN",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 60,
           "conditions": [
             {
@@ -54,7 +54,7 @@
           "notes": "phaseA RE-EXPRESSIBLE verdict: kc_up>=0 replaces d_cert>=0.49 (tighter: fewer fires, higher WR, catches the loss cert gate missed). Side long via inverted_live convention. was locked \ud83d\udd12 -> priority_analysis."
         }
       ],
-      "notes": "0 ACTIVE, 1 SHADOW setups. Tier=2 ev_gross_long=-1.349 ev_gross_short=-1.204. was locked \ud83d\udd12 -> priority_analysis."
+      "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.349 ev_gross_short=-1.204. was locked \ud83d\udd12 -> priority_analysis."
     },
     "london": {
       "enabled": true,
@@ -71,7 +71,7 @@
           "id": "timing_lean_30",
           "side": "short",
           "class": "TIMING",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 30,
           "conditions": [
             {
@@ -119,7 +119,7 @@
           "notes": "SHADOW TIMING setup: 30m atr_5m band. Side from persistent lean atr_h1_relative sign=negative (corr=-0.1276, AUC=0.4723). Lean confirmer: atr_h1_relative >= p75 (rolling-percentile form). atr_5m boundary p75=6.521932 (plateau_ok). Awaiting live CELLSHADOW stamps before promotion consideration."
         }
       ],
-      "notes": "0 ACTIVE, 1 SHADOW setups. Tier=1 ev_gross_long=-0.838 ev_gross_short=-0.297."
+      "notes": "1 ACTIVE, 0 SHADOW setups. Tier=1 ev_gross_long=-0.838 ev_gross_short=-0.297."
     },
     "ny": {
       "enabled": true,

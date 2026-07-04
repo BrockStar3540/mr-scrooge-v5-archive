@@ -1,6 +1,6 @@
 {
   "pair": "EUR_JPY",
-  "generated": "2026-07-04T06:50:32Z",
+  "generated": "2026-07-04T07:43:41Z",
   "generator": "generate_cell_configs.py-2026-07-04",
   "sessions": {
     "asia": {
@@ -44,7 +44,7 @@
           "id": "timing_lean_30",
           "side": "short",
           "class": "TIMING",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 30,
           "conditions": [
             {
@@ -79,7 +79,7 @@
           "notes": "SHADOW TIMING setup: 30m atr_5m band. Side from persistent lean pdh sign=negative (corr=-0.0626, AUC=0.4787). lean confirmer dropped (pdh = absolute price band (182-188), setup-killer on drift); side=short retained from calibration lean, first-live-stamps will judge. atr_5m boundary p75=6.787983 (plateau_ok). Awaiting live CELLSHADOW stamps before promotion consideration."
         }
       ],
-      "notes": "0 ACTIVE, 1 SHADOW setups. Tier=2 ev_gross_long=-1.53 ev_gross_short=-0.824."
+      "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.53 ev_gross_short=-0.824."
     }
   }
 }

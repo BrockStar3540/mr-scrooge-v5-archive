@@ -30,4 +30,4 @@ __all__ = ["CellModule", "CellIntent", "ExitParams", "PairModule"]
 # ── Phase-C execution gate ────────────────────────────────────────────────────
 # FLIP THIS TO True AT PHASE-D CUTOVER ONLY.
 # Every place this is checked is enumerated in core/engine.py comments.
-CELL_EXECUTION_ENABLED: bool = False
+CELL_EXECUTION_ENABLED: bool = True  # Phase D cutover 2026-07-04 — Brock explicit order

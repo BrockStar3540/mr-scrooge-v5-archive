@@ -208,14 +208,25 @@ def _simulate_ratchet(
 
 # ── Journal grep ─────────────────────────────────────────────────────────────
 def _grep_journal(since: str) -> list[str]:
-    """Return CELLSHADOW lines from journalctl."""
-    cmd = ["journalctl", "-u", "scrooge.service", "--no-pager",
-           "--output=short-iso", f"--since={since}"]
-    try:
-        out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True)
-        return [ln for ln in out.splitlines() if "CELLSHADOW" in ln]
-    except subprocess.CalledProcessError:
-        return []
+    """Return CELLSHADOW lines from journalctl.
+
+    The bot runs as the USER unit mr-scrooge-v5 (see ops/server.py _sysinfo);
+    the old system-unit name scrooge.service is kept as a fallback only."""
+    cmds = [
+        ["journalctl", "--user", "-u", "mr-scrooge-v5", "--no-pager",
+         "--output=short-iso", f"--since={since}"],
+        ["journalctl", "-u", "scrooge.service", "--no-pager",
+         "--output=short-iso", f"--since={since}"],
+    ]
+    for cmd in cmds:
+        try:
+            out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True)
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+            continue
+        lines = [ln for ln in out.splitlines() if "CELLSHADOW" in ln]
+        if lines:
+            return lines
+    return []
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -224,10 +235,14 @@ def main():
     ap.add_argument("--since", default="2026-07-04", help="YYYY-MM-DD")
     ap.add_argument("--setup", default=None, help="Filter to one setup_id")
     ap.add_argument("--horizon", type=int, default=None, help="Override horizon (min)")
+    ap.add_argument("--json", action="store_true",
+                    help="Emit machine-readable JSON on stdout (for ops/server.py /api/cellscore); "
+                         "human chatter goes to stderr. Default CLI table output is unchanged.")
     args = ap.parse_args()
 
     lines = _grep_journal(args.since)
-    print(f"Found {len(lines)} CELLSHADOW lines since {args.since}")
+    print(f"Found {len(lines)} CELLSHADOW lines since {args.since}",
+          file=sys.stderr if args.json else sys.stdout)
 
     # Parse stamps
     # Group by (pair, session, setup_id, status)
@@ -248,7 +263,12 @@ def main():
         stamps[key].append((ts, float(exp_ev_s)))
 
     if not stamps:
-        print("No matching CELLSHADOW stamps found.")
+        if args.json:
+            print(json.dumps({"setups": [], "since": args.since,
+                              "n_lines": len(lines),
+                              "note": "no matching CELLSHADOW stamps found"}))
+        else:
+            print("No matching CELLSHADOW stamps found.")
         return
 
     # Load cell configs to get exit geometry and horizon
@@ -269,9 +289,11 @@ def main():
                 return s
         return {}
 
-    print(f"\n{'Setup':<40} {'N':>5} {'SimEV':>8} {'WR%':>6} {'ExpEV':>8} {'Delta':>8} Status")
-    print("-" * 90)
+    if not args.json:
+        print(f"\n{'Setup':<40} {'N':>5} {'SimEV':>8} {'WR%':>6} {'ExpEV':>8} {'Delta':>8} Status")
+        print("-" * 90)
 
+    json_rows = []
     for (pair, sess, setup_id, side, status), stamp_list in sorted(stamps.items()):
         n = len(stamp_list)
         exp_ev = stamp_list[0][1] if stamp_list else 0.0
@@ -301,7 +323,27 @@ def main():
 
         delta = round(sim_ev - exp_ev, 3) if not math.isnan(sim_ev) else float("nan")
         label = f"{pair}/{sess}/{setup_id}"
-        print(f"{label:<40} {n:>5} {sim_ev:>8.3f} {wr_pct:>6.1f} {exp_ev:>8.3f} {delta:>8.3f} {status}")
+        if args.json:
+            _num = lambda x: None if (isinstance(x, float) and math.isnan(x)) else x
+            json_rows.append({
+                "setup_id": setup_id,
+                "pair":     pair,
+                "session":  sess,
+                "cell":     f"{pair}/{sess}",
+                "side":     side,
+                "n_stamps": n,
+                "sim_ev":   _num(sim_ev),
+                "win_rate": _num(wr_pct),
+                "exp_ev":   exp_ev,
+                "delta":    _num(delta),
+                "status":   status,
+            })
+        else:
+            print(f"{label:<40} {n:>5} {sim_ev:>8.3f} {wr_pct:>6.1f} {exp_ev:>8.3f} {delta:>8.3f} {status}")
+
+    if args.json:
+        print(json.dumps({"setups": json_rows, "since": args.since,
+                          "n_lines": len(lines)}))
 
 
 if __name__ == "__main__":

@@ -37,9 +37,9 @@ All per-cell governance mechanisms are hot-reloadable via config — no restart 
 
 ---
 
-## Cell architecture migration (2026-07-04, in flight)
+## Cell architecture (LIVE — Phase D cutover 2026-07-04)
 
-The cell is becoming the first-class unit: `config/cells/<PAIR>.json` (evidence-generated, lineage on every threshold) + `modules/cells/` (CellModule/PairModule). **Currently shadow-only**: `CELL_EXECUTION_ENABLED=False`; the engine stamps `CELLSHADOW` lines each cycle while direction_v2 + momentum_v3 continue to drive all live execution unchanged. Cutover = Phase D after >=1 week of clean shadow (see `docs/CELL_ARCHITECTURE_PLAN.md` + `docs/CELL_ARCHITECTURE_SPEC.md`). Scorer: `research/tools/cell_setup_score.py`.
+The cell is becoming the first-class unit: `config/cells/<PAIR>.json` (evidence-generated, lineage on every threshold) + `modules/cells/` (CellModule/PairModule). **LIVE since 2026-07-04 (Phase D cutover)**: `CELL_EXECUTION_ENABLED=True` — cells are the sole strategy source; direction_v2/momentum_v3 archived at `modules/archive/signals_legacy/` (rollback tag `pre-cell-cutover-2026-07-04`). Book: 10 ACTIVE / 3 SHADOW (controls) / 11 NO-SIDE / 3 DISABLED. Portfolio caps in `modules/cells/portfolio.py`; per-setup exits ride `Position.exit_params`. Scorer: `research/tools/cell_setup_score.py --json`.
 
 ## Current Architecture (2026-07-03)
 

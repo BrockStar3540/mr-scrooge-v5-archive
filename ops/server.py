@@ -5,6 +5,9 @@ Routes:
   GET /api/state           → live engine state JSON (positions, tickets, views, governance, last_trade_ticket, engine_info)
   GET /api/sysinfo         → system metrics JSON (CPU, RAM, services, logs)
   GET /api/daily_pl        → today's realized P/L from OANDA (cached 30s)
+  GET /api/cells           → cell book: config/cells/*.json + live condition values (fresh each call)
+  GET /api/cellshadow?n=200→ recent CELLSHADOW journal stamps, newest first (cached 30s)
+  GET /api/cellscore       → cell_setup_score.py --json scoreboard (cached 300s)
   GET /api/config/exit     → exit-tuning config + field schema
   GET /api/config/playmaker→ playmaker config + field schema
   POST /api/config/exit    → live edit exit_config.json (validated)
@@ -16,6 +19,7 @@ from __future__ import annotations
 import http.server
 import json as _j
 import logging
+import re
 import subprocess
 import threading
 from datetime import datetime, timezone
@@ -242,37 +246,76 @@ def _state(engine: "Engine") -> dict:
         })
 
     # ── Last tickets (from last engine cycle) ─────────────────────────────────
+    # Phase-D hardening (2026-07-04): last_tickets may hold legacy PairTickets
+    # (direction/momentum OBJECTS with .bias/.score/.certainty/.reads) OR
+    # cell-era TradeTickets built from CellIntents (direction is a plain str,
+    # reads={"cell": {...}, "direction": {}, "momentum": {}}, .cell attribute).
+    # Every access is defensive so /api/state survives the cutover restart in
+    # either world; one malformed ticket degrades to a stub row, never a 500.
     last_tickets = []
+    _firstword = lambda s: (s or "?").split()[0]
+    def _rnd(v, nd=3, default=None):
+        try:
+            return round(float(v), nd)
+        except (TypeError, ValueError):
+            return default
     for t in (engine.last_tickets or []):
-        # v2/v3 reads: first word of profile labels (drop the "[NO_DATA, strictness=...]" suffix)
-        _dr = t.direction.reads or {}
-        _mr = t.momentum.reads  or {}
-        _firstword = lambda s: (s or "?").split()[0]
-        last_tickets.append({
-            "pair":          t.pair,
-            "session":       t.session,
-            "timestamp":     t.timestamp.isoformat() if hasattr(t.timestamp, "isoformat") else str(t.timestamp),
-            "dir_bias":      t.direction.bias,
-            "dir_score":     round(t.direction.score, 3),
-            "dir_certainty": round(t.direction.certainty, 3),
-            "vol_regime":    t.momentum.vol_regime,
-            "expected_pips": round(t.momentum.expected_pips, 1),
-            "mom_certainty": round(t.momentum.certainty, 3),
-            "spread_pips":   round(t.spread_pips, 2),
-            "composite":     round(t.composite_score, 3),
-            "actionable":    t.is_actionable,
-            # ── v2/v3 profile fields ─────────────────────────────────────
-            "active_side":    _dr.get("active_side"),
-            "long_profile":   _firstword(_dr.get("long_profile")),
-            "short_profile":  _firstword(_dr.get("short_profile")),
-            "long_score":     _dr.get("long_score"),
-            "short_score":    _dr.get("short_score"),
-            "agreement":      _dr.get("agreement"),
-            "mom_profile":    _firstword(_mr.get("profile")),
-            "gates_passed":   _mr.get("gates_passed"),
-            "cert_boost":     _mr.get("cert_boost"),
-            "profile_reasons":_mr.get("profile_reasons"),
-        })
+        try:
+            _dir = getattr(t, "direction", None)
+            _mom = getattr(t, "momentum", None)
+            _dir_is_obj = _dir is not None and not isinstance(_dir, str)
+            _dr = (getattr(_dir, "reads", None) or {}) if _dir_is_obj else {}
+            _mr = (getattr(_mom, "reads", None) or {}) if _mom is not None else {}
+            if not isinstance(_dr, dict): _dr = {}
+            if not isinstance(_mr, dict): _mr = {}
+            _treads = getattr(t, "reads", None)
+            _treads = _treads if isinstance(_treads, dict) else {}
+            _cell_read = _treads.get("cell") if isinstance(_treads.get("cell"), dict) else None
+            if not _dr and isinstance(_treads.get("direction"), dict):
+                _dr = _treads["direction"]
+            if not _mr and isinstance(_treads.get("momentum"), dict):
+                _mr = _treads["momentum"]
+            _ts = getattr(t, "timestamp", None)
+            _bias = (getattr(_dir, "bias", None) if _dir_is_obj else _dir) or "block"
+            last_tickets.append({
+                "pair":          getattr(t, "pair", "?"),
+                "session":       getattr(t, "session", "?"),
+                "timestamp":     _ts.isoformat() if hasattr(_ts, "isoformat") else str(_ts),
+                "dir_bias":      _bias,
+                "dir_score":     _rnd(getattr(_dir, "score", None) if _dir_is_obj
+                                      else getattr(t, "score", None), 3, 0.0),
+                "dir_certainty": _rnd(getattr(_dir, "certainty", None) if _dir_is_obj
+                                      else None, 3, 0.0),
+                "vol_regime":    getattr(_mom, "vol_regime", None),
+                "expected_pips": _rnd(getattr(_mom, "expected_pips", None) if _mom is not None
+                                      else getattr(t, "expected_pips", None), 1, 0.0),
+                "mom_certainty": _rnd(getattr(_mom, "certainty", None), 3, 0.0),
+                "spread_pips":   _rnd(getattr(t, "spread_pips", None), 2, 0.0),
+                "composite":     _rnd(getattr(t, "composite_score", None), 3, 0.0),
+                "actionable":    bool(getattr(t, "is_actionable", False)),
+                # ── v2/v3 profile fields (None-safe on cell-era tickets) ────
+                "active_side":    _dr.get("active_side"),
+                "long_profile":   _firstword(_dr.get("long_profile")),
+                "short_profile":  _firstword(_dr.get("short_profile")),
+                "long_score":     _dr.get("long_score"),
+                "short_score":    _dr.get("short_score"),
+                "agreement":      _dr.get("agreement"),
+                "mom_profile":    _firstword(_mr.get("profile")),
+                "gates_passed":   _mr.get("gates_passed"),
+                "cert_boost":     _mr.get("cert_boost"),
+                "profile_reasons":_mr.get("profile_reasons"),
+                # ── Phase-D cell fields (None on legacy tickets) ────────────
+                "cell":          _cell_read,
+                "setup_id":      ((_cell_read or {}).get("setup_id")
+                                  or getattr(getattr(t, "cell", None), "setup_id", None)),
+            })
+        except Exception as _texc:
+            last_tickets.append({"pair": getattr(t, "pair", "?"),
+                                 "session": getattr(t, "session", "?"),
+                                 "dir_bias": "block", "dir_score": 0.0,
+                                 "dir_certainty": 0.0, "mom_certainty": 0.0,
+                                 "actionable": False,
+                                 "error": str(_texc)})
 
     # ── Last market views (for market-feature chips) ─────────────────────────
     last_views = []
@@ -333,17 +376,24 @@ def _state(engine: "Engine") -> dict:
     last_trade_ticket = None
     if engine.last_trade_ticket is not None:
         ltt = engine.last_trade_ticket
-        _ltt_reads = ltt.reads if isinstance(ltt.reads, dict) else {}
+        _ltt_reads = getattr(ltt, "reads", None)
+        _ltt_reads = _ltt_reads if isinstance(_ltt_reads, dict) else {}
+        _ltt_ts = getattr(ltt, "timestamp", None)
+        _ltt_dir = getattr(ltt, "direction", None)
+        _ltt_cell = _ltt_reads.get("cell") if isinstance(_ltt_reads.get("cell"), dict) else None
         last_trade_ticket = {
-            "pair":           ltt.pair,
-            "session":        ltt.session,
-            "direction":      ltt.direction,
-            "score":          ltt.score,
-            "expected_pips":  ltt.expected_pips,
-            "timestamp":      ltt.timestamp.isoformat() if hasattr(ltt.timestamp, "isoformat") else str(ltt.timestamp),
+            "pair":           getattr(ltt, "pair", "?"),
+            "session":        getattr(ltt, "session", "?"),
+            "direction":      _ltt_dir or "?",
+            "score":          getattr(ltt, "score", None),
+            "expected_pips":  getattr(ltt, "expected_pips", None),
+            "timestamp":      _ltt_ts.isoformat() if hasattr(_ltt_ts, "isoformat") else str(_ltt_ts),
             "inverted_live":  getattr(ltt, "inverted_live", False),
             "pick_method":    _ltt_reads.get("pick_method", "edge_rank"),
-            "signal_direction": _ltt_reads.get("signal_direction", ltt.direction),
+            "signal_direction": _ltt_reads.get("signal_direction", _ltt_dir),
+            "cell":           _ltt_cell,
+            "setup_id":       ((_ltt_cell or {}).get("setup_id")
+                               or getattr(getattr(ltt, "cell", None), "setup_id", None)),
         }
 
     # ── Engine cycle intervals (V5 main.py: scan=300s, manage=5s as of 2026-06-23) ──
@@ -535,6 +585,223 @@ def _daily_pl(engine: "Engine") -> dict:
         return {"error": str(exc)}
 
 
+# ── Cell book (Phase C, 2026-07-04) ──────────────────────────────────────────
+_CELLS_DIR = _Path("/home/ubuntu/mr-scrooge-v5/config/cells")
+_SESSIONS_ALL = ["asia", "london", "ny"]
+
+def _cell_condition_view(cond: dict, view) -> dict:
+    """One condition + its live MarketView value + pass verdict.
+
+    Pass logic mirrors modules/cells/cell.py _eval_condition exactly:
+    percentile-form uses cond['resolved']=[lo,hi]; absolute form uses min/max
+    (None = unbounded).  Unreadable feature → pass=None."""
+    feature = cond.get("feature")
+    live = getattr(view, feature, None) if (view is not None and feature) else None
+    verdict = None
+    if live is not None:
+        try:
+            v = float(live)
+            resolved = cond.get("resolved")
+            if resolved is not None:
+                verdict = float(resolved[0]) <= v <= float(resolved[1])
+            else:
+                verdict = True
+                if cond.get("min") is not None and v < float(cond["min"]):
+                    verdict = False
+                if cond.get("max") is not None and v > float(cond["max"]):
+                    verdict = False
+        except (TypeError, ValueError, IndexError):
+            verdict = None
+    return {
+        "feature":         feature,
+        "min":             cond.get("min"),
+        "max":             cond.get("max"),
+        "resolved":        cond.get("resolved"),
+        "pct_window_days": cond.get("pct_window_days"),
+        "pct_lo":          cond.get("pct_lo"),
+        "pct_hi":          cond.get("pct_hi"),
+        "resolved_at":     cond.get("resolved_at"),
+        "note":            cond.get("note"),
+        "lineage":         cond.get("lineage"),
+        "live_value":      round(float(live), 6) if isinstance(live, (int, float)) else None,
+        "pass":            verdict,
+    }
+
+def _cells(engine: "Engine") -> dict:
+    """Full cell book: config/cells/*.json (read fresh — files hot-reload, cheap)
+    joined with live feature values from the engine's last_views."""
+    from config.sessions import coarse_session
+    now = datetime.now(timezone.utc)
+    cur_sess = coarse_session(now.hour)
+
+    exec_enabled = None
+    try:
+        from modules.cells import CELL_EXECUTION_ENABLED as _cee
+        exec_enabled = bool(_cee)
+    except Exception as exc:
+        log.warning("cells api: cannot import CELL_EXECUTION_ENABLED: %s", exc)
+    shadow_enabled = None
+    try:
+        from modules.playmaker.playmaker import pm_cell_shadow_enabled
+        shadow_enabled = bool(pm_cell_shadow_enabled())
+    except Exception as exc:
+        log.warning("cells api: pm_cell_shadow_enabled failed: %s", exc)
+
+    views = {v.pair: v for v in (engine.last_views or [])}
+
+    cells = []
+    totals = {"ACTIVE": 0, "SHADOW": 0, "NO-SIDE": 0, "DISABLED": 0}
+    for pair in _PAIRS_ALL:
+        try:
+            cfg = _j.loads((_CELLS_DIR / f"{pair}.json").read_text())
+        except Exception:
+            cfg = {}
+        sessions_cfg = cfg.get("sessions", {}) if isinstance(cfg, dict) else {}
+        view = views.get(pair)
+        for sess in _SESSIONS_ALL:
+            scfg = sessions_cfg.get(sess)
+            if not isinstance(scfg, dict):
+                scfg = {}
+            enabled    = bool(scfg.get("enabled", False))
+            setups_cfg = scfg.get("setups", []) or []
+            if not enabled:
+                rollup = "DISABLED"
+            elif not setups_cfg:
+                rollup = "NO-SIDE"
+            elif any(s.get("status") == "ACTIVE" for s in setups_cfg):
+                rollup = "ACTIVE"
+            else:
+                rollup = "SHADOW"
+            totals[rollup] += 1
+
+            setups = []
+            for s in setups_cfg:
+                evidence = s.get("evidence") or {}
+                setups.append({
+                    "id":          s.get("id"),
+                    "side":        s.get("side"),
+                    "class":       s.get("class"),
+                    "status":      s.get("status"),
+                    "horizon_min": s.get("horizon_min"),
+                    "exit":        s.get("exit"),
+                    "sizing":      s.get("sizing"),
+                    "tripwires":   s.get("tripwires"),
+                    "ev_seq":      evidence.get("ev_seq"),
+                    "lineage":     evidence.get("source"),
+                    "evidence":    evidence,
+                    "notes":       s.get("notes"),
+                    "conditions":  [_cell_condition_view(c, view)
+                                    for c in (s.get("conditions") or [])],
+                })
+
+            cells.append({
+                "pair":           pair,
+                "session":        sess,
+                "tier":           (scfg.get("structure") or {}).get("tier"),
+                "structure":      scfg.get("structure"),
+                "enabled":        enabled,
+                "in_session_now": sess == cur_sess,
+                "status_rollup":  rollup,
+                "notes":          scfg.get("notes"),
+                "setups":         setups,
+            })
+
+    return {
+        "exec_enabled":    exec_enabled,
+        "shadow_enabled":  shadow_enabled,
+        "generated_at":    now.isoformat(),
+        "current_session": cur_sess,
+        "totals":          totals,
+        "cells":           cells,
+    }
+
+
+# ── CELLSHADOW stamp feed (cached 30s, same pattern as daily_pl) ─────────────
+_CELLSHADOW_CACHE = {"ts": 0, "data": None}
+# CELLSHADOW GBP_USD/london setup=rvol_low_240 side=long conds={...} exp_ev=+0.350 status=ACTIVE
+_CELLSHADOW_RX = re.compile(
+    r"CELLSHADOW (\w+)/(\w+) setup=(\S+) side=(\w+) conds=(\{.*?\}) "
+    r"exp_ev=([+-]?[\d.]+|nan) status=(\w+)"
+)
+_CELLSHADOW_TS_RX = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:[+-]\d{2}:?\d{2})?)")
+
+def _cellshadow(n: int = 200) -> dict:
+    """Recent CELLSHADOW stamps from the user journal, newest first."""
+    import time
+    if time.time() - _CELLSHADOW_CACHE["ts"] < 30 and _CELLSHADOW_CACHE["data"] is not None:
+        data = _CELLSHADOW_CACHE["data"]
+    else:
+        raw_lines: list[str] = []
+        try:
+            out = subprocess.check_output(
+                ["journalctl", "--user", "-u", "mr-scrooge-v5",
+                 "--since", "48 hours ago", "--no-pager", "-o", "short-iso"],
+                text=True, timeout=15, stderr=subprocess.DEVNULL,
+            )
+            raw_lines = [ln for ln in out.splitlines() if "CELLSHADOW" in ln]
+        except Exception:
+            raw_lines = []   # journalctl absent / no journal → empty feed, no crash
+        stamps = []
+        for ln in raw_lines:
+            m = _CELLSHADOW_RX.search(ln)
+            if not m:
+                continue
+            pair, sess, setup_id, side, conds_s, exp_ev_s, status = m.groups()
+            try:
+                exp_ev = float(exp_ev_s)
+            except ValueError:
+                exp_ev = None
+            tsm = _CELLSHADOW_TS_RX.match(ln)
+            stamps.append({
+                "ts":       tsm.group(1) if tsm else None,
+                "pair":     pair,
+                "session":  sess,
+                "setup_id": setup_id,
+                "side":     side,
+                "exp_ev":   exp_ev,
+                "status":   status,
+                "conds":    conds_s,
+            })
+        stamps.reverse()   # journal is oldest-first → newest first
+        data = {"stamps": stamps, "n_total": len(stamps),
+                "generated_at": datetime.now(timezone.utc).isoformat()}
+        _CELLSHADOW_CACHE["ts"] = time.time()
+        _CELLSHADOW_CACHE["data"] = data
+    return {"stamps": data["stamps"][:n], "n_total": data["n_total"],
+            "generated_at": data["generated_at"]}
+
+
+# ── Cell scoreboard (cell_setup_score.py --json, cached 300s) ────────────────
+_CELLSCORE_CACHE = {"ts": 0, "data": None}
+_CELLSCORE_SCRIPT = _Path("/home/ubuntu/mr-scrooge-v5/research/tools/cell_setup_score.py")
+
+def _cellscore() -> dict:
+    """Run the Phase-C scorer as a subprocess (it needs OANDA candles + journal).
+    Cached 300s; scorer errors/timeouts degrade to an empty scoreboard."""
+    import time
+    if time.time() - _CELLSCORE_CACHE["ts"] < 300 and _CELLSCORE_CACHE["data"] is not None:
+        return _CELLSCORE_CACHE["data"]
+    try:
+        out = subprocess.check_output(
+            ["python3", str(_CELLSCORE_SCRIPT), "--json"],
+            text=True, timeout=120, stderr=subprocess.DEVNULL,
+            cwd="/home/ubuntu/mr-scrooge-v5",
+        )
+        data = _j.loads(out)
+        if not isinstance(data, dict):
+            data = {"setups": [], "note": "scorer returned non-dict JSON"}
+        if not data.get("setups"):
+            data.setdefault("note", "no CELLSHADOW stamps scored yet — market opens Sunday 21:00 UTC")
+    except subprocess.TimeoutExpired:
+        data = {"setups": [], "note": "scorer timed out (>120s)"}
+    except Exception as exc:
+        data = {"setups": [], "note": f"scorer error: {exc}"}
+    data["generated_at"] = datetime.now(timezone.utc).isoformat()
+    _CELLSCORE_CACHE["ts"] = time.time()
+    _CELLSCORE_CACHE["data"] = data
+    return data
+
+
 def _sysinfo() -> dict:
     import multiprocessing as _mp, os as _os
     try:
@@ -653,6 +920,26 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 code = 200
             elif self.path.startswith("/api/daily_pl"):
                 body = _j.dumps(_daily_pl(self._engine), default=str).encode()
+                ctype = "application/json"
+                code = 200
+            # NOTE: cellshadow/cellscore BEFORE cells — "/api/cells" is a prefix of both
+            elif self.path.startswith("/api/cellshadow"):
+                from urllib.parse import urlparse, parse_qs
+                q = parse_qs(urlparse(self.path).query)
+                try:
+                    n = int(q.get("n", ["200"])[0])
+                except (ValueError, IndexError):
+                    n = 200
+                n = max(1, min(n, 2000))
+                body = _j.dumps(_cellshadow(n), default=str).encode()
+                ctype = "application/json"
+                code = 200
+            elif self.path.startswith("/api/cellscore"):
+                body = _j.dumps(_cellscore(), default=str).encode()
+                ctype = "application/json"
+                code = 200
+            elif self.path.startswith("/api/cells"):
+                body = _j.dumps(_cells(self._engine), default=str).encode()
                 ctype = "application/json"
                 code = 200
             elif self.path.startswith("/api/config/exit"):

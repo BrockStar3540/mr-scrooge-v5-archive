@@ -403,7 +403,7 @@ def _build_kc_up_shadow_setup() -> dict:
         "id": "kc_up_short_lean",
         "side": "short",
         "class": "LEAN",
-        "status": "SHADOW",
+        "status": "ACTIVE",  # promoted Phase D per Brock 2026-07-04
         "horizon_min": 240,
         "conditions": [
             {
@@ -462,7 +462,7 @@ def _build_willr_recovery_setup() -> dict:
         "id": "willr_recovery_short",
         "side": "short",
         "class": "LEAN",
-        "status": "SHADOW",
+        "status": "ACTIVE",  # promoted Phase D per Brock 2026-07-04
         "horizon_min": 60,
         "conditions": [
             {
@@ -512,7 +512,7 @@ def _build_kc_breakout_long_setup() -> dict:
         "id": "kc_breakout_long",
         "side": "long",
         "class": "LEAN",
-        "status": "SHADOW",
+        "status": "ACTIVE",  # promoted Phase D per Brock 2026-07-04
         "horizon_min": 60,
         "conditions": [
             {
@@ -574,7 +574,7 @@ def _build_audjpy_ny_regime_setup(top5: dict) -> dict:
         "id": "regime_short_240",
         "side": "short",
         "class": "LEAN",
-        "status": "SHADOW",
+        "status": "ACTIVE",  # promoted Phase D per Brock 2026-07-04
         "horizon_min": 240,
         "conditions": [
             {
@@ -748,7 +748,7 @@ def _build_timing_setup(pair: str, session: str, direction: str,
         "id": "timing_lean_30",
         "side": side,
         "class": "TIMING",
-        "status": "SHADOW",
+        "status": "ACTIVE",  # promoted Phase D per Brock 2026-07-04
         "horizon_min": 30,
         "conditions": conditions,
         "exit": {"sl_pips": 20.0, "trigger_pips": 7.5, "trail_pips": 1.5},

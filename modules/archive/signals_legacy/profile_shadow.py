@@ -25,9 +25,9 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from .base import MarketView
-from .direction_v2 import DirectionModule, _normalize_weights
-from .direction_profiles import (
+from modules.signals.base import MarketView
+from modules.archive.signals_legacy.direction_v2 import DirectionModule, _normalize_weights
+from modules.archive.signals_legacy.direction_profiles import (
     _profile_continuation_strong, _profile_reversion, _profile_default,
 )
 

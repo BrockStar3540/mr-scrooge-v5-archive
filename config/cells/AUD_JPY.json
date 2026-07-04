@@ -1,6 +1,6 @@
 {
   "pair": "AUD_JPY",
-  "generated": "2026-07-04T06:50:32Z",
+  "generated": "2026-07-04T07:43:41Z",
   "generator": "generate_cell_configs.py-2026-07-04",
   "sessions": {
     "asia": {
@@ -44,7 +44,7 @@
           "id": "regime_short_240",
           "side": "short",
           "class": "LEAN",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 240,
           "conditions": [
             {
@@ -88,7 +88,7 @@
           "id": "timing_lean_30",
           "side": "long",
           "class": "TIMING",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 30,
           "conditions": [
             {
@@ -123,7 +123,7 @@
           "notes": "SHADOW TIMING setup: 30m atr_5m band. Side from persistent lean q_yzv_m5 sign=positive (corr=0.0609, AUC=0.5297). lean confirmer dropped (q_yzv_m5 not on live feed (queued feed-extension)); side=long retained from calibration lean, first-live-stamps will judge. atr_5m boundary p75=6.617985 (plateau_ok). Awaiting live CELLSHADOW stamps before promotion consideration."
         }
       ],
-      "notes": "0 ACTIVE, 2 SHADOW setups. Tier=2 ev_gross_long=None ev_gross_short=None."
+      "notes": "2 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=None ev_gross_short=None."
     }
   }
 }

@@ -353,6 +353,7 @@ body.stream-mode .brand-v{display:none}
 body.stream-mode .brand-name{font-size:14px}
 body.stream-mode #tab-pairs,
 body.stream-mode #tab-cells,
+body.stream-mode #tab-shadow,
 body.stream-mode #tab-indicators,
 body.stream-mode #tab-health,
 body.stream-mode #tab-system,
@@ -446,6 +447,67 @@ body.has-ticker{padding-bottom:32px}
   100%{transform:translateY(110vh) rotate(720deg);opacity:0}
 }
 
+/* ── BOOK tab (cell book — Phase C cellular architecture) ──────────────── */
+.banner-amber{background:rgba(245,158,11,.08);color:var(--warn);border:1px solid rgba(245,158,11,.3)}
+.book-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:1100px){.book-grid{grid-template-columns:1fr}}
+.book-cell{background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--fg3);
+           border-radius:8px;padding:10px 12px;position:relative;transition:.2s;cursor:pointer}
+.book-cell.st-active{border-left-color:var(--pass)}
+.book-cell.st-shadow{border-left-color:var(--warn)}
+.book-cell.st-noside{border-left-color:var(--fg3);opacity:.62}
+.book-cell.st-disabled{border-left-color:#7f1d1d;opacity:.45}
+.book-cell.in-sess{box-shadow:var(--glow-green);background:linear-gradient(180deg,rgba(34,197,94,.04) 0%,var(--bg2) 55%)}
+.book-cell.in-sess.st-shadow{box-shadow:0 0 0 1px rgba(245,158,11,.35),0 0 12px -2px rgba(245,158,11,.25)}
+.bk-head{display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap}
+.bk-name{font-size:13.5px;font-weight:700}
+.bk-sess{font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.07em}
+.bk-tier{font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;background:var(--bg3);color:var(--fg2);font-family:'JetBrains Mono',monospace}
+.bk-tier.t1{background:rgba(34,197,94,.15);color:var(--pass)}
+.bk-tier.t2{background:rgba(59,130,246,.12);color:var(--info)}
+.bk-tier.t3{background:rgba(107,114,128,.15);color:var(--fg3)}
+.bk-prio{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:rgba(245,158,11,.15);color:var(--warn);letter-spacing:.05em;white-space:nowrap}
+.bk-roll{margin-left:auto}
+.bk-setup{margin-top:7px;padding:6px 8px;background:var(--bg3);border-radius:6px}
+.bk-setup-head{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'JetBrains Mono',monospace;flex-wrap:wrap}
+.bk-side{font-weight:800;font-size:12px}
+.bk-side.long{color:var(--pass)}.bk-side.short{color:var(--fail)}
+.bk-class{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:3px;letter-spacing:.06em}
+.bk-class.FORMULA{background:rgba(168,85,247,.15);color:var(--inverted)}
+.bk-class.LEAN{background:rgba(59,130,246,.15);color:var(--info)}
+.bk-class.TIMING{background:rgba(20,184,166,.15);color:#2dd4bf}
+.bk-chip{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--bg4);color:var(--fg2);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.bk-status{font-size:8.5px;font-weight:800;letter-spacing:.06em;margin-left:auto}
+.bk-status.ACTIVE{color:var(--pass)}.bk-status.SHADOW{color:var(--warn)}.bk-status.SUSPENDED{color:var(--fail)}
+/* Condition proximity bars */
+.cbar{display:grid;grid-template-columns:82px 1fr 58px;gap:7px;align-items:center;
+      font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:3px 0}
+.cbar .ck{color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbar .cv{text-align:right;color:var(--fg1)}
+.cbar .cv.pass{color:var(--pass);font-weight:700}
+.cbar-track{position:relative;height:8px;background:var(--bg1);border-radius:4px}
+.cbar-zone{position:absolute;top:0;height:100%;background:rgba(139,148,158,.28);border-radius:4px}
+.cbar-zone.pass{background:rgba(34,197,94,.5)}
+.cbar-zone.hatch{background:repeating-linear-gradient(45deg,rgba(139,148,158,.3) 0 4px,transparent 4px 8px)}
+.cbar-marker{position:absolute;top:-2px;width:2px;height:12px;background:var(--fg3);border-radius:1px}
+.cbar-marker.pass{background:var(--pass);box-shadow:0 0 6px rgba(34,197,94,.8)}
+.book-cell.dimmed .cbar-track,.book-cell.dimmed .cbar .cv{opacity:.45}
+.bk-detail{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);font-size:11px;cursor:default}
+.book-cell.bk-expanded .bk-detail{display:block}
+.bk-detail h5{font-size:10px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin:8px 0 3px}
+.bk-detail .mono-sm{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--fg2);line-height:1.6}
+.bk-notes{font-size:10.5px;color:var(--fg2);line-height:1.5}
+.legacy-toggle{display:inline-block;margin:4px 0 10px;font-size:11px;color:var(--fg3);cursor:pointer;
+               text-decoration:none;border:1px dashed var(--border-2);border-radius:6px;padding:5px 12px;user-select:none}
+.legacy-toggle:hover{color:var(--fg1)}
+/* SHADOW tab */
+.sh-delta.pos{color:var(--pass);font-weight:700}.sh-delta.neg{color:var(--fail);font-weight:700}
+.live-cell-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:7px;
+                background:var(--bg2);border:1px solid var(--border);font-size:11px;font-family:'JetBrains Mono',monospace;
+                color:var(--fg2);margin-bottom:14px}
+.live-cell-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--fg3)}
+.live-cell-chip.armed .dot{background:var(--warn);box-shadow:0 0 6px rgba(245,158,11,.6)}
+
 /* ── SCROLLBAR ─────────────────────────────────────────────────────────── */
 *::-webkit-scrollbar{width:8px;height:8px}
 *::-webkit-scrollbar-track{background:var(--bg1)}
@@ -485,7 +547,8 @@ body.has-ticker{padding-bottom:32px}
   </div>
   <button class="tab active" onclick="showTab('live',this)">LIVE</button>
   <button class="tab" onclick="showTab('pairs',this)">PAIRS</button>
-  <button class="tab" onclick="showTab('cells',this)">CELLS</button>
+  <button class="tab" onclick="showTab('cells',this)">BOOK</button>
+  <button class="tab" onclick="showTab('shadow',this)">SHADOW</button>
   <button class="tab" onclick="showTab('indicators',this)">INDICATORS</button>
   <button class="tab" onclick="showTab('health',this)">HEALTH</button>
   <button class="tab" onclick="showTab('system',this)">SYSTEM</button>
@@ -510,6 +573,7 @@ body.has-ticker{padding-bottom:32px}
 <!-- ─── LIVE TAB ─────────────────────────────────────────────────────────── -->
 <div id="tab-live" class="pane active">
   <div id="banner" class="banner banner-gray">Loading...</div>
+  <div id="live-cell-chip" class="live-cell-chip" style="display:none"><span class="dot"></span><span id="live-cell-chip-txt">—</span></div>
 
   <!-- Hero: GIGA P/L ticker + account metrics -->
   <div class="hero">
@@ -594,9 +658,26 @@ body.has-ticker{padding-bottom:32px}
   <div id="pairs-grid" class="pairs-grid"></div>
 </div>
 
-<!-- ─── CELLS TAB ────────────────────────────────────────────────────────── -->
+<!-- ─── CELLS TAB → THE BOOK (Phase C cellular architecture) ─────────────── -->
 <div id="tab-cells" class="pane">
+  <div id="book-banner" class="banner banner-gray">Loading cell book…</div>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;margin-bottom:10px" class="muted">
+    <span><span class="pill pill-pass">ACTIVE</span> full candidate</span>
+    <span><span class="pill pill-warn">SHADOW</span> stamps only, never trades</span>
+    <span><span class="pill pill-block">NO-SIDE</span> no setups yet</span>
+    <span><span class="pill pill-fail">DISABLED</span> session off</span>
+    <span>·</span>
+    <span>Cell = (pair × session) · glowing = in session now · click a card for full setup detail</span>
+  </div>
+  <div id="book-grid" class="book-grid"><div class="muted" style="padding:14px">Loading…</div></div>
+  <div style="margin-top:14px">
+    <a class="legacy-toggle" id="legacy-toggle" onclick="toggleLegacyView()">▸ LEGACY EXEC STACK (retires at Phase D)</a>
+  </div>
+  <div id="legacy-exec-stack" style="display:none">
   <div class="card" style="padding:12px 18px;margin-bottom:12px">
+    <div class="banner banner-amber" style="margin-bottom:10px">
+      LEGACY EXEC STACK — this is the direction_v2/momentum_v3 view that still drives ALL live execution until Phase D cutover.
+    </div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11.5px;margin-bottom:10px">
       <div><span class="pill pill-pass">READY</span> all gates pass + in-session</div>
       <div><span class="pill pill-inverted">INVERTED</span> direction flipped at exec</div>
@@ -620,6 +701,39 @@ body.has-ticker{padding-bottom:32px}
     </div>
   </div>
   <div id="cells-grid" class="cells-grid"></div>
+  </div><!-- /legacy-exec-stack -->
+</div>
+
+<!-- ─── SHADOW TAB (Phase C shadow-week scoreboard + stamp feed) ─────────── -->
+<div id="tab-shadow" class="pane">
+  <div id="shadow-phase" class="banner banner-gray">Loading shadow-phase status…</div>
+  <div class="card">
+    <div class="card-title">Setup Scoreboard — simulated EV vs expected
+      <span class="tag" id="cellscore-tag">—</span>
+    </div>
+    <table id="cellscore-tbl">
+      <thead><tr>
+        <th>Setup</th><th>Cell</th><th>Side</th><th>N Stamps</th>
+        <th>Sim EV</th><th>Exp EV</th><th>Δ</th><th>WR %</th><th>Status</th>
+      </tr></thead>
+      <tbody id="cellscore-body"></tbody>
+    </table>
+    <div id="cellscore-empty" class="muted" style="padding:14px 12px;font-size:12px;display:none"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Live CELLSHADOW Stamp Feed
+      <span class="tag" id="stampfeed-tag">— stamps / 48h</span>
+    </div>
+    <table id="stampfeed-tbl">
+      <thead><tr>
+        <th>When</th><th>Cell</th><th>Setup</th><th>Side</th><th>Exp EV</th><th>Status</th><th>Conds Snapshot</th>
+      </tr></thead>
+      <tbody id="stampfeed-body"></tbody>
+    </table>
+    <div id="stampfeed-empty" class="muted" style="padding:14px 12px;font-size:12px;display:none">
+      No stamps yet — market opens Sunday 21:00 UTC.
+    </div>
+  </div>
 </div>
 
 <!-- ─── INDICATORS TAB ───────────────────────────────────────────────────── -->
@@ -2088,6 +2202,289 @@ async function savePlaymaker(){
 }
 
 /* ═════════════════════════════════════════════════════════════════════════
+ * BOOK + SHADOW tabs — Phase C cellular architecture (2026-07-04)
+ * Sources: /api/cells (book + live condition values), /api/cellshadow
+ * (journal stamp feed), /api/cellscore (scorer scoreboard).
+ * ═════════════════════════════════════════════════════════════════════════ */
+let CELLS=null, CSHADOW=null, CSCORE=null;
+const SHADOW_START_UTC=Date.UTC(2026,6,5,21,0,0);   // 2026-07-05 21:00 UTC — first market open with stamps
+// Plausible display spans per feature for the condition-proximity bars.
+// Unknown features fall back to a dynamic span derived from band + live value.
+const FEATURE_SPANS={
+  willr_m5:[-100,0], rsi14:[0,100], aroonosc_h1:[-100,100], close_pos_daily:[0,1],
+  adr_consumed:[0,1.5], vortex_diff_h1:[-1,1], htf_pct_20:[0,1], htf_pct_60:[0,1],
+  atr_h1_relative:[0,3], rvol_5bar:[0,3], atr_5m:[0,12], efi:[-2,2],
+  kc_up_dist_pips:[-30,10], trend_4h:[-1,1], spread_pips:[0,6], rsi_slope:[-10,10],
+};
+
+/* Endpoints ship with the Phase-D restart — a 404 means "server.py updated on
+ * disk but bot not restarted yet".  Fall back to pending banners, never break. */
+async function fetchCells(){
+  try{
+    const r=await fetch('/api/cells');
+    CELLS=r.ok?await r.json():{_pending:true};
+  }catch(e){console.error(e);return}
+  renderBook();renderLiveCellChip();
+}
+async function fetchCellShadow(){
+  try{
+    const r=await fetch('/api/cellshadow?n=200');
+    CSHADOW=r.ok?await r.json():{stamps:[],n_total:0,_pending:true};
+  }catch(e){console.error(e);return}
+  renderShadowTab();renderLiveCellChip();
+}
+async function fetchCellScore(){
+  try{
+    const r=await fetch('/api/cellscore');
+    CSCORE=r.ok?await r.json():{setups:[],note:'/api/cellscore pending bot restart (endpoint shipped, not yet serving)'};
+  }catch(e){console.error(e);return}
+  renderCellScore();
+}
+
+function toggleLegacyView(){
+  const el=document.getElementById('legacy-exec-stack');
+  const tog=document.getElementById('legacy-toggle');
+  const show=el.style.display==='none';
+  el.style.display=show?'block':'none';
+  tog.textContent=(show?'▾':'▸')+' LEGACY EXEC STACK (retires at Phase D)';
+}
+
+function fmtNum(v){
+  if(v==null)return '—';
+  const n=Number(v);
+  if(!isFinite(n))return String(v);
+  const s=Math.abs(n)>=100?n.toFixed(1):Math.abs(n)>=10?n.toFixed(2):n.toFixed(3);
+  return s.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
+}
+function tsAgo(iso){
+  if(!iso)return '—';
+  const t=new Date(iso.replace(/([+-]\d{2})(\d{2})$/,'$1:$2'));  // +0000 → +00:00 (Safari)
+  if(isNaN(t))return iso;
+  const s=(Date.now()-t.getTime())/1000;
+  if(s<0)return 'now';
+  if(s<90)return Math.round(s)+'s ago';
+  if(s<5400)return Math.round(s/60)+'m ago';
+  return (s/3600).toFixed(1)+'h ago';
+}
+
+/* ── Condition proximity bar (the killer feature) ──────────────────────── */
+function condBar(c,dim){
+  let lo=null,hi=null;
+  if(c?.resolved&&c.resolved.length===2){lo=c.resolved[0];hi=c.resolved[1];}
+  else{lo=c?.min;hi=c?.max;}
+  let span=FEATURE_SPANS[c?.feature];
+  if(!span){
+    const vals=[lo,hi,c?.live_value].filter(v=>v!=null&&isFinite(v));
+    if(!vals.length)span=[0,1];
+    else{const mn=Math.min(...vals),mx=Math.max(...vals);const w=(mx-mn)||Math.abs(mn)||1;span=[mn-0.5*w,mx+0.5*w];}
+  }
+  const s0=span[0],W=(span[1]-s0)||1;
+  const pct=v=>Math.max(0,Math.min(100,100*(v-s0)/W));
+  const a=lo!=null?pct(lo):0, b=hi!=null?pct(hi):100;
+  const unreadable=(c?.pass==null);
+  const passing=(c?.pass===true)&&!dim;
+  const zoneCls=(unreadable&&!dim)?'hatch':(passing?'pass':'');
+  const marker=(!dim&&c?.live_value!=null)
+    ?`<div class="cbar-marker ${passing?'pass':''}" style="left:calc(${pct(c.live_value).toFixed(1)}% - 1px)"></div>`:'';
+  const bandTxt=(lo!=null?fmtNum(lo):'-∞')+' … '+(hi!=null?fmtNum(hi):'+∞');
+  const pctTxt=(c?.pct_lo!=null)?` (p${c.pct_lo}–p${c.pct_hi} · ${c.pct_window_days||'?'}d rolling)`:'';
+  const tip=escape(`${c?.feature||'?'} = ${c?.live_value!=null?fmtNum(c.live_value):'unreadable'} · band [${bandTxt}]${pctTxt}${c?.lineage?' · '+c.lineage:''}`);
+  const valTxt=dim?'—':(c?.live_value!=null?fmtNum(c.live_value):'?');
+  return `<div class="cbar" title="${tip}">
+    <span class="ck">${escape(c?.feature||'?')}${c?.pct_lo!=null?'ᵖ':''}</span>
+    <div class="cbar-track"><div class="cbar-zone ${zoneCls}" style="left:${Math.min(a,b).toFixed(1)}%;width:${Math.abs(b-a).toFixed(1)}%"></div>${marker}</div>
+    <span class="cv ${passing?'pass':''}">${valTxt}</span>
+  </div>`;
+}
+
+function bookSetupHtml(s,dim){
+  const side=s?.side==='long'?'<span class="bk-side long">▲</span>'
+            :s?.side==='short'?'<span class="bk-side short">▼</span>'
+            :'<span class="bk-side">?</span>';
+  const cls=s?.class?`<span class="bk-class ${escape(s.class)}">${escape(s.class)}</span>`:'';
+  const hor=s?.horizon_min!=null?`<span class="bk-chip">h${s.horizon_min}</span>`:'';
+  const ev=(s?.ev_seq!=null)?`<span class="bk-chip" title="deep-OOS sequential EV (pips/trade)">ev ${(s.ev_seq>=0?'+':'')+Number(s.ev_seq).toFixed(2)}p</span>`:'';
+  const st=s?.status?`<span class="bk-status ${escape(s.status)}">${escape(s.status)}</span>`:'';
+  const conds=(s?.conditions||[]).map(cd=>condBar(cd,dim)).join('');
+  return `<div class="bk-setup">
+    <div class="bk-setup-head">${side}${cls}<span>${escape(s?.id||'?')}</span>${hor}${ev}${st}</div>
+    ${conds}
+  </div>`;
+}
+
+function bookDetailHtml(c){
+  const st=c?.structure||{};
+  const structHtml=`<div class="mono-sm">tier ${st.tier??'—'} · rh_offer60 ${st.rh_offer_rate_60m!=null?(st.rh_offer_rate_60m*100).toFixed(1)+'%':'—'} · dead60 ${st.dead_rate_60m!=null?(st.dead_rate_60m*100).toFixed(1)+'%':'—'} · ev_gross L ${fmtNum(st.ev_gross_long)} / S ${fmtNum(st.ev_gross_short)}${st.lineage?`<br><span class="dim">${escape(st.lineage)}</span>`:''}</div>`;
+  const setups=(c?.setups||[]).map(s=>{
+    const ex=s.exit||{}, sz=s.sizing||{}, ev=s.evidence||{}, tw=s.tripwires||{};
+    const twTxt=Object.entries(tw).map(([k,v])=>{
+      if(!v||typeof v!=='object')return `${escape(k)}: ${escape(String(v))}`;
+      return `${escape(k)}: ${Object.entries(v).map(([a,b])=>`${escape(a)}=${b??'—'}`).join(' ')}`;
+    }).join('<br>')||'—';
+    const conds=(s.conditions||[]).map(cd=>
+      `<div class="mono-sm">• ${escape(cd.feature||'?')} ${cd.resolved
+        ?`resolved [${fmtNum(cd.resolved[0])}, ${fmtNum(cd.resolved[1])}]${cd.pct_lo!=null?` = p${cd.pct_lo}–p${cd.pct_hi} / ${cd.pct_window_days||'?'}d roll`:''}`
+        :`[${cd.min!=null?fmtNum(cd.min):'-∞'}, ${cd.max!=null?fmtNum(cd.max):'+∞'}]`}` +
+      `${cd.lineage?`<br>&nbsp;&nbsp;<span class="dim">${escape(cd.lineage)}</span>`:''}</div>`).join('');
+    return `<div style="margin-bottom:10px;padding:8px;background:var(--bg1);border-radius:6px">
+      <div class="bk-setup-head" style="margin-bottom:4px">${s.side==='long'?'<span class="bk-side long">▲</span>':s.side==='short'?'<span class="bk-side short">▼</span>':''}${s.class?`<span class="bk-class ${escape(s.class)}">${escape(s.class)}</span>`:''}<b>${escape(s.id||'?')}</b>${s.status?`<span class="bk-status ${escape(s.status)}">${escape(s.status)}</span>`:''}</div>
+      <h5>Exit geometry</h5><div class="mono-sm">SL ${ex.sl_pips??'—'}p · trigger ${ex.trigger_pips??'—'}p · trail ${ex.trail_pips??'—'}p · horizon ${s.horizon_min??'—'}min</div>
+      <h5>Sizing</h5><div class="mono-sm">risk_pct ${sz.risk_pct??'—'}${(sz.size_modulators||[]).length?' · modulators '+escape(JSON.stringify(sz.size_modulators)):''}</div>
+      <h5>Tripwires</h5><div class="mono-sm">${twTxt}</div>
+      <h5>Evidence</h5><div class="mono-sm">ev_seq ${ev.ev_seq!=null?fmtNum(ev.ev_seq)+'p':'—'} · wr ${ev.wr!=null?(ev.wr*100).toFixed(1)+'%':'—'} · drift ${escape(ev.drift||'—')} · n_floor ${escape(ev.n_floor_status||'—')}${ev.oos_years_positive!=null?` · OOS+ ${ev.oos_years_positive}y`:''}${ev.holdout_months_positive!=null?` · holdout+ ${ev.holdout_months_positive}mo`:''}${ev.source?`<br><span class="dim">${escape(ev.source)}</span>`:''}</div>
+      <h5>Conditions + lineage</h5>${conds||'<div class="mono-sm">—</div>'}
+      ${s.notes?`<h5>Notes</h5><div class="bk-notes">${escape(s.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+  return `<h5>Cell structure</h5>${structHtml}
+    ${c?.notes?`<h5>Cell notes</h5><div class="bk-notes">${escape(c.notes)}</div>`:''}
+    ${setups?`<h5 style="margin-top:10px">Setups (${(c?.setups||[]).length})</h5>${setups}`:''}`;
+}
+
+function bookCellHtml(c){
+  const roll=c?.status_rollup||'NO-SIDE';
+  const stCls=roll==='ACTIVE'?'st-active':roll==='SHADOW'?'st-shadow':roll==='DISABLED'?'st-disabled':'st-noside';
+  const inSess=!!c?.in_session_now;
+  const dim=!inSess;
+  const rollPill=roll==='ACTIVE'?'<span class="pill pill-pass">ACTIVE</span>'
+    :roll==='SHADOW'?'<span class="pill pill-warn">SHADOW</span>'
+    :roll==='DISABLED'?'<span class="pill pill-fail">DISABLED</span>'
+    :'<span class="pill pill-block">NO-SIDE</span>';
+  const tier=c?.tier!=null?`<span class="bk-tier t${c.tier}">T${c.tier}</span>`:'';
+  const prio=/locked|priority/i.test(c?.notes||'')?'<span class="bk-prio" title="was locked 🔒 → priority_analysis">🔒→priority</span>':'';
+  const setups=(c?.setups||[]).map(s=>bookSetupHtml(s,dim)).join('');
+  return `<div class="book-cell ${stCls} ${inSess?'in-sess':''} ${dim?'dimmed':''}" onclick="this.classList.toggle('bk-expanded')">
+    <div class="bk-head">
+      <span class="bk-name">${escape((c?.pair||'?').replace('_','/'))}</span>
+      <span class="bk-sess">${escape(c?.session||'?')}</span>
+      ${tier}${prio}
+      ${inSess?'<span class="bk-chip" style="color:var(--pass)">IN SESSION</span>':''}
+      <span class="bk-roll">${rollPill}</span>
+    </div>
+    ${setups||`<div class="muted" style="font-size:10.5px;padding:2px 0">${roll==='DISABLED'?'session disabled':'no setups — no side found yet'}</div>`}
+    <div class="bk-detail" onclick="event.stopPropagation()">${bookDetailHtml(c)}</div>
+  </div>`;
+}
+
+function renderBook(){
+  const banner=document.getElementById('book-banner');
+  const grid=document.getElementById('book-grid');
+  if(!banner||!grid)return;
+  if(CELLS&&CELLS._pending){
+    banner.className='banner banner-amber';
+    banner.innerHTML='<span class="pill pill-warn">CELL ENGINE: SHADOW MODE</span> execution still on legacy stack · /api/cells pending bot restart — book data appears after the queued Phase-D restart';
+    grid.innerHTML='<div class="muted" style="padding:14px">Cell book endpoint not serving yet. The config lives in config/cells/*.json; this view populates automatically after the restart.</div>';
+    return;
+  }
+  if(!CELLS||!Array.isArray(CELLS.cells)){
+    grid.innerHTML='<div class="muted" style="padding:14px">No cell data yet (/api/cells unreachable?)</div>';
+    return;
+  }
+  const tot=CELLS.totals||{};
+  const totTxt=`book: <b>${tot['ACTIVE']||0}</b> ACTIVE · <b>${tot['SHADOW']||0}</b> SHADOW · <b>${tot['NO-SIDE']||0}</b> NO-SIDE · <b>${tot['DISABLED']||0}</b> DISABLED`;
+  if(CELLS.exec_enabled===true){
+    banner.className='banner banner-green';
+    banner.innerHTML=`<span class="pill pill-pass">CELL ENGINE: LIVE</span> cells drive execution (Phase D) · ${totTxt}`;
+  }else{
+    banner.className='banner banner-amber';
+    banner.innerHTML=`<span class="pill pill-warn">CELL ENGINE: SHADOW MODE</span> execution still on legacy stack · stamps ${CELLS.shadow_enabled===false?'<b>OFF (kill-switch)</b>':'armed'} · ${totTxt}`;
+  }
+  const byKey={};CELLS.cells.forEach(c=>byKey[c.pair+'/'+c.session]=c);
+  const order=[];
+  PAIRS_ALL.forEach(p=>['asia','london','ny'].forEach(s=>{const c=byKey[p+'/'+s];if(c)order.push(c);}));
+  grid.innerHTML=order.map(bookCellHtml).join('')||'<div class="muted" style="padding:14px">Empty book</div>';
+}
+
+/* ── LIVE-tab compact shadow chip ──────────────────────────────────────── */
+function renderLiveCellChip(){
+  const el=document.getElementById('live-cell-chip');
+  const txt=document.getElementById('live-cell-chip-txt');
+  if(!el||!txt)return;
+  if(!CELLS&&!CSHADOW){el.style.display='none';return}
+  if(CELLS&&CELLS._pending){
+    el.style.display='inline-flex';el.classList.remove('armed');
+    txt.textContent='CELL SHADOW · api pending restart';
+    return;
+  }
+  const today=new Date().toISOString().slice(0,10);
+  const nToday=(CSHADOW?.stamps||[]).filter(s=>(s.ts||'').slice(0,10)===today).length;
+  const armed=CELLS?CELLS.shadow_enabled===true:null;
+  el.style.display='inline-flex';
+  el.classList.toggle('armed',armed===true);
+  txt.textContent=`CELL SHADOW ${armed===true?'armed':armed===false?'OFF':'?'}`+
+    (CELLS&&CELLS.exec_enabled===true?' · EXEC LIVE':'')+
+    ` · ${nToday} stamp${nToday===1?'':'s'} today`;
+}
+
+/* ── SHADOW tab: phase banner + stamp feed ─────────────────────────────── */
+function renderShadowTab(){
+  const ph=document.getElementById('shadow-phase');
+  if(ph){
+    const now=Date.now();
+    if(now<SHADOW_START_UTC){
+      const hrs=(SHADOW_START_UTC-now)/3.6e6;
+      ph.className='banner banner-gray';
+      ph.innerHTML=`<span class="pill pill-info">PHASE C</span> Shadow week starts at first market open — Sunday 2026-07-05 21:00 UTC (in ${hrs>=48?Math.round(hrs/24)+'d':hrs.toFixed(1)+'h'}) · Phase D readiness: needs ≥1 clean week of stamps`;
+    }else{
+      const days=(now-SHADOW_START_UTC)/8.64e7;
+      ph.className=days>=7?'banner banner-green':'banner banner-amber';
+      ph.innerHTML=`<span class="pill ${days>=7?'pill-pass':'pill-warn'}">SHADOW WEEK</span> day ${days.toFixed(1)} of 7 since first stamped open (2026-07-05 21:00 UTC) · Phase D readiness: needs ≥1 clean week${days>=7?' — window complete, review the scoreboard':''}`;
+    }
+  }
+  const body=document.getElementById('stampfeed-body');
+  const emptyEl=document.getElementById('stampfeed-empty');
+  if(!body)return;
+  const stamps=CSHADOW?.stamps||[];
+  const tag=document.getElementById('stampfeed-tag');
+  if(tag)tag.textContent=`${CSHADOW?.n_total??0} stamps / 48h`;
+  if(!stamps.length){body.innerHTML='';if(emptyEl)emptyEl.style.display='block';return}
+  if(emptyEl)emptyEl.style.display='none';
+  body.innerHTML=stamps.map(s=>{
+    const evCls=s.exp_ev==null?'':s.exp_ev>=0?'pos':'neg';
+    return `<tr>
+      <td class="mono muted" style="font-size:11px" title="${escape(s.ts||'')}">${tsAgo(s.ts)}</td>
+      <td><b>${escape((s.pair||'?').replace('_','/'))}</b><span class="muted" style="font-size:10.5px"> /${escape(s.session||'?')}</span></td>
+      <td class="mono">${escape(s.setup_id||'?')}</td>
+      <td>${dirPill(s.side)}</td>
+      <td class="mono ${evCls}">${s.exp_ev!=null?(s.exp_ev>=0?'+':'')+Number(s.exp_ev).toFixed(3):'—'}</td>
+      <td><span class="pill ${s.status==='ACTIVE'?'pill-pass':'pill-warn'}">${escape(s.status||'?')}</span></td>
+      <td class="mono muted" style="font-size:10px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escape(s.conds||'')}">${escape((s.conds||'').slice(0,90))}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── SHADOW tab: scorer scoreboard ─────────────────────────────────────── */
+function renderCellScore(){
+  const body=document.getElementById('cellscore-body');
+  const emptyEl=document.getElementById('cellscore-empty');
+  const tag=document.getElementById('cellscore-tag');
+  if(!body)return;
+  const setups=CSCORE?.setups||[];
+  if(tag)tag.textContent=setups.length?`${setups.length} setups scored`:'—';
+  if(!setups.length){
+    body.innerHTML='';
+    if(emptyEl){emptyEl.textContent=CSCORE?.note||'No stamps yet — market opens Sunday 21:00 UTC.';emptyEl.style.display='block';}
+    return;
+  }
+  if(emptyEl)emptyEl.style.display='none';
+  body.innerHTML=setups.map(r=>{
+    const d=r.delta;
+    const dCls=d==null?'':(d>=0?'sh-delta pos':'sh-delta neg');
+    return `<tr>
+      <td class="mono">${escape(r.setup_id||'?')}</td>
+      <td>${escape(String(r.cell||((r.pair||'')+'/'+(r.session||''))).replace('_','/'))}</td>
+      <td>${dirPill(r.side)}</td>
+      <td class="mono">${r.n_stamps??'—'}</td>
+      <td class="mono">${r.sim_ev!=null?(r.sim_ev>=0?'+':'')+Number(r.sim_ev).toFixed(3)+'p':'—'}</td>
+      <td class="mono">${r.exp_ev!=null?(r.exp_ev>=0?'+':'')+Number(r.exp_ev).toFixed(3)+'p':'—'}</td>
+      <td class="mono ${dCls}">${d!=null?(d>=0?'+':'')+Number(d).toFixed(3):'—'}</td>
+      <td class="mono">${r.win_rate!=null?Number(r.win_rate).toFixed(1)+'%':'—'}</td>
+      <td><span class="pill ${r.status==='ACTIVE'?'pill-pass':'pill-warn'}">${escape(r.status||'?')}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
  * UTC clock + polling loop
  * ═════════════════════════════════════════════════════════════════════════ */
 function tickClock(){
@@ -2100,9 +2497,13 @@ function tickClock(){
 setInterval(tickClock,1000);tickClock();
 
 fetchState();fetchSysinfo();fetchDailyPL();
+fetchCells();fetchCellShadow();fetchCellScore();
 setInterval(fetchState,10000);
 setInterval(fetchSysinfo,30000);
 setInterval(fetchDailyPL,60000);
+setInterval(fetchCells,30000);
+setInterval(fetchCellShadow,30000);
+setInterval(fetchCellScore,120000);   // server caches 300s; poll is cheap
 </script>
 <!-- ─── DECISION FEED TICKER (bottom-fixed scrolling) ────────────────────── -->
 <div class="dec-ticker" id="dec-ticker" style="display:none">

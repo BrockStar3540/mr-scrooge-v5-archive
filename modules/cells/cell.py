@@ -293,7 +293,7 @@ class CellModule:
                 self.pair, self.session,
                 setup_id, side,
                 compact,
-                float(ev_seq),
+                float(ev_seq or 0.0),
                 stamp_status,
             )
 

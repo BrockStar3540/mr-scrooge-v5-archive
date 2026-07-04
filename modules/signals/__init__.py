@@ -1,60 +1,17 @@
-"""modules/signals — Direction and momentum module registry.
+"""modules/signals — shared market-data structures + retained instruments.
 
-At startup call build_modules() once to create all 24 (pair × session) instances.
-Then call stamp_pair(view, dir_modules, mom_modules) to produce a PairTicket.
+CELL ERA (Phase D cutover 2026-07-04): the direction_v2/momentum_v3 strategy
+stack is RETIRED — archived importable at modules/archive/signals_legacy/
+(rollback tag pre-cell-cutover-2026-07-04). What remains here:
+
+  base.py           MarketView / PairTicket dataclasses (feed + tooling)
+  calibration.py    per-cell calibration artifact reader (dashboard/evidence)
+  formula_shadow.py FORMULA stamp instrument (view-based, engine-independent)
 """
 from __future__ import annotations
 from .base import MarketView, PairTicket
-from .direction_v2 import DirectionModule, build_direction_modules
-from .momentum_v3  import MomentumModule, build_momentum_modules
 
 __all__ = [
     "MarketView",
     "PairTicket",
-    "DirectionModule",
-    "MomentumModule",
-    "build_modules",
-    "stamp_pair",
 ]
-
-
-def build_modules(
-    pairs: list[str],
-    sessions: list[str],
-) -> tuple[dict, dict]:
-    """Create one DirectionModule + one MomentumModule per (pair × session) bucket.
-
-    Returns (dir_modules, mom_modules) — keyed by (pair, session) tuples.
-    Call once at startup; modules are stateless after construction.
-    """
-    return (
-        build_direction_modules(pairs, sessions),
-        build_momentum_modules(pairs, sessions),
-    )
-
-
-def stamp_pair(
-    view: MarketView,
-    dir_modules:  dict[tuple[str,str], DirectionModule],
-    mom_modules:  dict[tuple[str,str], MomentumModule],
-) -> PairTicket:
-    """Stamp a MarketView through its pair/session modules and return a PairTicket."""
-    key = (view.pair, view.session)
-    d_mod = dir_modules.get(key)
-    m_mod = mom_modules.get(key)
-
-    if d_mod is None or m_mod is None:
-        raise KeyError(f"No modules registered for {view.pair}/{view.session}")
-
-    direction_stamp = d_mod.stamp(view)
-    momentum_stamp  = m_mod.stamp(view, direction_stamp.bias)
-    return PairTicket(
-        pair=view.pair, session=view.session, timestamp=view.timestamp,
-        direction=direction_stamp,
-        momentum=momentum_stamp,
-        spread_pips=view.spread_pips,
-        willr_m5=getattr(view, "willr_m5", 0.0),
-        close_pos_daily=getattr(view, "close_pos_daily", 0.0),
-        vortex_diff_h1=getattr(view, "vortex_diff_h1", 0.0),
-        kc_up_dist_pips=getattr(view, "kc_up_dist_pips", 0.0),
-    )

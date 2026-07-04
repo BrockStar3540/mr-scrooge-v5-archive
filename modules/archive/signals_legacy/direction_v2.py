@@ -21,8 +21,8 @@ from pathlib import Path
 import numpy as np
 
 try:
-    from .base import MarketView, DirectionStamp
-    from .direction_profiles import (
+    from modules.signals.base import MarketView, DirectionStamp
+    from modules.archive.signals_legacy.direction_profiles import (
         get_factor_defs, get_profile_info, apply_aggregator_rules,
     )
 except ImportError:
