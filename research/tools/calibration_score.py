@@ -87,7 +87,7 @@ def parse_journal(since: str) -> list[dict]:
              "SYSTEMD_PAGER": ""},
         capture_output=True, text=True,
     ).stdout
-    TS_RX = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4})")
+    TS_RX = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:?\d{2})")
     cur_ts = None
     sigs = []
     for line in raw2.splitlines():
@@ -95,7 +95,7 @@ def parse_journal(since: str) -> list[dict]:
         if tm:
             ts_str = tm.group(1)
             try:
-                cur_ts = datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S%z")
+                cur_ts = datetime.fromisoformat(ts_str)
             except ValueError:
                 cur_ts = None
         cx = RX.search(line)

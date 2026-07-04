@@ -20,9 +20,10 @@ from core.broker.oanda import DEFAULT_INITIAL_SL_PIPS
 from modules.signals import build_modules, stamp_pair
 from modules.signals import profile_shadow
 from modules.signals import calibration as _calibration
+from modules.signals import formula_shadow as _formula_shadow
 from modules.playmaker.playmaker import (pick_best, TradeTicket, pm_margin_pct,
                                           pm_inverted_shadow_cells, pm_profile_shadow_enabled,
-                                          pm_calibration_log_enabled)
+                                          pm_calibration_log_enabled, pm_formula_shadow_enabled)
 from modules.playmaker import lock_guard
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
@@ -361,6 +362,30 @@ class Engine:
                             " dead_base=%.2f dead_now=%.2f lean=%s",
                             t.pair, t.session, _dir,
                             _proj, _exp_pips_live, _base_dead, _dead_now, _lean,
+                        )
+
+        # ── Formula shadow stamps (log-only) ─────────────────────────────────────
+        # For each pair/session, evaluate every registry formula in formula_shadow.
+        # When ALL conditions pass, emit a FORMULA line.  Zero execution change.
+        # Kill-switch: defaults.formula_shadow_enabled (hot-reload, no restart).
+        # Scorer: research/tools/formula_shadow_score.py --since YYYY-MM-DD.
+        if pm_formula_shadow_enabled() and _formula_shadow.formula_shadow_enabled():
+            for t in tickets:
+                _v = next((v for v in views if v.pair == t.pair), None)
+                if _v is None:
+                    continue
+                for _fe in _formula_shadow.get_entries_for(t.pair, t.session):
+                    if _fe.status == "INACTIVE":
+                        continue   # INACTIVE-pending-feed-extension; skip silently
+                    _n_met, _n_total = _formula_shadow.evaluate(_fe, _v)
+                    if _n_met == _n_total and _n_total > 0:
+                        log.info(
+                            "FORMULA %s qualifies side=%s conds_met=%d/%d"
+                            " geo=%s/%s/%s exp_ev=%+.2f status=%s ts=%s",
+                            _fe.cell, _fe.direction,
+                            _n_met, _n_total,
+                            _fe.target_sl, _fe.target_trigger, _fe.target_trail,
+                            _fe.expected_ev, _fe.status, now.isoformat(),
                         )
 
         if trade_ticket is None:
