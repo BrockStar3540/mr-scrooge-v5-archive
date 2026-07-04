@@ -744,6 +744,20 @@ def _build_timing_setup(pair: str, session: str, direction: str,
             "from calibration lean, first-live-stamps will judge."
         )
 
+    # ── Brock direction-persistence override (2026-07-04) ───────────────────
+    # Lock-era traded directions persist on trading cells until same-engine
+    # n>=20 says otherwise (registry: config/locked_cells.json baselines).
+    # USD_JPY/london: lock-era LONG 4W/0L +24.9p (06-22..07-01) overrides the
+    # 30m calibration lean (short, AUC at noise floor).
+    _override_note = ""
+    if cell_str.startswith("USD_JPY/london") and side != "long":
+        _override_note = (
+            " | SIDE OVERRIDE: short -> long per Brock direction-persistence order "
+            "2026-07-04 (lock-era 4W/0L +24.9p, config/locked_cells.json); the atr "
+            "conditions stay as vol-energy gates; revisit at n>=20 same-engine trades."
+        )
+        side = "long"
+
     return {
         "id": "timing_lean_30",
         "side": side,
@@ -772,7 +786,7 @@ def _build_timing_setup(pair: str, session: str, direction: str,
             f"{confirmer_note} "
             f"atr_5m boundary p75={atr_boundary:.6f} (plateau_ok). "
             "Awaiting live CELLSHADOW stamps before promotion consideration."
-        ),
+        ) + _override_note,
     }
 
 
