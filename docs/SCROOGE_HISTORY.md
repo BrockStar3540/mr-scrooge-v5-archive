@@ -48,7 +48,7 @@ Ground-up rebuild. Three internal eras:
 - **Learned (so far):** ~83% of a 5-week losing window was transaction cost; the market telegraphs WHEN and HOW FAR but never WHICH WAY (three independent falsifications); exit geometry must match cell excursion class.
 - **Graveyard:** Dropbox `/SCROOGE ARCHIVE/V5/` (`SCROOGE_V5_INDEX.md` inside; session notes under `/SCROOGE ARCHIVE/session-notes/`; research corpora on lab hardware, indexed).
 
-## V6 — (in preparation, 2026-07)
+## V6 — (repo created 2026-07-05: github.com/BrockStar3540/mr-scrooge-v6, private until launch)
 
 Public, clean, modular. Carries forward: the cell architecture, the three-speed exit book, the measurement doctrine, this log, and the Book of Bugs. Everything else lives in the graveyard and is referenced, not carried.
 
