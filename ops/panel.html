@@ -477,6 +477,12 @@ body.has-ticker{padding-bottom:32px}
 .bk-class.LEAN{background:rgba(59,130,246,.15);color:var(--info)}
 .bk-class.TIMING{background:rgba(20,184,166,.15);color:#2dd4bf}
 .bk-chip{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--bg4);color:var(--fg2);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.mode-chip{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;white-space:nowrap;letter-spacing:.5px}
+.mode-FAST{background:#3a2b12;color:#ffb547;border:1px solid #7a5a1e}
+.mode-MEDIUM{background:#122c3a;color:#4fc3f7;border:1px solid #1e5a7a}
+.mode-LONG{background:#26123a;color:#c47fff;border:1px solid #4e1e7a}
+.mode-LEGACY{background:var(--bg4);color:var(--fg2);border:1px solid var(--bg4)}
+#freeze-flag{background:#1a2b3a;color:#7fd4ff;border:1px solid #2e5a7a;animation:pulse 2s infinite}
 .bk-status{font-size:8.5px;font-weight:800;letter-spacing:.06em;margin-left:auto}
 .bk-status.ACTIVE{color:var(--pass)}.bk-status.SHADOW{color:var(--warn)}.bk-status.SUSPENDED{color:var(--fail)}
 /* Condition proximity bars */
@@ -619,12 +625,13 @@ body.has-ticker{padding-bottom:32px}
   <div class="card">
     <div class="card-title">Open Positions
       <span id="open-count" class="tag">0 / 0</span>
+      <span id="freeze-flag" class="tag" style="display:none" title="20:55–22:05 UTC rollover spread blowout — no stop tightening, no bot-initiated closes">🧊 ROLLOVER FREEZE</span>
     </div>
     <table id="positions-tbl">
       <thead><tr>
-        <th>Pair</th><th>Dir</th><th>Entry</th><th>Age</th>
+        <th>Pair</th><th>Dir</th><th>Class</th><th>Entry</th><th>Age</th>
         <th>SL Locked</th><th>Peak MFE</th><th>Net Now</th><th>uP&amp;L $</th>
-        <th>Ratchet Level</th>
+        <th>Management</th>
       </tr></thead>
       <tbody id="positions-body"></tbody>
     </table>
@@ -1515,17 +1522,31 @@ function renderPositions(){
   cnt.textContent=`${pos.length} / ${maxC}`;
   if(!pos.length){tb.innerHTML='';np.style.display='block';return}
   np.style.display='none';
+  const ff=document.getElementById('freeze-flag');
+  if(ff)ff.style.display=STATE.rollover_freeze?'':'none';
   tb.innerHTML=pos.map(p=>{
+    const kl=p.exit_class||'LEGACY';
+    const chip=`<span class="mode-chip mode-${kl}">${kl}</span>`;
+    let mgmt;
+    if(p.exit_mode==='bracket'){
+      const tleft=p.timeout_left_min!=null?`⏱ ${p.timeout_left_min}m left`:'⏱ —';
+      mgmt=`TP @ ${p.tp_price??'—'} (+${p.tp_pips??'?'}p) · ${tleft} · no trail`;
+    }else{
+      const eng=p.engage_pips!=null?`engage ${p.engage_pips}p`:'engage —';
+      const tr=p.trail_pips!=null?`trail ${p.trail_pips}p${p.trail_mult?' ('+p.trail_mult+'×ATR)':''}`:'trail —';
+      mgmt=`${p.sl_price!=null?'SL @ '+p.sl_price+' · ':''}${eng} · ${tr}`;
+    }
     return `<tr>
       <td><b>${p.pair.replace('_','/')}</b></td>
       <td>${dirPill(p.direction)}</td>
+      <td>${chip}</td>
       <td class="mono">${p.entry}</td>
       <td>${fmtAge(p.elapsed_min)}</td>
       <td>${p.sl_locked_pips!=null?fmtPips(p.sl_locked_pips):'<span class="muted">—</span>'}</td>
       <td class="mono ${colorPips(p.peak_pips)}">${fmtPips(p.peak_pips)}</td>
       <td class="mono ${colorPips(p.net_pips_now)}">${fmtPips(p.net_pips_now)}</td>
       <td class="mono ${colorDollar(p.unrealized_pl)}">${p.unrealized_pl!=null?fmtDollar(p.unrealized_pl):'—'}</td>
-      <td class="mono muted" style="font-size:11px">${p.sl_price!=null?'SL @ '+p.sl_price:'—'}</td>
+      <td class="mono muted" style="font-size:11px">${mgmt}</td>
     </tr>`;
   }).join('');
 }
@@ -2306,8 +2327,13 @@ function bookSetupHtml(s,dim){
   const ev=(s?.ev_seq!=null)?`<span class="bk-chip" title="deep-OOS sequential EV (pips/trade)">ev ${(s.ev_seq>=0?'+':'')+Number(s.ev_seq).toFixed(2)}p</span>`:'';
   const st=s?.status?`<span class="bk-status ${escape(s.status)}">${escape(s.status)}</span>`:'';
   const conds=(s?.conditions||[]).map(cd=>condBar(cd,dim)).join('');
+  const ex=s?.exit||{};
+  const xtip=ex.mode==='bracket'
+    ?`bracket: TP +${ex.tp_pips}p / SL -${ex.sl_pips}p / ${ex.timeout_min}m timeout / no entries ≥${ex.entry_cutoff_utc}:00Z`
+    :`ratchet: engage ${ex.trigger_pips}p · trail ${ex.trail_mult?ex.trail_mult+'×ATR ['+ex.trail_min+'–'+ex.trail_max+'p]':(ex.trail_pips??'?')+'p'} · SL -${ex.sl_pips}p`;
+  const xcls=ex._class?`<span class="mode-chip mode-${escape(ex._class)}" title="${escape(xtip)}">${escape(ex._class)}</span>`:'';
   return `<div class="bk-setup">
-    <div class="bk-setup-head">${side}${cls}<span>${escape(s?.id||'?')}</span>${hor}${ev}${st}</div>
+    <div class="bk-setup-head">${side}${cls}${xcls}<span>${escape(s?.id||'?')}</span>${hor}${ev}${st}</div>
     ${conds}
   </div>`;
 }

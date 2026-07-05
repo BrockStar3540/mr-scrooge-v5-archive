@@ -229,7 +229,37 @@ def _state(engine: "Engine") -> dict:
         oanda_t = oanda_trades.get(mgr.position.oanda_trade_id, {})
         upl = float(oanda_t.get("unrealizedPL", 0)) if oanda_t else None
 
+        # Exit-class info (2026-07-05): how this trade is being managed
+        _ep    = getattr(mgr.position, "exit_params", None)
+        _mode  = mgr.name() if hasattr(mgr, "name") else "ratchet"
+        _tmult = float(getattr(_ep, "trail_mult", 0) or 0) if _ep is not None else 0.0
+        _klass = ("FAST" if _mode == "bracket"
+                  else "LONG" if _tmult >= 0.99
+                  else "MEDIUM" if _tmult > 0 else "LEGACY")
+        _exit_info = {"exit_mode": _mode, "exit_class": _klass}
+        if _mode == "bracket":
+            _tp  = float(getattr(mgr, "tp_pips", 0) or 0)
+            _tmo = float(getattr(mgr, "timeout_min", 0) or 0)
+            _tp_price = None
+            if _tp:
+                _tp_price = (mgr.position.entry_price + _tp * mgr.position.pip_size
+                             if mgr.direction == "long"
+                             else mgr.position.entry_price - _tp * mgr.position.pip_size)
+            _exit_info.update({
+                "tp_pips":          _tp or None,
+                "tp_price":         round(_tp_price, 5) if _tp_price else None,
+                "timeout_min":      _tmo or None,
+                "timeout_left_min": round(max(0.0, _tmo - elapsed), 1) if _tmo else None,
+            })
+        else:
+            _exit_info.update({
+                "engage_pips": round(float(getattr(_ep, "trigger_pips", 0) or 0), 2) if _ep else None,
+                "trail_pips":  round(float(getattr(_ep, "trail_pips", 0) or 0), 2) if _ep else None,
+                "trail_mult":  _tmult or None,
+            })
+
         open_positions.append({
+            **_exit_info,
             "pair":          pair,
             "direction":     mgr.direction,
             "entry":         round(mgr.position.entry_price, 5),
@@ -453,8 +483,10 @@ def _state(engine: "Engine") -> dict:
     except Exception as _exc:
         lock_guard_status = [{"error": str(_exc)}]
 
+    from modules.management.base import in_rollover_freeze as _irf
     return {
         "account":         account,
+        "rollover_freeze": _irf(now),
         "open_positions":  open_positions,
         "last_tickets":    last_tickets,
         "last_views":      last_views,
