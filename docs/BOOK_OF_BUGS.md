@@ -2,7 +2,7 @@
 
 **Living institutional memory of every documented defect across the bot family.** Format per entry: era · area · symptom · root cause · fix · lesson. When something odd surfaces, this book answers *"have we seen this before?"* before anyone re-derives it.
 
-**V1–V3 (B-001 → B-074):** the full forensic catalog (74 entries: pre-deployment audit, box-geometry defects, regime-supervisor contamination windows, Echo discriminator postmortem, TP2 clamp, alt-box double-truth, …) is archived at Dropbox `/SCROOGE V3/scrooge-bug-catalog-V1-V3-export-2026-07-05.md`. Entries below continue the numbering into the V4/V5 eras.
+**V1–V3 (B-001 → B-074):** the full forensic catalog (74 entries: pre-deployment audit, box-geometry defects, regime-supervisor contamination windows, Echo discriminator postmortem, TP2 clamp, alt-box double-truth, …) is archived at Dropbox `/SCROOGE ARCHIVE/V3/scrooge-bug-catalog-V1-V3-export-2026-07-05.md`. Entries below continue the numbering into the V4/V5 eras.
 
 ---
 

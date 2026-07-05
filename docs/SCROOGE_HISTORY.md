@@ -12,13 +12,13 @@ Darvas-box-inspired discretionary rules automated: zones, boxes, sucker-moves, J
 
 - **Learned:** rule-based pattern trading needs geometric anchoring; behavioral rules without explicit invariants silently drift (see B-001…B-007).
 - **Retired:** superseded during the V2/V3 transition, spring 2026.
-- **Graveyard:** Dropbox `/SCROOGE V3/archives/mr-scrooge-v1/` (code, Trade-Strategy PDFs, exec summaries, AUDIT.md).
+- **Graveyard:** Dropbox `/SCROOGE ARCHIVE/V3/archives/mr-scrooge-v1/` (code, Trade-Strategy PDFs, exec summaries, AUDIT.md).
 
 ## V2 — transitional agent era (spring 2026)
 
 Short-lived rewrite inside the agent workspace framework; mostly scaffolding that fed V3.
 
-- **Graveyard:** Dropbox `/SCROOGE V3/archives/legacy/_audit/…/mr-scrooge-v2/`.
+- **Graveyard:** Dropbox `/SCROOGE ARCHIVE/V3/archives/legacy/_audit/…/mr-scrooge-v2/`.
 
 ## V3 — "The Matrix Era" (≈ Mar – 2026-06-16)
 
@@ -26,7 +26,7 @@ Factor scoring, routing tables, observe-mode gates, the first ML brains, box-geo
 
 - **Learned:** factor weights must be verified LIVE (weights sat dead for months — B-085); exit design dominates results; backtest-vs-live divergence needs institutional memory.
 - **Retired:** 2026-06-16 (service disabled at the V4 unified-dashboard cutover).
-- **Graveyard:** Dropbox `/SCROOGE V3/` (master index inside: `SCROOGE_MASTER_INDEX.md`; archives: code tarball, data tarballs, matrix-era routing tables, 25GB research corpus retired to offline drive; bug catalog export `scrooge-bug-catalog-V1-V3-export-2026-07-05.md`).
+- **Graveyard:** Dropbox `/SCROOGE ARCHIVE/V3/` (master index inside: `SCROOGE_MASTER_INDEX.md`; archives: code tarball, data tarballs, matrix-era routing tables, 25GB research corpus retired to offline drive; bug catalog export `scrooge-bug-catalog-V1-V3-export-2026-07-05.md`).
 
 ## V4 — "Bucket-Keyed" (2026-06-11 → 2026-06-18)
 
@@ -34,7 +34,7 @@ Every strategy (pair × session × direction)-gated; 129-strategy live book (tex
 
 - **Learned:** **the exits were the bottleneck, not the strategies** (70% of winners ran 20p+ while exits captured <20p — B-076); margin-based sizing and per-pair costs interact (later quantified in V5).
 - **Retired:** 2026-06-18 (7 days — killed by its own measurement honesty).
-- **Graveyard:** Dropbox `/SCROOGE V4/` (`SCROOGE_V4_INDEX.md` inside; `archives/V4-Archive-2026-06-18/` with EC2+Mini tarballs; backtest sources).
+- **Graveyard:** Dropbox `/SCROOGE ARCHIVE/V4/` (`SCROOGE_V4_INDEX.md` inside; `archives/V4-Archive-2026-06-18/` with EC2+Mini tarballs; backtest sources).
 
 ## V5 — "Strategy-Free / The Cell Era" (2026-06-18 → present)
 
@@ -46,7 +46,7 @@ Ground-up rebuild. Three internal eras:
 
 - **Key papers/reports (in repo):** `docs/PAPER_cost_aware_exit_classes_2026-07-05.md`, `research/README.md` (truth hierarchy + validation protocol), `CHANGELOG.md` (day-by-day).
 - **Learned (so far):** ~83% of a 5-week losing window was transaction cost; the market telegraphs WHEN and HOW FAR but never WHICH WAY (three independent falsifications); exit geometry must match cell excursion class.
-- **Graveyard:** Dropbox `/SCROOGE V5/` (`SCROOGE_V5_INDEX.md` inside; session notes under `/LLM Sessions/Claude Sessions/Scrooge/`; research corpora on lab hardware, indexed).
+- **Graveyard:** Dropbox `/SCROOGE ARCHIVE/V5/` (`SCROOGE_V5_INDEX.md` inside; session notes under `/SCROOGE ARCHIVE/session-notes/`; research corpora on lab hardware, indexed).
 
 ## V6 — (in preparation, 2026-07)
 
@@ -56,13 +56,13 @@ Public, clean, modular. Carries forward: the cell architecture, the three-speed 
 
 ---
 
-## Graveyard map (Dropbox)
+## Graveyard map (Dropbox — consolidated 2026-07-05 into ONE master folder: `/SCROOGE ARCHIVE`)
 
 | Path | Contents |
 |---|---|
-| `/SCROOGE V3/` | V1+V2+V3 complete: code, data, research, routing tables, bug-catalog export, master index |
-| `/SCROOGE V4/` | V4 code+data tarballs, backtest sources, index |
-| `/SCROOGE V5/` | V5 archives + index (live repo remains source of truth until V6 cutover) |
-| `/LLM Sessions/Claude Sessions/Scrooge/` | dated research-session notes (the working diary behind the CHANGELOG) |
+| `/SCROOGE ARCHIVE/V3/` | V1+V2+V3 complete: code, data, research, routing tables, bug-catalog export, master index |
+| `/SCROOGE ARCHIVE/V4/` | V4 code+data tarballs, backtest sources, index |
+| `/SCROOGE ARCHIVE/V5/` | V5 archives + index (live repo remains source of truth until V6 cutover) |
+| `/SCROOGE ARCHIVE/session-notes/` | dated research-session notes (the working diary behind the CHANGELOG) |
 
 *Archive access: private. Curated folders can be shared by link on request — archives contain operational material and are link-shared only after per-folder review.*
