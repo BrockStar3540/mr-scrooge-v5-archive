@@ -1,6 +1,6 @@
 # Cell-Level Transaction Costs (measured from broker fills)
 
-**Session 2026-07-04 · source: OANDA transaction export [REDACTED-ACCOUNT], 2026-05-31 → 2026-07-03, 963 ORDER_FILL rows (~477 round trips), V4+V5 eras pooled (spread is market microstructure, not bot config).**
+**Session 2026-07-04 · source: OANDA transaction export (practice-account-id-redacted), 2026-05-31 → 2026-07-03, 963 ORDER_FILL rows (~477 round trips), V4+V5 eras pooled (spread is market microstructure, not bot config).**
 
 Method: OANDA's `ESTIMATED SPREAD COST` per fill = half-spread × size (charged each side). Converted to pips via `cost_usd / (units × pipsize × quote→USD)`; quote→USD from the CSV `CONVERSION RATE` column when present, else derived from same-file fill prices. Round trip (RT) = entry median + exit median. Cross-check: RT medians match OANDA's published typical spreads (EUR/USD 1.6, GBP/USD 1.9, EUR/JPY 2.7) — method validated.
 

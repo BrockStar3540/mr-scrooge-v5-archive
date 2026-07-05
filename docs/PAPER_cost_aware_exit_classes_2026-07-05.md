@@ -26,7 +26,7 @@ We measured the full round-trip transaction cost of the live OANDA book at the (
 
 | source | what it gave us |
 |---|---|
-| OANDA transaction export [REDACTED-ACCOUNT] (2026-05-31→07-03, 4,546 rows, 963 fills) | per-fill ESTIMATED SPREAD COST, conversion rate/fee, financing, balance arithmetic |
+| OANDA transaction export (practice-account-id-redacted) (2026-05-31→07-03, 4,546 rows, 963 fills) | per-fill ESTIMATED SPREAD COST, conversion rate/fee, financing, balance arithmetic |
 | OANDA v3 API (account instruments endpoint) | true per-pair margin rates (2/3/5%) and financing rates — measured, not assumed |
 | Truth-matrix corpus (8 pairs × 8yr, per-bar dual-direction fwd MFE/MAE 60m/240m, leak-clean, broker-anchored r=0.84–0.90) | fill probabilities, travel/asymmetry scaling, cell geometry classes |
 | 230 broker trades since 06-13 (M1-path MAE/MFE + 6 cell features at entry) | live anchor for classes and durations |

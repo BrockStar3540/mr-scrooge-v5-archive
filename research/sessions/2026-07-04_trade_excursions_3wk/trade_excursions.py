@@ -22,7 +22,10 @@ OUT.mkdir(exist_ok=True)
 CELL_BOOK = json.loads((OUT / "cell_book.json").read_text())
 
 creds = {}
-for line in open(Path.home() / "mr-scrooge-v4-replay" / ".env"):
+_envf = Path.home() / ".openclaw" / "secrets.env"
+if not _envf.exists():
+    _envf = Path.home() / "mr-scrooge-v4-replay" / ".env"
+for line in open(_envf):
     line = line.strip()
     if line and not line.startswith("#") and "=" in line:
         k, v = line.split("=", 1); creds[k.strip()] = v.strip().strip('"').strip("'")

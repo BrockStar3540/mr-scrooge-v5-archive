@@ -70,6 +70,8 @@ H1 look-ahead leak fixed 2026-07-03. Pre-fix H1-feature parquet numbers are **up
 - **Research index + truth/tainted labeling** → [research/README.md](research/README.md)
 - **System architecture** → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Signal modules** (direction + momentum, per-(pair × session × direction)) → [docs/MODULES.md](docs/MODULES.md)
+- **Version history V1→V6 + graveyard map** → [docs/SCROOGE_HISTORY.md](docs/SCROOGE_HISTORY.md)
+- **The Book of Bugs (B-001→B-087, living)** → [docs/BOOK_OF_BUGS.md](docs/BOOK_OF_BUGS.md)
 - **Ratchet exit logic** → [docs/RATCHET.md](docs/RATCHET.md)
 - **Cost-aware exit classes (paper: hypotheses → measurement → live deployment, 2026-07-05)** → [docs/PAPER_cost_aware_exit_classes_2026-07-05.md](docs/PAPER_cost_aware_exit_classes_2026-07-05.md)
 - **Playmaker entry gates** → [docs/PLAYMAKER.md](docs/PLAYMAKER.md)
