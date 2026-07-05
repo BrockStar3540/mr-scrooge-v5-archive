@@ -71,3 +71,39 @@ Current live: global `step_trail_pips: 2.5`, per-setup `exit_params` all `{}` (m
 - Practice-account pricing; live spreads can differ (usually similar on OANDA, but re-measure after the live-money switch with the same script).
 - 5-week sample, one export; hour-level cells have small n (the hour-21 pattern is consistent across all 8 pairs, so it is real).
 - `ESTIMATED SPREAD COST` is OANDA's estimate of half-spread × size; it is a decomposition of cost already embedded in fill prices, not an extra fee.
+## ADDENDUM 2026-07-05 — slicer sweet-spot: slippage, conversion, lock mechanics
+
+**Mechanics (verified against fills):** OANDA charges nothing beyond the bid/ask cross —
+COMMISSION is 0 on all 963 fills. Entry fills at ask (long); a ratchet lock / TP at
+entry_fill + L that fills realizes **L − slippage** — the spread is NOT charged again at
+exit. The spread's real bite on a tight slicer is **rarity**: the stop/limit triggers on
+the far side of the book, so MID must travel **L + full_spread** for a +L exit to fill.
+A +3 lock on EUR_JPY needs ~5.7p of mid travel; on AUD_USD ~4.35p.
+
+**Stop-fill slippage (375 matched stop→fill pairs, normal hours = excl 21:00 UTC):**
+med 0.00p · p75 0.20p · p90 0.80p · p97 3.2p. 46% of fills land ≤0.5p worse than the stop,
+6% better. Hour-21: med 0.8p, p90 8.8p — rollover remains the one true wash/loss zone.
+EUR/USD carries the fattest news tails (p90 6.8p incl. all hours).
+
+**Conversion markup (the hidden fee Brock suspected):** non-USD-quote P/L is converted at
+~**1% against the client both ways** (winners −1%, losses +1%; measured vs same-file spot;
+equals the CONVERSION FEE column: −$402.74 over 5 weeks). Proportional to P/L, so ≈0.03p
+on a +3p slice — real, cumulative, but never the difference between profit and wash.
+Affects JPY/CHF/CAD-quote pairs only.
+
+**Wash-zone verdict:** a +3 lock that fills nets ≈ +2.9p typically, ≥ +2.2p in 90% of
+normal-hour fills — **not a wash**. True wash territory: locks ≤1p (slippage-sized),
+anything filling at 21:00 UTC, and p97 slippage days. The +5-floor instinct is right for
+EV reasons, not fee reasons: slippage is a fixed tax per exit, so larger L dilutes it
+(net-if-filled: +3→2.2p, +5→4.2p at p90), and the per-attempt spread toll amortizes better.
+
+**Fill probabilities** (P(fwd MFE ≥ L + spread), 2026 corpus, both dirs avg —
+`../2026-07-05_ratchet_profiles/fill_probabilities.csv`): at L=3, 60m fill runs 0.33
+(USD_CHF asia) to 0.66 (GBP_USD london); at L=5, 0.18–0.54. Gross EV-if-filled
+(P × net) RISES with L in every cell through L=8 — tighter slicing is not free money;
+the failure branch (what a non-fill costs) is cell EV territory, gated on fired-trade sim.
+
+**Limit-TP vs stop-lock:** same trigger side, same required travel — but a limit exit
+cannot slip negative (fills at price or better). For pure slice-and-exit setups, TP-limit
+at +L strictly dominates a stop-lock at +L on fill quality (saves the full slippage
+distribution, 0.2–0.8p at p75/p90).
