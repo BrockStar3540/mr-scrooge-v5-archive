@@ -1060,6 +1060,39 @@ def _print_book_summary(configs: dict[str, dict]) -> None:
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
+
+
+# ── Exit classes (2026-07-05, Brock live order) ───────────────────────────────
+# Cell-geometry classes from research/sessions/2026-07-05_ratchet_profiles
+# (FAST = NY-fade quick-slice cells, LONG = asia/london extender cells) with
+# per-pair cost floors from research/sessions/2026-07-04_cell_transaction_costs.
+# Applied AFTER generation so monthly refits preserve the class geometry.
+_CELL_KLASS = {('USD_CAD', 'ny'): 'FAST', ('USD_CHF', 'ny'): 'FAST', ('EUR_USD', 'ny'): 'FAST', ('GBP_USD', 'ny'): 'FAST', ('EUR_JPY', 'ny'): 'FAST', ('AUD_USD', 'ny'): 'FAST', ('EUR_JPY', 'london'): 'FAST', ('AUD_JPY', 'ny'): 'FAST', ('USD_JPY', 'london'): 'LONG', ('USD_JPY', 'asia'): 'LONG', ('AUD_USD', 'london'): 'LONG', ('EUR_JPY', 'asia'): 'LONG', ('EUR_USD', 'asia'): 'LONG', ('USD_CAD', 'london'): 'LONG', ('GBP_USD', 'asia'): 'LONG', ('USD_CHF', 'asia'): 'LONG', ('USD_JPY', 'ny'): 'MEDIUM', ('AUD_USD', 'asia'): 'MEDIUM', ('AUD_JPY', 'asia'): 'MEDIUM', ('USD_CAD', 'asia'): 'MEDIUM', ('USD_CHF', 'london'): 'MEDIUM', ('AUD_JPY', 'london'): 'MEDIUM', ('GBP_USD', 'london'): 'MEDIUM', ('EUR_USD', 'london'): 'MEDIUM'}
+_TP_FLOOR = {'AUD_USD': 3.0, 'EUR_USD': 3.0, 'USD_JPY': 3.5, 'USD_CAD': 3.5, 'USD_CHF': 3.5, 'GBP_USD': 4.0, 'AUD_JPY': 5.0, 'EUR_JPY': 5.0}
+_TRIGGER_MED = {'AUD_USD': 3.5, 'EUR_USD': 3.5, 'USD_JPY': 3.5, 'USD_CHF': 3.5, 'USD_CAD': 4.0, 'GBP_USD': 4.0, 'AUD_JPY': 4.5, 'EUR_JPY': 4.5}
+
+def _apply_exit_classes(cfg: dict, pair: str) -> None:
+    for sess, sc in cfg.get("sessions", {}).items():
+        for st in sc.get("setups", []):
+            k = _CELL_KLASS.get((pair, sess), "MEDIUM")
+            if k == "FAST" and int(st.get("horizon_min") or 60) > 60:
+                k = "MEDIUM"
+            old = st.get("exit", {})
+            if k == "FAST":
+                tp = _TP_FLOOR[pair]
+                st["exit"] = {"mode": "bracket", "tp_pips": tp, "sl_pips": tp + 1.0,
+                              "timeout_min": 60.0, "entry_cutoff_utc": 20.0,
+                              "trigger_pips": 7.5, "trail_pips": 1.5, "_class": "FAST"}
+            elif k == "LONG":
+                st["exit"] = {"mode": "ratchet", "sl_pips": float(old.get("sl_pips", 20.0)),
+                              "trigger_pips": 8.0, "trail_pips": 4.0, "trail_mult": 1.0,
+                              "trail_min": 4.0, "trail_max": 10.0, "_class": "LONG"}
+            else:
+                st["exit"] = {"mode": "ratchet", "sl_pips": float(old.get("sl_pips", 20.0)),
+                              "trigger_pips": _TRIGGER_MED[pair], "trail_pips": 2.5,
+                              "trail_mult": 0.6, "trail_min": 2.5, "trail_max": 6.0,
+                              "_class": "MEDIUM"}
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate config/cells/<PAIR>.json for all 8 pairs.")
     parser.add_argument("--out-dir", default=None,
@@ -1108,6 +1141,7 @@ def main() -> int:
     for pair in PAIRS:
         print(f"  Generating {pair}...")
         cfg = _generate_pair(pair, ev_gross, rh_rates, top5, calibration, rolling_pct)
+        _apply_exit_classes(cfg, pair)
         configs[pair] = cfg
         out_path = out_dir / f"{pair}.json"
         out_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")

@@ -30,6 +30,7 @@ from modules.playmaker.playmaker import (TradeTicket, pm_margin_pct,
 from modules.playmaker import lock_guard
 from modules.management.base import Position
 from modules.management.ratchet import RatchetManager, initial_sl_pips_for
+from modules.management.bracket import BracketManager
 from modules.cells import PairModule, CELL_EXECUTION_ENABLED
 from modules.cells.portfolio import select_intent
 
@@ -380,9 +381,11 @@ class Engine:
         # risk_pct normalization is a flagged follow-up, NOT silently invented.
         units = self.broker.size_units(ticket.pair, ticket.direction,
                                        margin_pct=pm_margin_pct())
+        _mode    = str(getattr(_ep, "mode", "ratchet") or "ratchet") if _ep else "ratchet"
+        _tp_pips = float(getattr(_ep, "tp_pips", 0.0) or 0.0) if _mode == "bracket" else 0.0
         trade = self.broker.place_market(
             ticket.pair, ticket.direction, units=units,
-            entry_price=entry_price, sl_pips=initial_sl,
+            entry_price=entry_price, sl_pips=initial_sl, tp_pips=_tp_pips,
         )
 
         initial_sl_price = (entry_price - initial_sl * pip
@@ -398,17 +401,18 @@ class Engine:
             initial_sl_price=initial_sl_price,
             exit_params=_ep,
         )
-        self.managers[ticket.pair] = RatchetManager(
+        _mgr_cls = BracketManager if _mode == "bracket" else RatchetManager
+        self.managers[ticket.pair] = _mgr_cls(
             position=pos,
             broker=self.broker,
             dry_run=self.dry_run,
             initial_units=units,
         )
         log.info("ENTERED %s %s @ %.5f | %d units | SL -%.1fp | trade_id=%s | "
-                 "engine=cell_v1 setup=%s",
+                 "engine=cell_v1 setup=%s exit_mode=%s tp=%.1fp",
                  ticket.pair, ticket.direction, entry_price, units,
                  initial_sl, trade["id"],
-                 _it.setup_id if _it else "recovery")
+                 _it.setup_id if _it else "recovery", _mode, _tp_pips)
         self.recent_events.append(
             f"{now.strftime('%H:%M:%S')} ENTER {ticket.pair} {ticket.direction} @ {entry_price:.5f}"
         )

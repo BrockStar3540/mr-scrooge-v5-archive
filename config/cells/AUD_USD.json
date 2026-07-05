@@ -43,9 +43,14 @@
             }
           ],
           "exit": {
+            "mode": "ratchet",
             "sl_pips": 20.0,
-            "trigger_pips": 7.5,
-            "trail_pips": 1.5
+            "trigger_pips": 8.0,
+            "trail_pips": 4.0,
+            "trail_mult": 1.0,
+            "trail_min": 4.0,
+            "trail_max": 10.0,
+            "_class": "LONG"
           },
           "sizing": {
             "risk_pct": 0.2
@@ -95,9 +100,14 @@
             }
           ],
           "exit": {
-            "sl_pips": 10.0,
-            "trigger_pips": 3.0,
-            "trail_pips": 1.5
+            "mode": "bracket",
+            "tp_pips": 3.0,
+            "sl_pips": 4.0,
+            "timeout_min": 60.0,
+            "entry_cutoff_utc": 20.0,
+            "trigger_pips": 7.5,
+            "trail_pips": 1.5,
+            "_class": "FAST"
           },
           "sizing": {
             "risk_pct": 0.2

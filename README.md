@@ -4,7 +4,7 @@
 
 > **STRATEGY-FREE BOT.** V5 has no named strategies, plays, or setup libraries (that was V4). The entire strategy is **direction** (factor-scored, per-cell profiles) + **momentum/distance** (expected-pips gate), resolved per (pair × session × direction) cell and ranked by the playmaker. Analyses must be scoped to same-engine trades (v2/v3 modules, live 2026-06-20+); V4 and v1-module history is inadmissible for cell decisions.
 
-Automated forex trading bot for OANDA. Modular signal pipeline: direction → momentum → playmaker → step-trail ratchet exit. Live on 7 currency pairs (USD_CHF killed 2026-07-01).
+Automated forex trading bot for OANDA. Cell-era pipeline: per-(pair×session) cell setups → portfolio caps → class-based exits (2026-07-05): FAST cells exit via server-side TP bracket + 60m timeout, MEDIUM via spread-aware ratchet (engage=spread+2p, trail=0.6×ATR), LONG runners via wide ratchet (engage 8p, trail=1.0×ATR). Global rollover freeze 20:55–22:05 UTC. Live on 7 currency pairs (USD_CHF killed 2026-07-01).
 
 ## Status
 
@@ -30,7 +30,8 @@ OANDA M5/H1/D feed (5s manage, 300s scan)
         ├── max_per_currency_direction  — exposure cap: max 1 open per (currency, direction)
         └── random_pick                 — random.choice among actionable (vs max-composite)
    → Broker (OANDA market order, server-side SL = −20p)
-   → RatchetManager (poll 5s, step-trail SL at MFE +7.5/10/12.5/15/17.5/20)
+   → exit manager by setup class (poll 5s): BracketManager (FAST: server TP + timeout,
+     no trail) | RatchetManager (MEDIUM/LONG: per-setup engage + ATR-scaled trail)
 ```
 
 All per-cell governance mechanisms are hot-reloadable via config — no restart needed for tuning thresholds. New mechanism types (a new gate kind) require code + restart.

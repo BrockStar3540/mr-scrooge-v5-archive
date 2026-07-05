@@ -178,6 +178,7 @@ class OandaBroker:
         units:     int,
         sl_pips:   float = DEFAULT_INITIAL_SL_PIPS,
         entry_price: Optional[float] = None,
+        tp_pips:   float = 0.0,
     ) -> dict:
         """Place a market order with an initial server-side stop loss.
 
@@ -213,6 +214,12 @@ class OandaBroker:
             "units":      str(signed),
             "stopLossOnFill": {"price": f"{sl_price:.{prec}f}"},
         }
+        # FAST slice class: server-side limit TP — fills at price or better,
+        # cannot slip (stop-lock exits measured med 0.0 / p90 0.8p slippage).
+        if tp_pips and tp_pips > 0:
+            tp_price = (entry_price + tp_pips * pip if direction == "long"
+                        else entry_price - tp_pips * pip)
+            order["takeProfitOnFill"] = {"price": f"{tp_price:.{prec}f}"}
 
         result = self._req("POST", f"/v3/accounts/{self._acct}/orders", {"order": order})
         trade  = result.get("orderFillTransaction", {})

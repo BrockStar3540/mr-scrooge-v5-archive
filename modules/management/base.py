@@ -30,6 +30,15 @@ class ExitSignal:
     net_pips:   float
 
 
+def in_rollover_freeze(ts) -> bool:
+    """True during 20:55-22:05 UTC — the daily rollover spread blowout.
+    Measured 2026-07-04 (research/sessions/2026-07-04_cell_transaction_costs):
+    half-spreads 4-10x normal, stop-fill slippage med 0.8p / p90 8.8p at 21:00.
+    No manager may tighten a stop or fire a bot-initiated close inside it."""
+    hm = ts.hour * 60 + ts.minute
+    return (20 * 60 + 55) <= hm < (22 * 60 + 5)
+
+
 class TradeManager(ABC):
     """Abstract base -- one instance per open position."""
 

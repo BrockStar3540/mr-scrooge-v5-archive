@@ -48,10 +48,23 @@ def _exec_enabled() -> bool:
 
 @dataclass
 class ExitParams:
-    """Per-setup exit geometry.  RatchetManager reads these when not None."""
+    """Per-setup exit geometry.  RatchetManager reads these when not None.
+
+    Exit classes (2026-07-05): mode="bracket" -> BracketManager (server TP/SL
+    + timeout, no trail); mode="ratchet" -> RatchetManager. trail_mult>0 makes
+    the trail ATR-scaled: trail_pips = clamp(trail_mult*atr_5m, trail_min,
+    trail_max), resolved at qualification time (Q2: atr_5m is the distance
+    knob, rho 0.4-0.7 in all 24 cells)."""
     sl_pips:      float
     trigger_pips: float
     trail_pips:   float
+    mode:             str   = "ratchet"   # "ratchet" | "bracket"
+    tp_pips:          float = 0.0         # bracket: server-side limit TP
+    timeout_min:      float = 0.0         # bracket: flat after N min (0=off)
+    entry_cutoff_utc: float = 0.0         # no new entries at/after this UTC hour (0=off)
+    trail_mult:       float = 0.0         # ratchet: ATR-scaled trail (0=fixed)
+    trail_min:        float = 0.0
+    trail_max:        float = 0.0
 
 
 @dataclass
@@ -257,11 +270,30 @@ class CellModule:
             evidence    = setup.get("evidence", {})
             ev_seq      = evidence.get("ev_seq", 0.0)
             exit_cfg    = setup.get("exit", {})
+            # Entry cutoff (FAST class): no fresh slices at/after cutoff UTC hour
+            # — rollover blowout risk outweighs any late-session slice EV.
+            _cutoff = float(exit_cfg.get("entry_cutoff_utc", 0.0) or 0.0)
+            if _cutoff > 0 and (now.hour + now.minute / 60.0) >= _cutoff:
+                log.info("CELL %s/%s setup=%s blocked: entry_cutoff_utc=%.0f",
+                         self.pair, self.session, setup.get("id", "?"), _cutoff)
+                continue
             exit_params = ExitParams(
                 sl_pips      = float(exit_cfg.get("sl_pips", 12.0)),
                 trigger_pips = float(exit_cfg.get("trigger_pips", 10.0)),
                 trail_pips   = float(exit_cfg.get("trail_pips", 1.5)),
+                mode             = str(exit_cfg.get("mode", "ratchet")),
+                tp_pips          = float(exit_cfg.get("tp_pips", 0.0) or 0.0),
+                timeout_min      = float(exit_cfg.get("timeout_min", 0.0) or 0.0),
+                entry_cutoff_utc = _cutoff,
+                trail_mult       = float(exit_cfg.get("trail_mult", 0.0) or 0.0),
+                trail_min        = float(exit_cfg.get("trail_min", 0.0) or 0.0),
+                trail_max        = float(exit_cfg.get("trail_max", 0.0) or 0.0),
             )
+            if exit_params.trail_mult > 0:
+                _atr = getattr(view, "atr_5m", None)
+                if _atr:
+                    exit_params.trail_pips = round(max(exit_params.trail_min,
+                        min(exit_params.trail_max, exit_params.trail_mult * float(_atr))), 2)
 
             # Size with modulators
             sizing = setup.get("sizing", {})

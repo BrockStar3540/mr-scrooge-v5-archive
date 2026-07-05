@@ -31,7 +31,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from .base import Position, ExitSignal, TradeManager
+from .base import Position, ExitSignal, TradeManager, in_rollover_freeze
 
 log = logging.getLogger("v5.ratchet")
 
@@ -142,6 +142,10 @@ class RatchetManager(TradeManager):
            (OANDA server-side stop is the primary exit mechanism).
         """
         self._update_peak(current_price)
+
+        # Rollover freeze: no stop-tightening, no bot-side closes 20:55-22:05 UTC.
+        if in_rollover_freeze(current_time):
+            return None
 
         cfg             = _load_config(self.position.ticket.pair)
         # Per-trade exit params (Phase C prepared, activated at Phase D cutover).

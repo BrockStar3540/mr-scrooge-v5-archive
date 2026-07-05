@@ -30,9 +30,14 @@
             }
           ],
           "exit": {
+            "mode": "ratchet",
             "sl_pips": 20.0,
-            "trigger_pips": 7.5,
-            "trail_pips": 1.5
+            "trigger_pips": 8.0,
+            "trail_pips": 4.0,
+            "trail_mult": 1.0,
+            "trail_min": 4.0,
+            "trail_max": 10.0,
+            "_class": "LONG"
           },
           "sizing": {
             "risk_pct": 0.2
@@ -96,9 +101,14 @@
             }
           ],
           "exit": {
+            "mode": "ratchet",
             "sl_pips": 20.0,
-            "trigger_pips": 7.5,
-            "trail_pips": 1.5
+            "trigger_pips": 8.0,
+            "trail_pips": 4.0,
+            "trail_mult": 1.0,
+            "trail_min": 4.0,
+            "trail_max": 10.0,
+            "_class": "LONG"
           },
           "sizing": {
             "risk_pct": 0.2
@@ -148,9 +158,14 @@
             }
           ],
           "exit": {
+            "mode": "ratchet",
             "sl_pips": 20.0,
-            "trigger_pips": 3.0,
-            "trail_pips": 1.5
+            "trigger_pips": 3.5,
+            "trail_pips": 2.5,
+            "trail_mult": 0.6,
+            "trail_min": 2.5,
+            "trail_max": 6.0,
+            "_class": "MEDIUM"
           },
           "sizing": {
             "risk_pct": 0.2
