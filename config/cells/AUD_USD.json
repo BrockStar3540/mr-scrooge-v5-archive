@@ -74,7 +74,7 @@
           "id": "kc_up_long_lean",
           "side": "long",
           "class": "LEAN",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 240,
           "conditions": [
             {
@@ -110,7 +110,7 @@
             "source": "side-audit 2026-07-06: corpus drift LONG in window (2026 +0.40, 60d +1.59, 14d +6.14 p/240m); twin installed to earn side via n>=20 shadow gauntlet",
             "drift": "STRENGTHENING"
           },
-          "notes": "SHADOW twin of kc_up_short_lean, opposite side. Promotes only via shadow evidence."
+          "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.755 ev_gross_short=-3.158."
