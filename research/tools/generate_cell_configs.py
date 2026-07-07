@@ -1093,6 +1093,40 @@ def _apply_exit_classes(cfg: dict, pair: str) -> None:
                               "trail_mult": 0.6, "trail_min": 2.5, "trail_max": 6.0,
                               "_class": "MEDIUM"}
 
+
+
+def _apply_brock_overrides_2026_07(configs: dict) -> None:
+    """Live side/filter/exit overrides ordered by Brock 2026-07-06 (deep dives:
+    AUD_USD, GBP_USD, USD_JPY). Applied post-generation so monthly refits
+    preserve them. Each traces to research/sessions + activity log 2026-07-06."""
+    import copy as _copy
+    # AUD_USD/london: live flip short->long (corpus drift LONG all windows)
+    lon = configs.get("AUD_USD", {}).get("sessions", {}).get("london", {})
+    for st in lon.get("setups", []):
+        if st.get("id") == "kc_up_short_lean":
+            st["status"] = "SHADOW"
+            if not any(x.get("id") == "kc_up_long_lean" for x in lon["setups"]):
+                tw = _copy.deepcopy(st); tw["id"] = "kc_up_long_lean"; tw["side"] = "long"; tw["status"] = "ACTIVE"
+                lon["setups"].append(tw)
+    # GBP_USD/asia: live flip short->long; london timing: cemetery
+    ga = configs.get("GBP_USD", {}).get("sessions", {}).get("asia", {})
+    for st in ga.get("setups", []):
+        if st.get("id") == "timing_lean_30":
+            st["status"] = "SHADOW"
+            if not any(x.get("id") == "timing_lean_30_long" for x in ga["setups"]):
+                tw = _copy.deepcopy(st); tw["id"] = "timing_lean_30_long"; tw["side"] = "long"; tw["status"] = "ACTIVE"
+                ga["setups"].append(tw)
+    for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
+        if st.get("id") == "timing_lean_30":
+            st["status"] = "DISABLED"
+    # USD_JPY/asia kc_breakout_long: vol filter + harvest regear (window bleeds at 240m)
+    for st in configs.get("USD_JPY", {}).get("sessions", {}).get("asia", {}).get("setups", []):
+        if st.get("id") == "kc_breakout_long":
+            if not any(c.get("feature") == "atr_h1_relative" for c in st.get("conditions", [])):
+                st.setdefault("conditions", []).append({"feature": "atr_h1_relative", "max": 1.05})
+            st["exit"] = {"mode": "ratchet", "sl_pips": 12.0, "trigger_pips": 6.0, "trail_pips": 3.5,
+                          "trail_mult": 0.7, "trail_min": 3.0, "trail_max": 7.0, "_class": "HARVEST"}
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate config/cells/<PAIR>.json for all 8 pairs.")
     parser.add_argument("--out-dir", default=None,
@@ -1146,6 +1180,10 @@ def main() -> int:
         out_path = out_dir / f"{pair}.json"
         out_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
         print(f"    -> {out_path}")
+
+    _apply_brock_overrides_2026_07(configs)
+    for pair, cfg in configs.items():
+        (out_dir / f"{pair}.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
     # Print book summary
     _print_book_summary(configs)
