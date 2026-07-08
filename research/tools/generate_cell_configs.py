@@ -1119,6 +1119,33 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # BATCH DIAL-IN 2026-07-08 pt2 (Brock full-book order)
+    for st in configs.get("GBP_USD", {}).get("sessions", {}).get("asia", {}).get("setups", []):
+        if st.get("id") == "timing_lean_30_long":
+            cds = st.setdefault("conditions", [])
+            if not any(c.get("feature")=="rvol_5bar" for c in cds): cds.append({"feature":"rvol_5bar","max":1.321})
+            if not any(c.get("feature")=="atr_conc" for c in cds): cds.append({"feature":"atr_conc","min":0.233})
+    for st in configs.get("GBP_USD", {}).get("sessions", {}).get("ny", {}).get("setups", []):
+        if st.get("id") == "willr_recovery_short":
+            if not any(c.get("feature")=="atr_5m" for c in st.get("conditions", [])):
+                st["conditions"].append({"feature":"atr_5m","max":6.349})
+    for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
+        if st.get("id") == "rvol_low_240":
+            st["status"] = "SHADOW"
+    for st in configs.get("AUD_JPY", {}).get("sessions", {}).get("ny", {}).get("setups", []):
+        if st.get("id") == "timing_lean_30_short":
+            for cd in st.get("conditions", []):
+                if cd.get("feature")=="atr_5m": cd["max"] = 7.947
+    uj_lon = configs.get("USD_JPY", {}).get("sessions", {}).get("london", {})
+    for st in uj_lon.get("setups", []):
+        if st.get("id") == "timing_lean_30" and st.get("side") == "long":
+            st["status"] = "SHADOW"
+            if not any(x.get("id")=="timing_lean_30_short" for x in uj_lon["setups"]):
+                import copy as _c
+                tw = _c.deepcopy(st); tw["id"]="timing_lean_30_short"; tw["side"]="short"; tw["status"]="ACTIVE"
+                tw["exit"] = {"mode":"ratchet","sl_pips":25.0,"trigger_pips":10.0,"trail_pips":5.0,
+                              "trail_mult":1.0,"trail_min":5.0,"trail_max":12.0,"_class":"LONG"}
+                uj_lon["setups"].append(tw)
     # DIAL-IN 2026-07-08 (quintile tables, combined-verified on 60d corpus)
     for st in configs.get("AUD_JPY", {}).get("sessions", {}).get("ny", {}).get("setups", []):
         if st.get("id") == "regime_short_240":

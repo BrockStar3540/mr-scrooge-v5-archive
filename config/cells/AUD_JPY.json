@@ -150,7 +150,7 @@
             {
               "feature": "atr_5m",
               "min": 6.617985,
-              "max": null,
+              "max": 7.947,
               "note": "atr_5m >= p75 boundary (6.617985) from top5_per_cell_per_horizon.csv h=30 (plateau_ok=True). Above p75 = sufficient vol for 30m range harvest.",
               "lineage": "range-harvest-2026-07-04/top5_per_cell_per_horizon.csv h=30 atr_5m AUD_JPY/ny/long"
             }
@@ -180,7 +180,7 @@
             "source": "side-audit 2026-07-08: loud-vol ny window drift -2.95p/240m (n=389, 60d); NY fade consistent with regime_short_240 sibling",
             "drift": "STABLE"
           },
-          "notes": "LIVE FLIP 2026-07-08 from timing_lean_30 long. FAST bracket retained. Tripwire fast last_n=20 min_ev=-0.5."
+          "notes": "LIVE FLIP 2026-07-08 from timing_lean_30 long. FAST bracket retained. Tripwire fast last_n=20 min_ev=-0.5. | DIAL-IN 2026-07-08: atr window [6.618,7.947] -> drift +4.61."
         }
       ],
       "notes": "2 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=None ev_gross_short=None."
