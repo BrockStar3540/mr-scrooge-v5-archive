@@ -80,9 +80,13 @@
             {
               "feature": "kc_up_dist_pips",
               "min": -15.0,
-              "max": 0.0,
+              "max": -4.62,
               "note": "Price within [-15, 0] pips of KC upper band; near/below upper KC. Clean-data re-derivation (2026-07-03): KEEP n=8391 -0.054p 49.2% WR vs BLOCKED -1.110p 47.9% WR. Fresh stump: -13.6459 (gt) WR=49.6%. Broker-validated: 6W 1L on live AUD_USD/london/short trades. phaseA (2026-07-04): survives raw re-derivation unchanged.",
               "lineage": "rederivation-2026-07-03/v5_rederivation_REPORT.md item-3b; broker-validation-6W1L-2026-07; phaseA_gate_rederivation-2026-07-04 CELL 4"
+            },
+            {
+              "feature": "rvol_5bar",
+              "min": 0.8
             }
           ],
           "exit": {
@@ -110,7 +114,7 @@
             "source": "side-audit 2026-07-06: corpus drift LONG in window (2026 +0.40, 60d +1.59, 14d +6.14 p/240m); twin installed to earn side via n>=20 shadow gauntlet",
             "drift": "STRENGTHENING"
           },
-          "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend. | REGEARED 2026-07-08: harvest gear SL12/engage6/0.7xATR[3,7] (winner MAE p75 9.2; MFE med 11.1). Side reconfirmed LONG (+1.59 drift/60d). No filter added \u2014 no honest separator found."
+          "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend. | REGEARED 2026-07-08: harvest gear SL12/engage6/0.7xATR[3,7] (winner MAE p75 9.2; MFE med 11.1). Side reconfirmed LONG (+1.59 drift/60d). No filter added \u2014 no honest separator found. | DIAL-IN 2026-07-08: pullback-long zone [-15,-4.62] + rvol>=0.80. drift +2.93 (+84%), cw 43%."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.755 ev_gross_short=-3.158."

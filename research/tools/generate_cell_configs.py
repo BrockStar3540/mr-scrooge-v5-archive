@@ -1119,6 +1119,25 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # DIAL-IN 2026-07-08 (quintile tables, combined-verified on 60d corpus)
+    for st in configs.get("AUD_JPY", {}).get("sessions", {}).get("ny", {}).get("setups", []):
+        if st.get("id") == "regime_short_240":
+            for cd in st.get("conditions", []):
+                if cd.get("feature") == "atr_5m": cd["max"] = 2.81
+                if cd.get("feature") == "kc_up_dist_pips": cd["min"] = -4.54
+    for st in configs.get("AUD_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
+        if st.get("id") == "kc_up_long_lean":
+            for cd in st.get("conditions", []):
+                if cd.get("feature") == "kc_up_dist_pips": cd["min"] = -15.0; cd["max"] = -4.62
+            if not any(c.get("feature") == "rvol_5bar" for c in st.get("conditions", [])):
+                st["conditions"].append({"feature": "rvol_5bar", "min": 0.80})
+    for st in configs.get("EUR_JPY", {}).get("sessions", {}).get("ny", {}).get("setups", []):
+        if st.get("id") == "timing_lean_30":
+            if not any(c.get("feature") == "atr_h1_relative" for c in st.get("conditions", [])):
+                st.setdefault("conditions", []).append({"feature": "atr_h1_relative", "min": 1.09})
+    for st in configs.get("GBP_USD", {}).get("sessions", {}).get("asia", {}).get("setups", []):
+        if st.get("id") == "timing_lean_30_long":
+            st["exit"] = dict(st.get("exit", {}), sl_pips=14.0)
     # AUD_JPY/ny timing_lean_30: live flip long->short (2026-07-08, window drift -2.95)
     aj_ny = configs.get("AUD_JPY", {}).get("sessions", {}).get("ny", {})
     for st in aj_ny.get("setups", []):

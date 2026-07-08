@@ -74,7 +74,7 @@
           ],
           "exit": {
             "mode": "ratchet",
-            "sl_pips": 20.0,
+            "sl_pips": 14.0,
             "trigger_pips": 8.0,
             "trail_pips": 4.0,
             "trail_mult": 1.0,
@@ -97,7 +97,7 @@
             "source": "side-audit 2026-07-06: atr_5m>=3.677 asia window drift LONG last-60d +2.60, last-14d +8.17 p/240m (YTD ~flat)",
             "drift": "STRENGTHENING"
           },
-          "notes": "LIVE FLIP 2026-07-06 (Brock order) from timing_lean_30 short. Tripwire fast last_n=20 min_ev=-0.5 suspend."
+          "notes": "LIVE FLIP 2026-07-06 (Brock order) from timing_lean_30 short. Tripwire fast last_n=20 min_ev=-0.5 suspend. | SL 20->14 (winners MAE p75=13.8)."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-2.784 ev_gross_short=-1.803."
