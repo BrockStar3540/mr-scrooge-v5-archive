@@ -1119,6 +1119,15 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # AUD_JPY/ny timing_lean_30: live flip long->short (2026-07-08, window drift -2.95)
+    aj_ny = configs.get("AUD_JPY", {}).get("sessions", {}).get("ny", {})
+    for st in aj_ny.get("setups", []):
+        if st.get("id") == "timing_lean_30" and st.get("side") == "long":
+            st["status"] = "SHADOW"
+            if not any(x.get("id") == "timing_lean_30_short" for x in aj_ny["setups"]):
+                import copy as _c
+                tw = _c.deepcopy(st); tw["id"] = "timing_lean_30_short"; tw["side"] = "short"; tw["status"] = "ACTIVE"
+                aj_ny["setups"].append(tw)
     # AUD_JPY/ny regime_short_240: dual filter + SL12 (2026-07-08 deep dive)
     for st in configs.get("AUD_JPY", {}).get("sessions", {}).get("ny", {}).get("setups", []):
         if st.get("id") == "regime_short_240":
