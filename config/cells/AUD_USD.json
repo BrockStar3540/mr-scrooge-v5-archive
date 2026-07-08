@@ -87,13 +87,13 @@
           ],
           "exit": {
             "mode": "ratchet",
-            "sl_pips": 20.0,
-            "trigger_pips": 8.0,
-            "trail_pips": 4.0,
-            "trail_mult": 1.0,
-            "trail_min": 4.0,
-            "trail_max": 10.0,
-            "_class": "LONG"
+            "sl_pips": 12.0,
+            "trigger_pips": 6.0,
+            "trail_pips": 3.5,
+            "trail_mult": 0.7,
+            "trail_min": 3.0,
+            "trail_max": 7.0,
+            "_class": "HARVEST"
           },
           "sizing": {
             "risk_pct": 0.2
@@ -110,7 +110,7 @@
             "source": "side-audit 2026-07-06: corpus drift LONG in window (2026 +0.40, 60d +1.59, 14d +6.14 p/240m); twin installed to earn side via n>=20 shadow gauntlet",
             "drift": "STRENGTHENING"
           },
-          "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend."
+          "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend. | REGEARED 2026-07-08: harvest gear SL12/engage6/0.7xATR[3,7] (winner MAE p75 9.2; MFE med 11.1). Side reconfirmed LONG (+1.59 drift/60d). No filter added \u2014 no honest separator found."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.755 ev_gross_short=-3.158."

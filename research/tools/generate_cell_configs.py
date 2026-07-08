@@ -1119,6 +1119,20 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # AUD_JPY/ny regime_short_240: dual filter + SL12 (2026-07-08 deep dive)
+    for st in configs.get("AUD_JPY", {}).get("sessions", {}).get("ny", {}).get("setups", []):
+        if st.get("id") == "regime_short_240":
+            cds = st.setdefault("conditions", [])
+            if not any(c.get("feature") == "kc_up_dist_pips" for c in cds):
+                cds.append({"feature": "kc_up_dist_pips", "min": -6.75})
+            if not any(c.get("feature") == "willr_m5" for c in cds):
+                cds.append({"feature": "willr_m5", "min": -66.37})
+            st["exit"] = dict(st.get("exit", {}), sl_pips=12.0)
+    # AUD_USD/london kc_up_long_lean: harvest regear (2026-07-08)
+    for st in configs.get("AUD_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
+        if st.get("id") == "kc_up_long_lean":
+            st["exit"] = {"mode": "ratchet", "sl_pips": 12.0, "trigger_pips": 6.0, "trail_pips": 3.5,
+                          "trail_mult": 0.7, "trail_min": 3.0, "trail_max": 7.0, "_class": "HARVEST"}
     # USD_JPY/asia kc_breakout_long: vol filter + harvest regear (window bleeds at 240m)
     for st in configs.get("USD_JPY", {}).get("sessions", {}).get("asia", {}).get("setups", []):
         if st.get("id") == "kc_breakout_long":
