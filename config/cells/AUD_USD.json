@@ -134,7 +134,7 @@
           "id": "control_atrconc_60",
           "side": "short",
           "class": "FORMULA",
-          "status": "SHADOW",
+          "status": "ACTIVE",
           "horizon_min": 60,
           "conditions": [
             {
@@ -164,7 +164,7 @@
             "source": "formula-history-2026-07-04/verdict_table.csv",
             "holdout_months_positive": 2
           },
-          "notes": "CONTROL formula: deep-OOS failed validation. 2026 convergence ev=+0.394 is a 2026-pocket artifact. atr_conc in [p13.9, p35.5] abs=[0.177600, 0.241631]. Stamps emitted for live falsification. Source: formula_shadow.py REGISTRY + ~/v5-formula-history/ verdict_table.csv.",
+          "notes": "CONTROL formula: deep-OOS failed validation. 2026 convergence ev=+0.394 is a 2026-pocket artifact. atr_conc in [p13.9, p35.5] abs=[0.177600, 0.241631]. Stamps emitted for live falsification. Source: formula_shadow.py REGISTRY + ~/v5-formula-history/ verdict_table.csv. | PROMOTED 2026-07-09 (shadow scoreboard): stamp-forward +3.65p/ep n=48 83% hit; corpus ny-short agrees.",
           "tripwires": {
             "fast": {
               "last_n": 20,

@@ -1119,6 +1119,20 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # SHADOW SCOREBOARD 2026-07-09 (stamp-forward verdicts)
+    for st in configs.get("AUD_USD", {}).get("sessions", {}).get("ny", {}).get("setups", []):
+        if st.get("id") == "control_atrconc_60":
+            st["status"] = "ACTIVE"
+            st["exit"] = {"mode":"bracket","tp_pips":3.0,"sl_pips":4.0,"timeout_min":60.0,
+                          "entry_cutoff_utc":20.0,"trigger_pips":7.5,"trail_pips":1.5,"_class":"FAST"}
+    for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
+        if st.get("id") == "rvol_low_240":
+            st["status"] = "ACTIVE"
+            st["exit"] = {"mode":"ratchet","sl_pips":14.0,"trigger_pips":8.0,"trail_pips":4.0,
+                          "trail_mult":1.0,"trail_min":4.0,"trail_max":10.0,"_class":"LONG"}
+    for st in configs.get("GBP_USD", {}).get("sessions", {}).get("ny", {}).get("setups", []):
+        if st.get("id") == "willr_recovery_short":
+            st["status"] = "SHADOW"
     # BATCH DIAL-IN 2026-07-08 pt2 (Brock full-book order)
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("asia", {}).get("setups", []):
         if st.get("id") == "timing_lean_30_long":
