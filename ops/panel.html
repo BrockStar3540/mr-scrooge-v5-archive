@@ -713,6 +713,23 @@ body.has-ticker{padding-bottom:32px}
 
 <!-- ─── SHADOW TAB (Phase C shadow-week scoreboard + stamp feed) ─────────── -->
 <div id="tab-shadow" class="pane">
+  <div class="card" style="margin:14px">
+    <div class="card-title">Shadowboard — cumulative stamp-forward scoreboard
+      <span id="sb-meta" class="muted" style="font-size:10px;margin-left:8px"></span>
+    </div>
+    <div class="muted" style="padding:0 12px 8px;font-size:11px">
+      Every setup (ACTIVE and SHADOW) scored on the identical metric: episode-deduped signal stamps → forward M5 path → net pips at 240m.
+      Cumulative since the cell-era cutover (2026-07-04). 🏆 = shadow beating the live book's median.
+    </div>
+    <table id="sb-tbl" style="width:100%">
+      <thead><tr>
+        <th>setup</th><th>cell</th><th>side</th><th>status</th><th>eps</th>
+        <th>avg net/ep</th><th>cum net</th><th>WR</th><th>hit≥6p</th><th>medMFE/MAE</th><th>7d avg (n)</th><th>since</th>
+      </tr></thead>
+      <tbody id="sb-body"></tbody>
+    </table>
+  </div>
+
   <div id="shadow-phase" class="banner banner-gray">Loading shadow-phase status…</div>
   <div class="card">
     <div class="card-title">Setup Scoreboard — simulated EV vs expected
@@ -902,6 +919,33 @@ function showTab(name, btn){
   btn.classList.add('active');
 }
 function fmt(v,d=2){return v==null?'—':Number(v).toFixed(d)}
+
+/* ── Shadowboard ───────────────────────────────────────────────────────── */
+async function pollShadowboard(){
+  try{
+    const r=await fetch('/api/shadowboard'); if(!r.ok)return;
+    const d=await r.json();
+    document.getElementById('sb-meta').textContent=
+      `active median ${d.active_median??'—'}p/ep · ${d.pending||0} episodes maturing · ${(d.generated||'').slice(11,16)}Z`;
+    document.getElementById('sb-body').innerHTML=(d.rows||[]).map(x=>{
+      const beat=(x.status==='SHADOW'&&d.active_median!=null&&x.avg_net240>d.active_median)?' 🏆':'';
+      const stcls=x.status==='ACTIVE'?'style="color:#2ecc71;font-weight:700"':'style="color:#f4c542"';
+      const ncls=x.avg_net240>0?'pos':'neg';
+      return `<tr>
+        <td class="mono" style="font-size:11px">${x.setup}${beat}</td>
+        <td>${x.cell}</td><td>${x.side==='long'?'▲L':'▼S'}</td>
+        <td ${stcls}>${x.status}</td><td>${x.episodes}</td>
+        <td class="mono ${ncls}"><b>${x.avg_net240>0?'+':''}${x.avg_net240}p</b></td>
+        <td class="mono ${x.cum_net240>0?'pos':'neg'}">${x.cum_net240>0?'+':''}${x.cum_net240}p</td>
+        <td>${Math.round(x.wr*100)}%</td><td>${Math.round(x.hit6*100)}%</td>
+        <td class="mono muted" style="font-size:11px">${x.med_mfe}/${x.med_mae}</td>
+        <td class="mono" style="font-size:11px">${x.last7_avg==null?'—':(x.last7_avg>0?'+':'')+x.last7_avg+'p ('+x.last7_n+')'}</td>
+        <td class="muted" style="font-size:10px">${x.first}</td>
+      </tr>`;
+    }).join('');
+  }catch(e){}
+}
+setInterval(pollShadowboard,60000); pollShadowboard();
 function fmtPips(v){if(v==null)return '—';const n=Number(v);return (n>=0?'+':'')+n.toFixed(1)+'p'}
 function fmtDollar(v){if(v==null)return '—';const n=Number(v);return (n>=0?'+':'')+'$'+Math.abs(n).toFixed(2)}
 function colorPips(v){if(v==null)return '';return v>=0?'pos':'neg'}

@@ -946,6 +946,11 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 body = _j.dumps(_state(self._engine), default=str).encode()
                 ctype = "application/json"
                 code = 200
+            elif self.path.startswith("/api/shadowboard"):
+                from ops import shadowboard as _sb
+                body = _j.dumps(_sb.get_board(), default=str).encode()
+                ctype = "application/json"
+                code = 200
             elif self.path.startswith("/api/sysinfo"):
                 body = _j.dumps(_sysinfo(), default=str).encode()
                 ctype = "application/json"
