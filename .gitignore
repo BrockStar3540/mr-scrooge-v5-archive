@@ -7,3 +7,5 @@ data/*.jsonl
 data/*.parquet
 *.log
 .DS_Store
+data/shadowboard.json
+data/shadowboard.tmp
