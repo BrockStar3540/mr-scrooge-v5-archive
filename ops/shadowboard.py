@@ -133,20 +133,35 @@ def _aggregate(db):
     out.sort(key=lambda r: r["avg_net240"], reverse=True)
     return out
 
-def get_board():
-    now = time.time()
-    with _LOCK:
-        if _CACHE["data"] is not None and now - _CACHE["ts"] < _REFRESH_S:
-            return _CACHE["data"]
-        try:
-            db = _refresh()
-        except Exception:
-            db = _load()
+_REFRESHING = {"on": False}
+
+def _refresh_worker():
+    """Runs in a daemon thread — never inside a dashboard request."""
+    try:
+        db = _refresh()
         rows = _aggregate(db)
         active = [r["avg_net240"] for r in rows if r["status"] == "ACTIVE"]
         data = {"rows": rows,
                 "active_median": round(sorted(active)[len(active)//2], 2) if active else None,
                 "pending": sum(1 for e in db["episodes"].values() if not e["scores"]),
                 "generated": datetime.now(timezone.utc).isoformat()}
-        _CACHE.update(ts=now, data=data)
-        return data
+        with _LOCK:
+            _CACHE.update(ts=time.time(), data=data)
+    except Exception:
+        pass
+    finally:
+        _REFRESHING["on"] = False
+
+def get_board():
+    """INSTANT: returns the cached board (or a building placeholder) and kicks
+    a background refresh when stale. Never blocks the single-threaded server."""
+    with _LOCK:
+        stale = _CACHE["data"] is None or time.time() - _CACHE["ts"] >= _REFRESH_S
+        data = _CACHE["data"]
+    if stale and not _REFRESHING["on"]:
+        _REFRESHING["on"] = True
+        threading.Thread(target=_refresh_worker, daemon=True, name="shadowboard-refresh").start()
+    if data is None:
+        return {"rows": [], "active_median": None, "pending": None,
+                "generated": None, "building": True}
+    return data
