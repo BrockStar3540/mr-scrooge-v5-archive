@@ -61,6 +61,46 @@
             "n_floor_status": "small-n-hypothesis (keep-set n=5 of n=9 journal)"
           },
           "notes": "phaseA RE-EXPRESSIBLE verdict: kc_up>=0 replaces d_cert>=0.49 (tighter: fewer fires, higher WR, catches the loss cert gate missed). Side long via inverted_live convention. was locked \ud83d\udd12 -> priority_analysis. | REGEARED 2026-07-06 (Brock deep dive): window bleeds at 240m (drift -14.75p/60d) \u2014 harvest the pop, not a runner. Filter atr_h1_relative<=1.05 (38.8% vs 11.1% clean-win). SL12/engage6/0.7xATR[3,7]."
+        },
+        {
+          "id": "box_pdl_short",
+          "side": "short",
+          "class": "box",
+          "status": "SHADOW",
+          "horizon_min": 240,
+          "conditions": [
+            {
+              "feature": "pdl_dist",
+              "max": 0.0,
+              "note": "price below prior-day low = downside box break (V1 OG box theory, resurrected 2026-07-09)"
+            }
+          ],
+          "exit": {
+            "mode": "ratchet",
+            "sl_pips": 12.0,
+            "trigger_pips": 6.0,
+            "trail_pips": 3.5,
+            "trail_mult": 0.7,
+            "trail_min": 3.0,
+            "trail_max": 7.0,
+            "_class": "HARVEST"
+          },
+          "sizing": {
+            "risk_pct": 0.2
+          },
+          "tripwires": {
+            "fast": {
+              "last_n": 20,
+              "min_ev": -0.5,
+              "action": "suspend"
+            }
+          },
+          "evidence": {
+            "ev_seq": 0.0,
+            "source": "box-screen 2026-07-09: drift +6.55p/240m n=2117, 4/5 slices (mirror of kc_breakout_long)",
+            "drift": "PERSISTENT"
+          },
+          "notes": "RESURRECTION DOCKET item 3: V1 box theory re-expressed. SHADOW \u2014 earns ACTIVE via stamp-forward scoreboard n>=20."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.349 ev_gross_short=-1.204. was locked \ud83d\udd12 -> priority_analysis."

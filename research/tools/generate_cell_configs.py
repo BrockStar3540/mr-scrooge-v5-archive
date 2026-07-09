@@ -1119,6 +1119,24 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # OG BOX THEORY shadows 2026-07-09 (resurrection docket item 3)
+    import copy as _cbx
+    _BOX = {"id":"box_pdl_short","side":"short","class":"box","status":"SHADOW","horizon_min":240,
+            "conditions":[{"feature":"pdl_dist","max":0.0}],
+            "sizing":{"risk_pct":0.2},
+            "tripwires":{"fast":{"last_n":20,"min_ev":-0.5,"action":"suspend"}},
+            "evidence":{"ev_seq":0.0,"source":"box-screen 2026-07-09","drift":"PERSISTENT"},
+            "notes":"V1 box theory resurrected; SHADOW earns via scoreboard."}
+    _BOX_EXITS = {
+        ("EUR_JPY","asia"): {"mode":"ratchet","sl_pips":14.0,"trigger_pips":8.0,"trail_pips":4.0,"trail_mult":1.0,"trail_min":4.0,"trail_max":10.0,"_class":"LONG"},
+        ("USD_JPY","asia"): {"mode":"ratchet","sl_pips":12.0,"trigger_pips":6.0,"trail_pips":3.5,"trail_mult":0.7,"trail_min":3.0,"trail_max":7.0,"_class":"HARVEST"},
+        ("GBP_USD","ny"):   {"mode":"bracket","tp_pips":4.0,"sl_pips":5.0,"timeout_min":60.0,"entry_cutoff_utc":20.0,"trigger_pips":7.5,"trail_pips":1.5,"_class":"FAST"},
+    }
+    for (bp, bs), bx in _BOX_EXITS.items():
+        sc = configs.get(bp, {}).get("sessions", {}).get(bs, {})
+        if sc and not any(x.get("id")=="box_pdl_short" for x in sc.get("setups", [])):
+            st = _cbx.deepcopy(_BOX); st["exit"] = bx
+            sc.setdefault("setups", []).append(st)
     # MTF dial 2026-07-09: htf_pct_60 floor-of-range confirmation on AU london kc
     for st in configs.get("AUD_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "kc_up_long_lean":
