@@ -24,5 +24,19 @@ Retest standard: the dial-in method (60d clean corpus, exact windows, multi-slic
 7. **Profit-anchored sizing / NAV-vs-balance compounding** (dead-ends §2.5/3.6) — bundle into the parked equal-$/pip sizing decision. *With Brock, pre-V6-live.*
 8. **max_reentries + reactive re-entry logic** (§3.3, B-007) — cell era has no explicit re-entry policy beyond cooldown; UJ asia's winning re-entries suggest value in studying it deliberately. *Low.*
 
+## Universe expansion (opened 2026-07-09, Brock order)
+
+The original 20-pair universe returns for evaluation. 2026 corpus built for the 12 non-book pairs
+(`research/tools/build_ext_corpus.py`, ~39k bars each); all 72 cells screened both directions
+(`research/tools/universe_screen.py`). **Survivors:** EUR_AUD/asia LONG, GBP_AUD/asia LONG
+(+5–9p/mo consistently since May), GBP_JPY/asia SHORT (+2.7 YTD). **Watch:** CHF_JPY asia+london
+shorts, GBP_JPY/ny short. Next: weekend engine expansion (PAIRS list, feed, _MAX_SPREAD entries,
+cell configs) to wire survivor pairs as SHADOW-only cells → stamp-forward scoreboard earns ACTIVE.
+
+**Periodic flip protocol (standing):** the weekly review re-runs the universe screen over all cells
+(book + shadows + expansion). Both directions are always scored — a strongly negative long IS the
+short candidate. A shadow side flips when two consecutive weekly screens agree on the opposite sign;
+an ACTIVE side flips only via the full dial-in treatment. Screens exclude fwd_*/mfe_*/mae_* columns.
+
 ## Standing rule
 Nothing promotes from this docket without: clean-corpus pass (multi-slice bar) → live tripwire. Burials re-confirmed here get a headstone note in the graveyard doc so they aren't re-litigated a third time.
