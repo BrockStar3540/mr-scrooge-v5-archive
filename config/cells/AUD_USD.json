@@ -87,6 +87,11 @@
             {
               "feature": "rvol_5bar",
               "min": 0.8
+            },
+            {
+              "feature": "htf_pct_60",
+              "max": 0.013,
+              "note": "MTF dial 2026-07-09: price at the floor of its 60h range. Passed full robustness bar (both horizons, 4/5 slices, positive every month). drift +2.93->+7.71."
             }
           ],
           "exit": {
@@ -114,7 +119,7 @@
             "source": "side-audit 2026-07-06: corpus drift LONG in window (2026 +0.40, 60d +1.59, 14d +6.14 p/240m); twin installed to earn side via n>=20 shadow gauntlet",
             "drift": "STRENGTHENING"
           },
-          "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend. | REGEARED 2026-07-08: harvest gear SL12/engage6/0.7xATR[3,7] (winner MAE p75 9.2; MFE med 11.1). Side reconfirmed LONG (+1.59 drift/60d). No filter added \u2014 no honest separator found. | DIAL-IN 2026-07-08: pullback-long zone [-15,-4.62] + rvol>=0.80. drift +2.93 (+84%), cw 43%."
+          "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend. | REGEARED 2026-07-08: harvest gear SL12/engage6/0.7xATR[3,7] (winner MAE p75 9.2; MFE med 11.1). Side reconfirmed LONG (+1.59 drift/60d). No filter added \u2014 no honest separator found. | DIAL-IN 2026-07-08: pullback-long zone [-15,-4.62] + rvol>=0.80. drift +2.93 (+84%), cw 43%. | +htf_pct_60<=0.013 MTF dial 2026-07-09 (first HTF seat; +163% drift, monthly-consistent)."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.755 ev_gross_short=-3.158."

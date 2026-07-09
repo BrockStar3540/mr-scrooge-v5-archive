@@ -1119,6 +1119,11 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # MTF dial 2026-07-09: htf_pct_60 floor-of-range confirmation on AU london kc
+    for st in configs.get("AUD_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
+        if st.get("id") == "kc_up_long_lean":
+            if not any(c.get("feature")=="htf_pct_60" for c in st.get("conditions", [])):
+                st["conditions"].append({"feature": "htf_pct_60", "max": 0.013})
     # SHADOW SCOREBOARD 2026-07-09 (stamp-forward verdicts)
     for st in configs.get("AUD_USD", {}).get("sessions", {}).get("ny", {}).get("setups", []):
         if st.get("id") == "control_atrconc_60":
