@@ -219,6 +219,46 @@
             "n_floor_status": "shadow-only-awaiting-live-stamps"
           },
           "notes": "SHADOW TIMING setup: 30m atr_5m band. Side from persistent lean ema5 sign=negative (corr=-0.0630, AUC=0.4820). lean confirmer dropped (ema5 = price level, AUC at noise floor); side=short retained from calibration lean, first-live-stamps will judge. atr_5m boundary p75=5.766878 (plateau_ok). Awaiting live CELLSHADOW stamps before promotion consideration. | CEMETERY 2026-07-06 (Brock doctrine): drift sign flips every window (+3.96/-3.78/+3.05 p240) \u2014 no defensible side, no separating filter found. Re-enters only via discovery loop with new evidence."
+        },
+        {
+          "id": "classic_box_fade_long",
+          "side": "long",
+          "class": "classic",
+          "status": "SHADOW",
+          "horizon_min": 240,
+          "conditions": [
+            {
+              "feature": "bb_pos",
+              "max": 0.03,
+              "note": "price at/below lower Bollinger (box_fade long)"
+            }
+          ],
+          "exit": {
+            "mode": "ratchet",
+            "sl_pips": 12.0,
+            "trigger_pips": 4.0,
+            "trail_pips": 2.5,
+            "trail_mult": 0.6,
+            "trail_min": 2.5,
+            "trail_max": 6.0,
+            "_class": "MEDIUM"
+          },
+          "sizing": {
+            "risk_pct": 0.2
+          },
+          "tripwires": {
+            "fast": {
+              "last_n": 20,
+              "min_ev": -0.5,
+              "action": "suspend"
+            }
+          },
+          "evidence": {
+            "ev_seq": 0.0,
+            "source": "classics-retrial 2026-07-09: YTD +5.0 drift, edge vs baseline +3.3 (strongest of batch)",
+            "drift": "STABLE"
+          },
+          "notes": "V4 classic resurrected via retrial (regime-rider baseline control). SHADOW earns via scoreboard."
         }
       ],
       "notes": "2 ACTIVE, 0 SHADOW setups. Tier=1 ev_gross_long=0.403 ev_gross_short=-0.037."

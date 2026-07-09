@@ -66,6 +66,12 @@
 ### B-087 — Dashboard set-serialization crash (V3-era `/api/data`; pattern recurred in V5 dashboards)
 - **Lesson:** every state endpoint needs a defensive serializer; one non-JSON type must degrade to a stub row, never a 500.
 
+### B-088 — V4 wrapper alias direction mismatches (found 2026-07-09, read-only archaeology)
+- **Area:** V4 `plugins/strategies/` wrappers vs `_v3_triggers/textbook.py` `_RENAME_MAP`
+- **Symptom:** three wrappers' docstrings claim the trade direction was flipped at the 2026-06-17 rename (williams_extreme_fade "goes LONG", vol_coil_fade_long "goes SHORT", zscore_extreme_fade_l 'hi'->SHORT) but the alias map resolves each to the ORIGINAL probe — documentation and execution disagree on SIGN.
+- **Impact:** any V4-era analysis that trusted wrapper docstrings for direction has sign-scrambled conclusions for these three families.
+- **Lesson:** at every rename/flip, the alias map IS the behavior; docstrings are wishes. Test what the code does (the retrial did).
+
 ---
 
 *Numbering note: B-075…B-087 assigned 2026-07-05 while porting the catalog into the repo; the vault copy remains the V1–V3 source of record.*

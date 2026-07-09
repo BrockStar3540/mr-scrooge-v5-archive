@@ -283,6 +283,91 @@
               "action": "suspend"
             }
           }
+        },
+        {
+          "id": "classic_box_fade_short",
+          "side": "short",
+          "class": "classic",
+          "status": "SHADOW",
+          "horizon_min": 240,
+          "conditions": [
+            {
+              "feature": "bb_pos",
+              "min": 0.87,
+              "note": "price at/above upper Bollinger (box_fade short)"
+            }
+          ],
+          "exit": {
+            "mode": "ratchet",
+            "sl_pips": 12.0,
+            "trigger_pips": 3.5,
+            "trail_pips": 2.5,
+            "trail_mult": 0.6,
+            "trail_min": 2.5,
+            "trail_max": 6.0,
+            "_class": "MEDIUM"
+          },
+          "sizing": {
+            "risk_pct": 0.2
+          },
+          "tripwires": {
+            "fast": {
+              "last_n": 20,
+              "min_ev": -0.5,
+              "action": "suspend"
+            }
+          },
+          "evidence": {
+            "ev_seq": 0.0,
+            "source": "classics-retrial 2026-07-09: YTD +2.9, edge +2.7",
+            "drift": "STABLE"
+          },
+          "notes": "V4 classic resurrected via retrial (regime-rider baseline control). SHADOW earns via scoreboard."
+        },
+        {
+          "id": "classic_willr_fade_short",
+          "side": "short",
+          "class": "classic",
+          "status": "SHADOW",
+          "horizon_min": 240,
+          "conditions": [
+            {
+              "feature": "willr_m5",
+              "min": -22.0,
+              "note": "williams extreme overbought (rsi-proxy >=78)"
+            },
+            {
+              "feature": "ret_5m",
+              "max": 0.0,
+              "note": "down bar confirmation"
+            }
+          ],
+          "exit": {
+            "mode": "ratchet",
+            "sl_pips": 12.0,
+            "trigger_pips": 3.5,
+            "trail_pips": 2.5,
+            "trail_mult": 0.6,
+            "trail_min": 2.5,
+            "trail_max": 6.0,
+            "_class": "MEDIUM"
+          },
+          "sizing": {
+            "risk_pct": 0.2
+          },
+          "tripwires": {
+            "fast": {
+              "last_n": 20,
+              "min_ev": -0.5,
+              "action": "suspend"
+            }
+          },
+          "evidence": {
+            "ev_seq": 0.0,
+            "source": "classics-retrial 2026-07-09: YTD +2.6, edge +2.4",
+            "drift": "STABLE"
+          },
+          "notes": "V4 classic resurrected via retrial (regime-rider baseline control). SHADOW earns via scoreboard."
         }
       ],
       "notes": "0 ACTIVE, 1 SHADOW setups. Tier=2 ev_gross_long=-0.894 ev_gross_short=-2.582."

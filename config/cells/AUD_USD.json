@@ -120,6 +120,51 @@
             "drift": "STRENGTHENING"
           },
           "notes": "LIVE FLIP 2026-07-06 (Brock order) from kc_up_short_lean. Corpus drift LONG all windows. Tripwire: fast last_n=20 min_ev=-0.5 suspend. | REGEARED 2026-07-08: harvest gear SL12/engage6/0.7xATR[3,7] (winner MAE p75 9.2; MFE med 11.1). Side reconfirmed LONG (+1.59 drift/60d). No filter added \u2014 no honest separator found. | DIAL-IN 2026-07-08: pullback-long zone [-15,-4.62] + rvol>=0.80. drift +2.93 (+84%), cw 43%. | +htf_pct_60<=0.013 MTF dial 2026-07-09 (first HTF seat: 60-day-return <= +1.3%; +163% drift, monthly-consistent)."
+        },
+        {
+          "id": "classic_extension_fade_long",
+          "side": "long",
+          "class": "classic",
+          "status": "SHADOW",
+          "horizon_min": 240,
+          "conditions": [
+            {
+              "feature": "willr_m5",
+              "max": -65.0,
+              "note": "rsi-proxy <=35 oversold"
+            },
+            {
+              "feature": "ema20_dist_pct",
+              "max": 0.0,
+              "note": "below EMA20 (extended down -> fade long)"
+            }
+          ],
+          "exit": {
+            "mode": "ratchet",
+            "sl_pips": 12.0,
+            "trigger_pips": 6.0,
+            "trail_pips": 3.5,
+            "trail_mult": 0.7,
+            "trail_min": 3.0,
+            "trail_max": 7.0,
+            "_class": "HARVEST"
+          },
+          "sizing": {
+            "risk_pct": 0.2
+          },
+          "tripwires": {
+            "fast": {
+              "last_n": 20,
+              "min_ev": -0.5,
+              "action": "suspend"
+            }
+          },
+          "evidence": {
+            "ev_seq": 0.0,
+            "source": "classics-retrial 2026-07-09: YTD +2.9, edge +2.0",
+            "drift": "STABLE"
+          },
+          "notes": "V4 classic resurrected via retrial (regime-rider baseline control). SHADOW earns via scoreboard."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-1.755 ev_gross_short=-3.158."
