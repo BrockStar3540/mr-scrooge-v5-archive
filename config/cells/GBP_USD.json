@@ -106,6 +106,49 @@
             "drift": "STRENGTHENING"
           },
           "notes": "LIVE FLIP 2026-07-06 (Brock order) from timing_lean_30 short. Tripwire fast last_n=20 min_ev=-0.5 suspend. | SL 20->14 (winners MAE p75=13.8). | DIAL-IN 2026-07-08 batch: rvol<=1.321, atr_conc>=0.233 -> drift +8.87, cw 43%, dead 8%."
+        },
+        {
+          "id": "ps_floor_fade_long",
+          "side": "long",
+          "class": "session_structure",
+          "status": "SHADOW",
+          "horizon_min": 240,
+          "conditions": [
+            {
+              "feature": "ps_pos",
+              "max": 0.15
+            },
+            {
+              "feature": "ps_low_dist",
+              "min": 0.0
+            }
+          ],
+          "exit": {
+            "mode": "ratchet",
+            "sl_pips": 12.0,
+            "trigger_pips": 4.0,
+            "trail_pips": 2.5,
+            "trail_mult": 0.6,
+            "trail_min": 2.5,
+            "trail_max": 6.0,
+            "_class": "MEDIUM"
+          },
+          "sizing": {
+            "risk_pct": 0.2
+          },
+          "tripwires": {
+            "fast": {
+              "last_n": 20,
+              "min_ev": -0.5,
+              "action": "suspend"
+            }
+          },
+          "evidence": {
+            "ev_seq": 0.0,
+            "source": "prev-session screen: +3.07 YTD, 14d +12.0 (n=1701)",
+            "drift": "STABLE"
+          },
+          "notes": "Prev-session floor/ceiling consciousness (Brock hypothesis 2026-07-10). At the wall -> fade; through the wall -> follow; never anticipate. SHADOW earns via scoreboard."
         }
       ],
       "notes": "1 ACTIVE, 0 SHADOW setups. Tier=2 ev_gross_long=-2.784 ev_gross_short=-1.803."
@@ -404,6 +447,50 @@
             "drift": "PERSISTENT"
           },
           "notes": "RESURRECTION DOCKET item 3: V1 box theory re-expressed. SHADOW \u2014 earns ACTIVE via stamp-forward scoreboard n>=20."
+        },
+        {
+          "id": "ps_ceil_fade_short",
+          "side": "short",
+          "class": "session_structure",
+          "status": "SHADOW",
+          "horizon_min": 240,
+          "conditions": [
+            {
+              "feature": "ps_pos",
+              "min": 0.85
+            },
+            {
+              "feature": "ps_high_dist",
+              "max": 0.0,
+              "note": "at prev session ceiling, unbroken -> NY fade"
+            }
+          ],
+          "exit": {
+            "mode": "ratchet",
+            "sl_pips": 12.0,
+            "trigger_pips": 4.0,
+            "trail_pips": 2.5,
+            "trail_mult": 0.6,
+            "trail_min": 2.5,
+            "trail_max": 6.0,
+            "_class": "MEDIUM"
+          },
+          "sizing": {
+            "risk_pct": 0.2
+          },
+          "tripwires": {
+            "fast": {
+              "last_n": 20,
+              "min_ev": -0.5,
+              "action": "suspend"
+            }
+          },
+          "evidence": {
+            "ev_seq": 0.0,
+            "source": "prev-session screen: +5.90 YTD (n=951), all slices",
+            "drift": "STABLE"
+          },
+          "notes": "Prev-session floor/ceiling consciousness (Brock hypothesis 2026-07-10). At the wall -> fade; through the wall -> follow; never anticipate. SHADOW earns via scoreboard."
         }
       ],
       "notes": "1 ACTIVE, 1 SHADOW setups. Tier=2 ev_gross_long=-2.789 ev_gross_short=-0.567. was locked \ud83d\udd12 -> priority_analysis."

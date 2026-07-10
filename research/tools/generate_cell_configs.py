@@ -1119,6 +1119,25 @@ def _apply_brock_overrides_2026_07(configs: dict) -> None:
     for st in configs.get("GBP_USD", {}).get("sessions", {}).get("london", {}).get("setups", []):
         if st.get("id") == "timing_lean_30":
             st["status"] = "DISABLED"
+    # PREV-SESSION structure shadows 2026-07-10 (floor/ceiling consciousness)
+    _PS_MED = lambda trig: {"mode":"ratchet","sl_pips":12.0,"trigger_pips":trig,"trail_pips":2.5,
+                            "trail_mult":0.6,"trail_min":2.5,"trail_max":6.0,"_class":"MEDIUM"}
+    _PS_WIRE = [
+        ("EUR_JPY","london","ps_floor_break_short","short",[{"feature":"ps_low_dist","max":0.0}],_PS_MED(4.5)),
+        ("GBP_USD","ny","ps_ceil_fade_short","short",[{"feature":"ps_pos","min":0.85},{"feature":"ps_high_dist","max":0.0}],_PS_MED(4.0)),
+        ("EUR_USD","ny","ps_ceil_fade_short","short",[{"feature":"ps_pos","min":0.85},{"feature":"ps_high_dist","max":0.0}],_PS_MED(3.5)),
+        ("EUR_USD","asia","ps_floor_fade_long","long",[{"feature":"ps_pos","max":0.15},{"feature":"ps_low_dist","min":0.0}],_PS_MED(3.5)),
+        ("GBP_USD","asia","ps_floor_fade_long","long",[{"feature":"ps_pos","max":0.15},{"feature":"ps_low_dist","min":0.0}],_PS_MED(4.0)),
+    ]
+    for _pp, _ss, _sid, _side, _conds, _ex in _PS_WIRE:
+        _sc = configs.get(_pp, {}).get("sessions", {}).get(_ss, {})
+        if _sc and not any(x.get("id")==_sid for x in _sc.get("setups", [])):
+            _sc.setdefault("setups", []).append({"id":_sid,"side":_side,"class":"session_structure",
+                "status":"SHADOW","horizon_min":240,"conditions":_conds,"exit":_ex,
+                "sizing":{"risk_pct":0.2},
+                "tripwires":{"fast":{"last_n":20,"min_ev":-0.5,"action":"suspend"}},
+                "evidence":{"ev_seq":0.0,"source":"prev-session screen 2026-07-10","drift":"STABLE"},
+                "notes":"Session floor/ceiling consciousness; shadow earns via scoreboard."})
     # OG BOX THEORY shadows 2026-07-09 (resurrection docket item 3)
     import copy as _cbx
     _BOX = {"id":"box_pdl_short","side":"short","class":"box","status":"SHADOW","horizon_min":240,
