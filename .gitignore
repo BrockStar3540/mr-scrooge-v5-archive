@@ -9,3 +9,4 @@ data/*.parquet
 .DS_Store
 data/shadowboard.json
 data/shadowboard.tmp
+data/center_probe_log.jsonl

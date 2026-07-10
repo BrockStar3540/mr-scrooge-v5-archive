@@ -227,6 +227,15 @@ class Engine:
         # Step 3: full candles for signal evaluation
         views = self.feed.get_views(PAIRS)
 
+        # Center-of-box direction-discovery probe (log-only, never trades).
+        # Brock 2026-07-10: collect the full indicator vector at box-center to
+        # later mine for a which-way filter. research/tools/center_probe_score.py
+        try:
+            from modules.research import center_probe
+            center_probe.observe(views, now)
+        except Exception as _cpe:
+            log.warning("center_probe hook failed: %s", _cpe)
+
         # ── Step 4: cells — THE strategy source ──────────────────────────────
         # Every in-session cell evaluates its setups. SHADOW setups stamp
         # CELLSHADOW and return None; ACTIVE setups return CellIntents.
