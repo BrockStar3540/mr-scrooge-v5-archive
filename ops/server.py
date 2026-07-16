@@ -132,10 +132,18 @@ _PM_FIELDS = {
     "min_dir_certainty":   {"min": 0.0,  "max": 1.0,        "label": "Min direction.certainty"},
     "min_mom_certainty":   {"min": 0.0,  "max": 1.0,        "label": "Min momentum.certainty"},
     "cooldown_after_sl_min": {"min": 0.0, "max": 1440.0,    "label": "Cooldown after losing exit (min)"},
+    # Governance toggles that live in the `defaults` block (playmaker._pm_load reads
+    # them from defaults). Declared here so a save validates + round-trips them.
+    "profile_shadow_enabled":  {"kind": "bool",             "label": "Profile shadow logging"},
+    "calibration_log_enabled": {"kind": "bool",             "label": "Calibration logging"},
 }
 _PM_ACCT_FIELDS = {
     "margin_pct_per_trade":  {"min": 0.001, "max": 1.0,  "label": "Margin per trade (fraction of balance)"},
     "max_concurrent_trades": {"min": 1,     "max": 20,   "label": "Max concurrent trades", "int": True},
+    # Live per-currency directional exposure cap. MUST round-trip: dropping it on a
+    # save silently reverts the live cap to the code default (playmaker._PM_ACCT_DEFAULTS
+    # = 1), changing risk behaviour without an operator edit.
+    "max_per_currency_direction": {"min": 1, "max": 20, "label": "Max concurrent same (currency, sign) exposures", "int": True},
 }
 _PM_LEGACY_ACCT_KEYS = {"risk_pct_per_trade": "margin_pct_per_trade"}
 
@@ -160,25 +168,58 @@ def _validate_pm_field(table: dict, k: str, v):
     return int(f) if spec.get("int") else f
 
 def _validate_pm_cfg(cfg: dict) -> dict:
-    out = {"schema": "v1", "account": {}, "defaults": {}, "per_pair": {}}
+    """Validate a dashboard playmaker edit and MERGE it onto the on-disk config.
+
+    Only the three editable blocks (account / defaults / per_pair) are taken from
+    the incoming payload; every OTHER top-level key — disabled_cells, inverted_*
+    cells, per_cell_* ranges, random_pick and all _note* annotations — is carried
+    over verbatim from disk so a dashboard save can NEVER silently drop live
+    governance or risk caps.  (Pre-fix regression: a save reduced the file to
+    {schema,account,defaults,per_pair}, wiping account.max_per_currency_direction,
+    12 disabled_cells, the inverted_live_cells set and every per_cell_* range.)
+
+    Within each editable block KNOWN fields are range/type-validated; UNKNOWN
+    sub-keys (e.g. a per-pair `_note`) are preserved untouched rather than stripped.
+    """
+    if not isinstance(cfg, dict):
+        raise ValueError("playmaker config must be a JSON object")
+    base = _read_playmaker_config()
+    if not isinstance(base, dict) or "_error" in base:
+        base = {"schema": "v1", "account": {}, "defaults": {}, "per_pair": {}}
+    # Start from every on-disk key EXCEPT the three we're about to rebuild.
+    out = {k: v for k, v in base.items() if k not in ("account", "defaults", "per_pair")}
+    out["schema"] = "v1"
+
+    acct = dict(base.get("account") or {})
     for k, v in (cfg.get("account") or {}).items():
         k = _PM_LEGACY_ACCT_KEYS.get(k, k)   # back-compat rename
-        out["account"][k] = _validate_pm_field(_PM_ACCT_FIELDS, k, v)
+        acct[k] = _validate_pm_field(_PM_ACCT_FIELDS, k, v) if k in _PM_ACCT_FIELDS else v
+    out["account"] = acct
+
+    defs = dict(base.get("defaults") or {})
     for k, v in (cfg.get("defaults") or {}).items():
-        out["defaults"][k] = _validate_pm_field(_PM_FIELDS, k, v)
-    for pair, ov in (cfg.get("per_pair") or {}).items():
-        if pair not in _PAIRS_ALL:
-            raise ValueError(f"unknown pair: {pair}")
-        clean = {}
-        for k, v in (ov or {}).items():
-            clean[k] = _validate_pm_field(_PM_FIELDS, k, v)
-        if clean:
-            out["per_pair"][pair] = clean
+        defs[k] = _validate_pm_field(_PM_FIELDS, k, v) if k in _PM_FIELDS else v
+    out["defaults"] = defs
+
+    per = dict(base.get("per_pair") or {})
+    if isinstance(cfg.get("per_pair"), dict):
+        for pair, ov in cfg["per_pair"].items():
+            if pair not in _PAIRS_ALL:
+                raise ValueError(f"unknown pair: {pair}")
+            merged = dict(per.get(pair) or {})
+            for k, v in (ov or {}).items():
+                merged[k] = _validate_pm_field(_PM_FIELDS, k, v) if k in _PM_FIELDS else v
+            per[pair] = merged
+    out["per_pair"] = per
     return out
 
 def _write_playmaker_config(cfg: dict) -> None:
     clean = _validate_pm_cfg(cfg)
-    clean["_note"] = "Edited via dashboard PLAYMAKER tab."
+    # Record edit provenance WITHOUT clobbering the on-disk `_note` annotation
+    # (which documents the disabled/inverted cell rationale).
+    clean["_note_dashboard"] = ("Last edited via dashboard PLAYMAKER tab "
+                                f"{datetime.now(timezone.utc).isoformat()} — "
+                                "account/defaults/per_pair only; governance preserved.")
     tmp = _PM_CONFIG_PATH.with_suffix(".tmp")
     tmp.write_text(_j.dumps(clean, indent=2))
     tmp.replace(_PM_CONFIG_PATH)
