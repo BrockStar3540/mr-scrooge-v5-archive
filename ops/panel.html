@@ -799,51 +799,26 @@ body.has-ticker{padding-bottom:32px}
 <!-- ─── TUNE TAB (preserved exit-config editor) ──────────────────────────── -->
 <div id="tab-tune" class="pane">
   <div class="card">
-    <div class="card-title">Exit knobs — defaults + per-pair overrides
-      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(live; ratchet re-reads each 5s tick, new entries read on placement)</span>
+    <div class="card-title">Cell exit stack — live, per-cell
+      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(range-sized SL → engage +trigger → lock (trigger−trail) → trail; from config/cells, hot-reloaded. Edit via direct config.)</span>
     </div>
     <div id="tune-msg" style="padding:8px 10px;font-size:12px"></div>
     <div style="overflow-x:auto">
     <table id="tune-tbl" style="font-size:12px">
-      <thead>
-        <tr>
-          <th style="text-align:left">Scope</th>
-          <th title="Initial server-side stop loss in pips from entry">SL (pips)</th>
-          <th title="Peak MFE required to arm the first ratchet rung (TP1)">TP1 trigger</th>
-          <th title="Pips below the rung level where the SL parks (give-back)">Trail</th>
-          <th title="Distance between ratchet rungs (TP2 = TP1 + this)">Rung step</th>
-          <th title="Minutes after entry before the ratchet can engage (0 = immediate)">Engage min</th>
-          <th title="Minimum minutes between ratchet re-checks">Cadence min</th>
-          <th title="Derived: first lock = trigger - trail; second lock = trigger + step - trail">TP1 lock / TP2 lock</th>
-          <th></th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th style="text-align:left">Cell · setup</th>
+        <th>Status</th><th>Side</th>
+        <th title="Range-sized initial stop (pips)">SL</th>
+        <th title="Peak MFE to engage the ratchet">Engage</th>
+        <th title="Pips behind peak once engaged">Trail</th>
+        <th title="0 = fixed trail; &gt;0 = ATR-scaled (B-090 risk)">Mult</th>
+        <th title="First lock = engage − trail (green after spread)">Locks</th>
+        <th>Class</th>
+      </tr></thead>
       <tbody id="tune-body"></tbody>
     </table>
     </div>
-    <div style="padding:10px;display:flex;gap:10px;align-items:center">
-      <button class="primary" onclick="saveTune()">Save all changes</button>
-      <button class="secondary" onclick="loadTune()">Discard edits</button>
-      <span class="muted" style="font-size:11px">Per-pair: blank = inherit default. Rules: <code>trail &lt; trigger</code>, <code>tp2_at &gt; tp1_at</code>, <code>tp1% + tp2% &lt; 1</code>.</span>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">TP ladder (partial close) — V4 harvest_ladder port
-      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(defaults OFF — toggle on per scope to use)</span>
-    </div>
-    <div style="overflow-x:auto">
-    <table id="tune-tp-tbl" style="font-size:12px">
-      <thead>
-        <tr>
-          <th style="text-align:left">Scope</th>
-          <th>TP1 on</th><th>TP1 at (pips)</th><th>TP1 close %</th><th>TP1 SL lock (pips)</th>
-          <th>TP2 on</th><th>TP2 at (pips)</th><th>TP2 close %</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tune-tp-body"></tbody>
-    </table>
-    </div>
+    <div style="padding:8px 10px;font-size:12px" class="muted" id="tune-summary"></div>
   </div>
 </div>
 
@@ -868,11 +843,12 @@ body.has-ticker{padding-bottom:32px}
       </div>
       <div id="pm-risk-math" style="font-size:11px;color:var(--fg2);align-self:flex-end;padding-bottom:6px"></div>
     </div>
+    <div id="pm-acct-ro" style="padding:0 10px 10px;font-size:12px;color:var(--fg2)"></div>
   </div>
 
   <div class="card">
-    <div class="card-title">Per-pair playmaker gates
-      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">(blank cell on a pair row = inherit default)</span>
+    <div class="card-title">Per-pair playmaker gates <span style="color:var(--fail);font-size:11px">(LEGACY — retired)</span>
+      <span class="muted" style="font-weight:normal;font-size:11px;text-transform:none;letter-spacing:0">dir/mom-certainty gates are from the pre-cell era (direction_v2/momentum_v3, archived 2026-07-04). The cell era gates on raw per-cell indicator conditions instead — see the BOOK and TUNE tabs.</span>
     </div>
     <div style="overflow-x:auto">
     <table id="pm-tbl" style="font-size:12px">
@@ -1715,14 +1691,7 @@ function renderPairs(){
         <span style="margin-left:auto">${spark((HIST[t.pair]||[]).map(h=>h.dscore),{w:70,h:14,min:-1,max:1,zero:true,color:'var(--info)'})}</span>
       </div>
       <div class="pc-score-bar"><div class="pc-score-fill" style="width:${scoreW}%;background:${scoreColor}"></div></div>
-      <div class="pc-row"><span class="pc-lbl">Cert</span><span class="mono">${Math.round(t.dir_certainty*100)}% dir · ${Math.round(t.mom_certainty*100)}% mom</span>
-        <span style="margin-left:auto">${spark((HIST[t.pair]||[]).map(h=>h.mcert),{w:70,h:14,min:0,max:1,color:'var(--pass)'})}</span>
-      </div>
       <div class="pc-row"><span class="pc-lbl">Vol</span>${volPill(t.vol_regime)}<span class="muted mono" style="font-size:11px">~${fmt(t.expected_pips,1)}p exp</span></div>
-      <div class="pc-profiles">
-        L:<b>${t.long_profile||'?'}</b> · S:<b>${t.short_profile||'?'}</b> · M:<b>${t.mom_profile||'?'}</b>
-        ${t.active_side?`<br><span class="muted">active: ${(t.active_side||'').replace('_profile','')} · gates ${t.gates_passed===true?'<span class="pos">✓</span>':t.gates_passed===false?'<span class="neg">✗</span>':'—'}${t.cert_boost?' · boost '+t.cert_boost+'×':''}</span>`:''}
-      </div>
       ${rules.length?`<div class="pc-rules">${rules.join('')}</div>`:''}
       ${chips?`<div class="pc-chips">${chips}</div>`:''}
     </div>`;
@@ -2084,7 +2053,7 @@ function renderSysinfo(){
  * TUNE tab — preserved from prior version
  * ═════════════════════════════════════════════════════════════════════════ */
 let TUNE_META=null;
-async function loadTune(){const r=await fetch('/api/config/exit');const d=await r.json();TUNE_META=d;renderTune();document.getElementById('tune-msg').textContent=''}
+async function loadTune(){const r=await fetch('/api/cells');const d=await r.json();TUNE_META=d;renderTune();document.getElementById('tune-msg').textContent=''}
 function _inp(val,ph,w='70px'){const v=(val==null)?'':val;return `<input type="number" step="0.01" value="${v}" placeholder="${ph}" style="width:${w};background:var(--bg0);color:var(--fg1);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:right">`}
 function _row(scope,eff,override,isDef){
   const f=TUNE_META.fields;
@@ -2101,13 +2070,32 @@ function _row(scope,eff,override,isDef){
 }
 function renderTune(){
   if(!TUNE_META)return;
-  const body=document.getElementById('tune-body');
-  const defaults=TUNE_META.cfg.defaults||{};
-  const per=TUNE_META.cfg.per_pair||{};
-  let rows=[_row('DEFAULT',defaults,defaults,true)];
-  for(const p of TUNE_META.pairs){const ov=per[p]||null;const eff={...defaults,...(ov||{})};rows.push(_row(p,eff,ov,false))}
-  body.innerHTML=rows.join('');
-  renderTuneTP(defaults,per,TUNE_META.pairs);
+  const ord={ACTIVE:0,SHADOW:1,'NO-SIDE':2,DISABLED:3};
+  const rows=[];let nAtr=0,nSet=0;
+  const cells=(TUNE_META.cells||[]).slice().sort((a,b)=>(ord[a.status_rollup]??9)-(ord[b.status_rollup]??9)||a.pair.localeCompare(b.pair)||a.session.localeCompare(b.session));
+  for(const c of cells){
+    for(const s of (c.setups||[])){
+      nSet++;
+      const e=s.exit||{};
+      const lock=(e.trigger_pips!=null&&e.trail_pips!=null)?(e.trigger_pips-e.trail_pips):null;
+      const atr=!!(e.trail_mult&&e.trail_mult>0);if(atr)nAtr++;
+      const stPill=s.status==='ACTIVE'?'pill-pass':s.status==='SHADOW'?'pill-info':'pill-block';
+      rows.push(`<tr>
+        <td style="text-align:left" class="mono">${c.pair.replace('_','/')}/${c.session} · ${s.id}</td>
+        <td><span class="pill ${stPill}">${s.status}</span></td>
+        <td class="mono">${s.side||'—'}</td>
+        <td class="mono">${e.mode==='ratchet'?('-'+e.sl_pips):'(bracket)'}</td>
+        <td class="mono">${e.trigger_pips??'—'}</td>
+        <td class="mono">${e.trail_pips??'—'}</td>
+        <td class="mono" style="${atr?'color:var(--fail)':''}">${e.trail_mult??'—'}${atr?' ⚠ATR':''}</td>
+        <td class="mono pos">${lock!=null?('+'+lock.toFixed(1)):'—'}</td>
+        <td class="muted">${e._class||''}</td>
+      </tr>`);
+    }
+  }
+  document.getElementById('tune-body').innerHTML=rows.join('')||'<tr><td colspan="9" class="muted" style="padding:10px">no cells</td></tr>';
+  const t=TUNE_META.totals||{};
+  document.getElementById('tune-summary').innerHTML=`${nSet} setups · ACTIVE ${t.ACTIVE||0} / SHADOW ${t.SHADOW||0} / DISABLED ${t.DISABLED||0}`+(nAtr?` · <span style="color:var(--fail)">${nAtr} with ATR-scaled trail (mult&gt;0) — B-090 risk</span>`:` · all trails fixed (mult 0) ✓`);
 }
 function clearPairOverride(p){document.querySelector(`#tune-body tr[data-scope="${p}"]`).querySelectorAll('input').forEach(i=>i.value='')}
 function _collectRow(row){
@@ -2218,6 +2206,7 @@ function renderPlaymaker(){
   const acct=PM_META.cfg.account||{};
   document.getElementById('pm-risk').value=acct.margin_pct_per_trade||'';
   document.getElementById('pm-maxc').value=acct.max_concurrent_trades||'';
+  document.getElementById('pm-acct-ro').innerHTML=`Max per-currency direction: <b>${acct.max_per_currency_direction??'\u2014'}</b> &nbsp;·&nbsp; Picker: <b>${STATE?.governance?.random_pick?'RANDOM':'edge_rank (EV \u2192 alphabetical)'}</b> &nbsp;<span class="muted">\u2014 edit these via direct config; dashboard Save does not persist the currency cap or governance yet.</span>`;
   ['pm-risk','pm-maxc'].forEach(id=>document.getElementById(id).oninput=_updatePmRiskMath);
   _updatePmRiskMath();
 }
