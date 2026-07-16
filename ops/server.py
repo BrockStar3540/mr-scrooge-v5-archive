@@ -234,8 +234,9 @@ def _state(engine: "Engine") -> dict:
         _mode  = mgr.name() if hasattr(mgr, "name") else "ratchet"
         _tmult = float(getattr(_ep, "trail_mult", 0) or 0) if _ep is not None else 0.0
         _klass = ("FAST" if _mode == "bracket"
-                  else "LONG" if _tmult >= 0.99
-                  else "MEDIUM" if _tmult > 0 else "LEGACY")
+                  else "RECOVERED" if _ep is None
+                  else "ATR-TRAIL" if _tmult > 0
+                  else "FIXED")
         _exit_info = {"exit_mode": _mode, "exit_class": _klass}
         if _mode == "bracket":
             _tp  = float(getattr(mgr, "tp_pips", 0) or 0)
@@ -252,10 +253,19 @@ def _state(engine: "Engine") -> dict:
                 "timeout_left_min": round(max(0.0, _tmo - elapsed), 1) if _tmo else None,
             })
         else:
+            if _ep is not None:
+                _eng, _trl, _tm = float(getattr(_ep, "trigger_pips", 0) or 0), float(getattr(_ep, "trail_pips", 0) or 0), _tmult
+            else:
+                # recovered position: no per-cell exit_params -> runs exit_config.json effective gear
+                _ec = _read_exit_config()
+                _base = _ec.get("defaults", _ec)
+                _pp = (_ec.get("per_pair") or {}).get(pair) or {}
+                _dfl = {**_base, **_pp}
+                _eng, _trl, _tm = float(_dfl.get("step_trigger_pips", 7.5)), float(_dfl.get("step_trail_pips", 2.5)), 0.0
             _exit_info.update({
-                "engage_pips": round(float(getattr(_ep, "trigger_pips", 0) or 0), 2) if _ep else None,
-                "trail_pips":  round(float(getattr(_ep, "trail_pips", 0) or 0), 2) if _ep else None,
-                "trail_mult":  _tmult or None,
+                "engage_pips": round(_eng, 2),
+                "trail_pips":  round(_trl, 2),
+                "trail_mult":  _tm or None,
             })
 
         open_positions.append({
